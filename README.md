@@ -4,11 +4,12 @@
 
 # Kodama
 
-A mascot on your desktop and an app on your phone that tell you when your **Claude Code** chats (and Codex and
-Antigravity) need you, and let you answer them without going back to the chat.
+**A free desktop cat for Windows that tells you when Claude Code, Codex or Antigravity is waiting for you,** and lets you approve permissions and reply from your phone.
+
+Works with the Claude desktop app. The phone side is a web app (PWA): nothing to install from an app store, and no Kodama account.
 
 **Free.** The source code is published here under the **PolyForm Noncommercial 1.0.0** license (source-available: free for
-noncommercial use, not open source). You can also **download releases, report problems and suggest ideas**. See it in action on the **[Kodama in action](https://lshinox.github.io/kodama/)** page.
+noncommercial use, not open source). You can also **download releases, report problems and suggest ideas**. See it in action on the **[project page](https://lshinox.github.io/kodama/)**.
 
 | It notifies you | Reply from your phone | Settings on your PC |
 |:---:|:---:|:---:|
@@ -18,7 +19,7 @@ noncommercial use, not open source). You can also **download releases, report pr
 ## What it does
 - **A hand-animated cat** that lives next to the clock and changes with your chat: it waits, works, writes to you, receives your reply, sleeps or gets stuck. You pick the color (black, orange, white, blue-gray or tuxedo) and the eye style. Brote is still available as an alternative.
 - **A capsule with everything inside:** the notification, the bubble and the quick replies come out of a white or black capsule attached to the mascot. It is optional (Settings).
-- **Reply and approve from your phone:** an iPhone-style app (over your own private network, Tailscale) or through Telegram. Permissions are approved with Allow, Deny (with a reason), "Always allow this" or "Allow for this task".
+- **Reply and approve from your phone:** an iPhone-style web app (PWA: you add it to the home screen, no App Store) over your own private network (Tailscale), or through Telegram. Permissions are approved with Allow, Deny (with a reason), "Always allow this" or "Allow for this task".
 - **Task progress:** you see "3/7" on the chat card and next to its name in the bubble.
 - **Thinking and running:** it tells whether the chat is thinking or running a command, a web search or a subagent.
 - **Chats waiting for you:** a list inside the bubble, with archive per row.
@@ -28,7 +29,15 @@ noncommercial use, not open source). You can also **download releases, report pr
 - **What's new:** when you update, Settings tells you what changed in that version.
 
 ## Install (Windows)
-You need the **Claude desktop app**. Two ways, pick one:
+**Requirements**
+- Windows 10 or 11.
+- The **Claude desktop app**.
+- Python 3.10 or newer. If it is missing, the installer offers to install it for you (Python 3.12 with winget, ~30 MB).
+- Optional, for the phone: Telegram (a bot of your own) or Tailscale.
+- The phone app is a **web app (PWA)**: you open it in your phone's browser and add it to the home screen. There is nothing to install from the App Store or Google Play.
+- To uninstall, see [Uninstall](#uninstall).
+
+Two ways to install, pick one:
 
 **A. Tell your Claude.** In a chat on the Code tab, type:
 > Install Kodama from github.com/LShinox/kodama
@@ -42,14 +51,22 @@ It is installed in your user folder (`Kodama`). If Python is missing, it offers 
 when it finishes; your new chats will already notify you.
 
 After that, it updates from the cat's menu (next to the Windows clock): when a new version is available,
-"Update to …" appears. Every version is **signed**: if the file is not the original, it is not installed.
+"Update to …" appears. Every update is verified with Kodama's own digital signature (public key in `clave_publica.txt`)
+before it is installed: if the file is not the original, it is not installed. This is not Windows code signing, so Windows
+may still show its own warnings.
+
+### Uninstall
+From the `Kodama` folder, run `python instalar.py --quitar`. It removes Kodama's hooks and usage status line from
+`~\.claude\settings.json`, the Codex and Antigravity hooks, and the Windows task. Your data stays in `Kodama\estado`;
+add `--borrar-datos` to delete it too, and `--restaurar` to put `settings.json` back exactly as it was before
+installing. Then delete the `Kodama` folder.
 
 ### Instructions for Claude (if you were asked to install Kodama)
 Ask the questions with your multiple-choice question tool (**AskUserQuestion**), one card per step. If the cards
 don't show up, ask the same thing in text. **Never ask the user for a key or a token in the chat.**
 
 1. **"License" card:** summarize the license in 3 lines (`LICENSE.txt`: the code is under PolyForm Noncommercial 1.0.0; the art, animations and the name "Kodama" are all rights reserved), and what gets touched on their PC (the
-   hooks in `~\.claude\settings.json`, with a backup; a Windows task "Companero"; and, if they have them, the Codex and
+   hooks in `~\.claude\settings.json`, with a backup; a Windows task "Kodama"; and, if they have them, the Codex and
    Antigravity hooks; Python via winget if it is missing). Options: *I accept and install* / *No, thanks*.
 2. **"Phone" card:** how they want notifications on their phone. Options: *Telegram only (nothing else to install)* /
    *Phone app (with Tailscale, the full one)* / *Both* / *PC only for now*.
@@ -62,6 +79,34 @@ don't show up, ask the same thing in text. **Never ask the user for a key or a t
    Telegram or the phone app, tell them to follow the steps of **"Connect phone"** in the cat's menu (that is where they paste
    their Telegram token or scan the Tailscale QR codes, never in this chat).
 
+## Privacy: what Kodama touches and what it sends
+**What it touches on your PC**
+- **Claude hooks:** it adds its own hooks (and a usage status line, only if you don't already have one) to `~\.claude\settings.json`, merged without overwriting yours. A timestamped backup copy is made first, next to it.
+- **Other agents:** if you have Codex or Antigravity, it adds its hooks to `~\.codex\hooks.json` and `~\.gemini\config\hooks.json`, also with a backup.
+- **A Windows task** named "Kodama" that starts Kodama when you sign in and, every 10 minutes, checks that it is running.
+- Its files live in the `Kodama` folder of your user profile, including a private Python environment (`.venv`).
+
+**What reaches your phone**
+- The hooks read the chat's state, the text of your prompts, the assistant's last message, notifications and permission requests, only to show them in the capsule and on your phone. The text of a chat's messages is kept only for the chats that go to your phone.
+- That text stays on your PC (Kodama's local server listens only on `127.0.0.1`) until it is sent to your phone.
+
+**Where it goes**
+- **Phone app:** the traffic goes over your own Tailscale private network, between your PC and your phone.
+- **Phone notifications** use the standard Web Push service of your phone's system (Apple, Google or similar); the notification text is encrypted for your device.
+- **Telegram:** if you connect it, the text you see in Telegram goes through Telegram's servers.
+- Besides that, Kodama only contacts GitHub (to look for updates) and, while installing, PyPI (one small package) and winget (only if Python is missing).
+
+**What it does not do:** there is no Kodama server, no Kodama account and no telemetry: the code contains no analytics or tracking calls. The problem report (cat's menu) is a file you review before sending, and it leaves out your messages and keys.
+
+## Why not X?
+Kodama is not trying to replace these; if one of them fits you better, use it.
+
+| If you want… | Consider | Kodama adds |
+|---|---|---|
+| To continue the same Claude Code session from your phone, in Claude's own app | Claude's official **Remote Control** (included in Pro, Max, Team and Enterprise plans) | A visible cat on your desktop, Codex and Antigravity too, and no dependence on a Pro or Max plan |
+| A full mobile app, with native iOS and Android apps, for several models | **Happy** (free, MIT, end-to-end encrypted) | A mascot and capsule on the Windows desktop, with a light alert layer instead of a full app |
+| Notifications in the MacBook notch | **Vibe Notch**, **CodeIsland** (macOS only) | The same idea on Windows |
+
 ## Something not working?
 In the cat's menu: **Report a problem**. It builds a file with what is needed to find the error (without your
 messages or your keys), leaves it on your Desktop and opens the form here. Review the file and drag it onto the
@@ -73,21 +118,21 @@ form.
   published with your name in the credits; by contributing it you agree that it becomes part of Kodama.
 
 ## Goals and wish list
-Kodama is free. **We accept voluntary contributions** ([Sponsor](https://github.com/sponsors/LShinox)): everything
-that comes in is invested in these goals, in this order, and each one is announced right here when it is reached.
+Kodama is free and stays free. Contributions are voluntary ([Sponsor](https://github.com/sponsors/LShinox)).
 
-| Goal | Progress | What for |
-|---|---|---|
-| Windows code signing | `░░░░░░░░░░` 0 % | So Windows doesn't show "unknown publisher" when installing |
-| Connection without Tailscale | `░░░░░░░░░░` 0 % | A server of our own to connect the phone without installing anything else |
-| Apple license | `░░░░░░░░░░` 0 % | Mac version and iPhone app with Dynamic Island |
-| More animations | `░░░░░░░░░░` 0 % | New gestures and variants of the cat, so it never looks the same |
-| WhatsApp (optional, with a cost) | `░░░░░░░░░░` 0 % | Notifications and replies through WhatsApp too, in addition to Telegram and the app. Notifications you don't trigger are template messages that Meta charges per message, at a rate that varies by country and is not yet confirmed. It is not yet decided who pays for it: a Kodama number (the project covers it) or your own number (you pay Meta directly). Telegram and the app remain free |
-| Minigames and care mode | `░░░░░░░░░░` 0 % | Short games while your chats work, and a pet you take care of (tamagotchi style), the same on PC and phone. They are turned on and off in Settings |
-| More mascots | `░░░░░░░░░░` 0 % | The cat is the main mascot; Brote remains as an alternative and grows according to what the community asks for |
+Things sponsoring helps with:
+- A Mac version and an iPhone app.
+- Connecting without Tailscale, with a server of our own.
+- More animations for the cat.
+- WhatsApp (optional; Meta charges per message, so it would carry a cost).
+- Minigames and a care mode (tamagotchi style).
+- More mascots.
+- A Microsoft Store version.
+
+I keep working on these anyway, with or without contributions.
 
 **Community wish list:** want something that isn't here? Open an issue with the label *deseo* (wish). The ones
-that gather the most 👍 move up to the goals table.
+that gather the most 👍 move up this list.
 
 ---
 ## License

@@ -4,8 +4,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kodama in action</title>
-<meta name="description" content="Kodama: a mascot on your desktop and an app on your phone that tell you when your Claude Code chats need you." data-k-content="meta">
+<title>Kodama — a desktop cat that tells you when Claude Code needs you</title>
+<meta name="description" content="A free desktop cat for Windows that tells you when Claude Code, Codex or Antigravity is waiting for you, and lets you approve permissions and reply from your phone." data-k-content="meta">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Kodama">
+<meta property="og:title" content="Kodama — a desktop cat that tells you when Claude Code needs you">
+<meta property="og:description" content="A free desktop cat for Windows that tells you when Claude Code, Codex or Antigravity is waiting for you, and lets you approve permissions and reply from your phone.">
+<meta property="og:image" content="https://lshinox.github.io/kodama/img/social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:url" content="https://lshinox.github.io/kodama/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Kodama — a desktop cat that tells you when Claude Code needs you">
+<meta name="twitter:description" content="A free desktop cat for Windows that tells you when Claude Code, Codex or Antigravity is waiting for you, and lets you approve permissions and reply from your phone.">
+<meta name="twitter:image" content="https://lshinox.github.io/kodama/img/social-preview.png">
 <link rel="icon" href="img/icono.png">
 <style>
   :root { --bg:#f5f1ea; --card:#fff; --tx:#1c1c1e; --sub:#6f6a64; --verde:#4fae2e; --linea:rgba(60,55,50,.12); }
@@ -32,6 +44,10 @@
   h2 { font-size:clamp(24px, 3.4vw, 32px); letter-spacing:-.4px; margin:0 0 10px; }
   .bloque p, .bloque li { color:var(--sub); } .bloque ul { padding-left:20px; margin:8px 0 0; }
   .metas { max-width:720px; margin:0 auto 56px; } .metas h2 { margin-bottom:8px; } .metas p, .metas li { color:var(--sub); } .metas ul { padding-left:20px; margin:8px 0 14px; } .metas a { color:var(--tx); }
+  .req { color:var(--sub); font-size:15px; max-width:60ch; margin:18px auto 0; }
+  .req a { color:var(--tx); }
+  .porque { max-width:720px; margin:0 auto 56px; } .porque h2 { margin-bottom:8px; } .porque p { color:var(--sub); } .porque a { color:var(--tx); }
+  .porque table { width:100%; border-collapse:collapse; font-size:15px; margin:12px 0; } .porque th, .porque td { text-align:left; vertical-align:top; padding:8px 10px; border-bottom:1px solid var(--linea); color:var(--sub); } .porque th { color:var(--tx); }
   footer { text-align:center; color:var(--sub); font-size:14px; border-top:1px solid var(--linea); padding-top:22px; }
   footer a { color:var(--tx); }
 </style>
@@ -46,8 +62,9 @@
   <header>
     <img src="img/icono.png" alt="">
     <h1>Kodama</h1>
-    <p data-k="sub">A mascot on your desktop and an app on your phone that tell you when your Claude Code chats need you.</p>
+    <p data-k="sub"><b>A free desktop cat for Windows that tells you when Claude Code, Codex or Antigravity is waiting for you,</b> and lets you approve permissions and reply from your phone.</p>
     <a class="cta" data-k="cta1" data-k-href="cta1h" href="https://github.com/LShinox/kodama#install-windows">Install on Windows</a><a class="cta sec" data-k="cta2" href="https://github.com/LShinox/kodama/releases/latest">Downloads</a>
+    <p class="req" data-k="req">Windows 10/11 · works with the Claude desktop app · the phone side is a web app (PWA): nothing to install from an app store. <a href="https://github.com/LShinox/kodama#install-windows">Requirements</a></p>
   </header>
 
   <section class="bloque">
@@ -61,8 +78,8 @@
   <section class="bloque inv">
     <div class="media"><img src="img/celular.gif" width="273" height="546" data-k-alt="alt2" alt="The phone app: chats, a permission with Allow and Deny, and the lock" loading="lazy"></div>
     <div><h2 data-k="h2">Reply and approve from your phone</h2>
-      <p data-k="p2a">An iPhone-style app: what is waiting for you on Home, all your chats like in Messages, and permissions in a sheet with Allow, Deny (with a reason), “Always allow this” or “Allow for this task”.</p>
-      <p data-k="p2b">It works over your own private network (Tailscale) or through Telegram. Nothing goes through third-party servers.</p>
+      <p data-k="p2a">An iPhone-style web app (PWA: you add it to the home screen, no App Store): what is waiting for you on Home, all your chats like in Messages, and permissions in a sheet with Allow, Deny (with a reason), “Always allow this” or “Allow for this task”.</p>
+      <p data-k="p2b">With the phone app, traffic goes over your own Tailscale private network. With Telegram, messages go through Telegram's servers. Kodama has no server of its own, no account and no telemetry. <a href="https://github.com/LShinox/kodama#privacy-what-kodama-touches-and-what-it-sends">What Kodama touches and what it sends</a>.</p>
       <p data-k="p2c">If a device that is not your phone signs in to your account, the alarm sounds and it is not let in. You can lock the phone from the phone itself or from the PC; it can only be unlocked on the PC.</p></div>
   </section>
 
@@ -74,18 +91,30 @@
       <p data-k="p3c">With deep sleep, when nothing changes the mascot stays still and uses much less CPU.</p></div>
   </section>
 
+  <section class="porque">
+    <h2 data-k="h5">Why not X?</h2>
+    <p data-k="pq">Kodama is not trying to replace these; if one of them fits you better, use it.</p>
+    <table data-k="tq"><thead><tr><th>If you want…</th><th>Consider</th><th>Kodama adds</th></tr></thead><tbody>
+      <tr><td>To continue the same Claude Code session from your phone, in Claude's own app</td><td>Claude's official <b>Remote Control</b> (included in Pro, Max, Team and Enterprise plans)</td><td>A visible cat on your desktop, Codex and Antigravity too, and no dependence on a Pro or Max plan</td></tr>
+      <tr><td>A full mobile app, with native iOS and Android apps, for several models</td><td><b>Happy</b> (free, MIT, end-to-end encrypted)</td><td>A mascot and capsule on the Windows desktop, with a light alert layer instead of a full app</td></tr>
+      <tr><td>Notifications in the MacBook notch</td><td><b>Vibe Notch</b>, <b>CodeIsland</b> (macOS only)</td><td>The same idea on Windows</td></tr>
+    </tbody></table>
+  </section>
+
   <section class="metas">
     <h2 data-k="h4">What's coming</h2>
-    <p data-k="pm">Kodama is free. Voluntary contributions (<a href="https://github.com/sponsors/LShinox">Sponsor</a>) are invested in these goals:</p>
-    <ul>
-      <li data-k="m1">Windows code signing, so “unknown publisher” doesn't show up when installing.</li>
-      <li data-k="m2">Connection without Tailscale, with a server of our own.</li>
-      <li data-k="m3">Mac version and iPhone app.</li>
-      <li data-k="m4">More animations for the cat.</li>
-      <li data-k="m5"><b>WhatsApp (optional, with a cost):</b> notifications and replies through WhatsApp too. Meta charges for template messages, at a rate that varies by country and is not yet confirmed; it is not yet decided who pays for it. Telegram and the app remain free.</li>
-      <li data-k="m6">Minigames and care mode (tamagotchi style), if there is support.</li>
-      <li data-k="m7">More mascots: the cat is the main one and Brote remains as an alternative.</li>
+    <p data-k="pm">Kodama is free and stays free. Contributions are voluntary (<a href="https://github.com/sponsors/LShinox">Sponsor</a>).</p>
+    <p data-k="pm2">Things sponsoring helps with:</p>
+    <ul data-k="lm">
+      <li>A Mac version and an iPhone app.</li>
+      <li>Connecting without Tailscale, with a server of our own.</li>
+      <li>More animations for the cat.</li>
+      <li>WhatsApp (optional; Meta charges per message, so it would carry a cost).</li>
+      <li>Minigames and a care mode (tamagotchi style).</li>
+      <li>More mascots.</li>
+      <li>A Microsoft Store version.</li>
     </ul>
+    <p data-k="pm3">I keep working on these anyway, with or without contributions.</p>
     <p data-k="pw">Want something that isn't here? <a href="https://github.com/LShinox/kodama/issues">Open an issue</a> with the label <em>deseo</em> (wish).</p>
   </section>
 
@@ -95,9 +124,10 @@
 (function () {
   "use strict";
   var ES = {
-    title: "Kodama en acción",
-    meta: "Kodama: una mascota en tu escritorio y una app en tu celular que te avisan cuando tus chats de Claude Code te necesitan.",
-    sub: "Una mascota en tu escritorio y una app en tu celular que te avisan cuando tus chats de Claude Code te necesitan.",
+    title: "Kodama — un gato de escritorio que te avisa cuando Claude Code te necesita",
+    meta: "Un gato gratis para el escritorio de Windows que te avisa cuando Claude Code, Codex o Antigravity te esperan, y te deja aprobar permisos y responder desde el celular.",
+    sub: "<b>Un gato gratis para el escritorio de Windows que te avisa cuando Claude Code, Codex o Antigravity te esperan,</b> y te deja aprobar permisos y responder desde el celular.",
+    req: "Windows 10/11 · funciona con la app de escritorio de Claude · la parte del celular es una app web (PWA): nada que instalar desde una tienda de apps. <a href=\"https://github.com/LShinox/kodama/blob/main/README.es.md#instalar-windows\">Requisitos</a>",
     cta1: "Instalar en Windows",
     cta1h: "https://github.com/LShinox/kodama/blob/main/README.es.md#instalar-windows",
     cta2: "Descargas",
@@ -108,8 +138,8 @@
     p1b: "El aviso, el globo y las respuestas rápidas salen de una cápsula blanca o negra pegada a la mascota. También puedes soltar archivos sobre ella: los agarra con las patitas y los envías al chat que elijas.",
     alt2: "La app del celular: chats, un permiso con Permitir y Denegar y el bloqueo",
     h2: "Responde y aprueba desde el celular",
-    p2a: "Una app con el diseño de iPhone: lo que te espera en Inicio, todos tus chats como en Mensajes, y los permisos en una hoja con Permitir, Denegar (con motivo), «Permitir siempre esto» o «Permitir en esta tarea».",
-    p2b: "Funciona por tu propia red privada (Tailscale) o por Telegram. Nada pasa por servidores de terceros.",
+    p2a: "Una app web con el diseño de iPhone (PWA: la añades a la pantalla de inicio, sin App Store): lo que te espera en Inicio, todos tus chats como en Mensajes, y los permisos en una hoja con Permitir, Denegar (con motivo), «Permitir siempre esto» o «Permitir en esta tarea».",
+    p2b: "Con la app del celular, el tráfico va por tu propia red privada de Tailscale. Con Telegram, los mensajes pasan por los servidores de Telegram. Kodama no tiene servidor propio, ni cuentas, ni telemetría. <a href=\"https://github.com/LShinox/kodama/blob/main/README.es.md#privacidad-qué-toca-kodama-y-qué-envía\">Qué toca Kodama y qué envía</a>.",
     p2c: "Si entra a tu cuenta un aparato que no es tu celular, suena la alarma y no lo deja pasar. Puedes bloquear el celular desde el propio celular o desde la PC; solo se desbloquea en la PC.",
     alt3: "La ventana de Ajustes sale de la mascota y muestra Lo nuevo",
     h3: "Ajustes con el mismo diseño",
@@ -117,14 +147,13 @@
     p3b: "Lo que cambias en la PC se pasa al celular, y al revés.",
     p3c: "Con el sueño profundo, cuando nada cambia la mascota se queda quieta y gasta mucho menos CPU.",
     h4: "Lo que viene",
-    pm: "Kodama es gratis. Los aportes voluntarios (<a href=\"https://github.com/sponsors/LShinox\">Sponsor</a>) se invierten en estas metas:",
-    m1: "Firma de Windows, para que no aparezca «editor desconocido» al instalar.",
-    m2: "Conexión sin Tailscale, con un servidor propio.",
-    m3: "Versión para Mac y app de iPhone.",
-    m4: "Más animaciones del gato.",
-    m5: "<b>WhatsApp (opcional, con costo):</b> avisos y respuestas también por WhatsApp. Meta cobra los mensajes de plantilla, con una tarifa que cambia según el país y que todavía no está confirmada; aún no está decidido quién la paga. Telegram y la app siguen siendo gratis.",
-    m6: "Minijuegos y modo cuidado (tipo tamagotchi), si hay apoyo.",
-    m7: "Más mascotas: el gato es la principal y Brote sigue como alternativa.",
+    pm: "Kodama es gratis y seguirá siéndolo. Los aportes son voluntarios (<a href=\"https://github.com/sponsors/LShinox\">Sponsor</a>).",
+    pm2: "Cosas en las que ayuda patrocinar:",
+    lm: "<li>Una versión para Mac y una app de iPhone.</li><li>Conectarse sin Tailscale, con un servidor propio.</li><li>Más animaciones del gato.</li><li>WhatsApp (opcional; Meta cobra por mensaje, así que tendría un costo).</li><li>Minijuegos y un modo cuidado (tipo tamagotchi).</li><li>Más mascotas.</li><li>Una versión para Microsoft Store.</li>",
+    pm3: "Sigo trabajando en esto de todos modos, con o sin aportes.",
+    h5: "¿Por qué no X?",
+    pq: "Kodama no pretende reemplazar a estas herramientas; si alguna te sirve mejor, úsala.",
+    tq: "<thead><tr><th>Si quieres…</th><th>Prueba</th><th>Kodama aporta</th></tr></thead><tbody><tr><td>Continuar la misma sesión de Claude Code desde el celular, en la app de Claude</td><td><b>Remote Control</b> oficial de Claude (incluido en los planes Pro, Max, Team y Enterprise)</td><td>Un gato visible en el escritorio, Codex y Antigravity también, y no depende de un plan Pro o Max</td></tr><tr><td>Una app móvil completa, con apps nativas de iOS y Android, para varios modelos</td><td><b>Happy</b> (gratis, MIT, cifrado de extremo a extremo)</td><td>Una mascota y una cápsula en el escritorio de Windows, con una capa de avisos ligera en vez de una app completa</td></tr><tr><td>Avisos en el notch del MacBook</td><td><b>Vibe Notch</b>, <b>CodeIsland</b> (solo macOS)</td><td>La misma idea en Windows</td></tr></tbody>",
     pw: "¿Quieres algo que no está? <a href=\"https://github.com/LShinox/kodama/issues\">Abre un issue</a> con la etiqueta <em>deseo</em>.",
     foot: "Gratis · código disponible (PolyForm Noncommercial) · <a href=\"https://github.com/LShinox/kodama/issues\">Reportar un problema o proponer una idea</a>"
   };
