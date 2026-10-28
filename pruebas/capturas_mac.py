@@ -286,7 +286,8 @@ def foto(out, nombre, modo, d, pid, exe_ventanas, base_sha, region=None, zoom=1)
     except Exception as e:
         rc, err = -1, str(e)
     tam = os.path.getsize(f) if os.path.exists(f) else 0
-    if tam and region:
+    solo = [x.strip() for x in os.environ.get("KODAMA_PREVIEW_SOLO", "").split(",") if x.strip()]   # empty = all the shots that have a region
+    if tam and region and (not solo or nombre.split("-")[0] in solo):
         previsualizar(out, nombre, f, region, zoom)
     wi = ventanas(exe_ventanas, pid)
     RESUMEN.append({"nombre": nombre, "modo": modo, "rc": rc, "stderr": err, "bytes": tam, "igual_al_fondo": bool(tam and sha(f) == base_sha),
@@ -436,7 +437,7 @@ def main():
             hub_set("permiso", "en")
             d, ok = esperar(work, lambda d: d.get("asomo") and abierta(d), 40, "A: permission notice expanded")
             time.sleep(1.0)
-            foto(out, "A06-island-permission-expanded-en", "auto + simulated notch", pedir(work) or d, pet.pid, exe_v, base_sha, None)
+            foto(out, "A06-island-permission-expanded-en", "auto + simulated notch", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(170))
             pedir(work, "kodama:globo")
             d, ok = esperar(work, lambda d: d.get("globo"), 20, "A: bubble open (permission)")
             time.sleep(1.4)
@@ -486,7 +487,7 @@ def main():
             hub_set("pregunta", "en")
             d, ok = esperar(work, lambda d: d.get("asomo"), 40, "C: question notice")
             time.sleep(1.2)
-            foto(out, "C02-normal-mode-question-en", "no (normal pet)", pedir(work) or d, pet.pid, exe_v, base_sha, None)
+            foto(out, "C02-normal-mode-question-en", "no (normal pet)", pedir(work) or d, pet.pid, exe_v, base_sha, (612, 470, 412, 230))
             pet.parar()
             pet = None
 
@@ -612,7 +613,7 @@ def resumen(out):
         f.write(texto)
     with open(os.path.join(out, "resumen.json"), "w", encoding="utf-8") as f:
         json.dump({"veredicto": veredicto, "fotos": fotos, "notas": NOTAS}, f, indent=1, default=str)
-    # compact annotation 1: where each window is, and the Accessory check
+    # compact annotations (a GitHub annotation message is cut at ~4 KB): 1 = where each window is + the Accessory check; 2 = language labels; 3 = cat size
     comp = [veredicto]
     for x in fotos:
         d = x["pagina"] or {}
@@ -620,21 +621,27 @@ def resumen(out):
         w = ""
         for v in (wi.get("windows") or []):
             b = v.get("bounds") or {}
-            w += "L%s@(%s,%s)%sx%s on=%s " % (v.get("layer"), b.get("X"), b.get("Y"), b.get("Width"), b.get("Height"), v.get("onscreen"))
-        comp.append("%s | isla=%s | %s| policy=%s menubar=%s front=%s | %sB | =fondo:%s | rc=%s" % (
-            x["nombre"], json.dumps(d.get("isla")) if d else "no-answer", w, wi.get("activationPolicy"), wi.get("menuBarOwner"), wi.get("frontmost"),
-            x["bytes"], x["igual_al_fondo"], x["rc"]))
-    if scr:
-        comp.append("screens: " + json.dumps(scr))
-    anotar("notice", "Kodama island screenshots", "\n".join(comp))
-    # compact annotation 2: language check (page language + visible labels) and where the cat is, for every shot that answered
+            if v.get("onscreen"):
+                w += "L%s@(%s,%s)%sx%s " % (v.get("layer"), b.get("X"), b.get("Y"), b.get("Width"), b.get("Height"))
+        isla = d.get("isla")
+        comp.append("%s|%s|%s|pol=%s bar=%s front=%s|%sB%s" % (x["nombre"][:3], json.dumps(isla, separators=(",", ":")) if isla else "-", w, wi.get("activationPolicy"), wi.get("menuBarOwner"),
+                                                              wi.get("frontmost"), x["bytes"] // 1000, "|=bg" if x["igual_al_fondo"] else ""))
+    anotar("notice", "Kodama island screenshots", "\n".join(comp)[:3900])
     idi = []
     for x in fotos:
         d = x["pagina"] or {}
-        if d:
-            idi.append("%s | idioma=%s | rotulos=%s | foco=%s activo=%s | pie=%s | pj=%s" % (x["nombre"], d.get("idioma"), json.dumps(d.get("rotulos")), d.get("foco"), d.get("activo"), d.get("pieRect"), d.get("pjRect")))
+        if d and x["nombre"][:3] in ("A04", "A07", "C02", "D02", "D03"):
+            rot = [r for r in (d.get("rotulos") or []) if r and not r.endswith("=")]
+            idi.append("%s|lang=%s|%s|focus=%s active=%s" % (x["nombre"][:3], d.get("idioma"), "; ".join(rot), d.get("foco"), d.get("activo")))
     if idi:
-        anotar("notice", "Kodama language and cat check", "\n".join(idi))
+        anotar("notice", "Kodama language check", "\n".join(idi)[:3900])
+    gat = []
+    for x in fotos:
+        d = x["pagina"] or {}
+        if d and x["nombre"][:3] in ("A01", "A02", "A04", "B01", "C01"):
+            gat.append("%s|pie=%s|pj=%s" % (x["nombre"][:3], d.get("pieRect"), d.get("pjRect")))
+    if gat:
+        anotar("notice", "Kodama cat size", "\n".join(gat))
     if NOTAS:
         anotar("warning", "Kodama island notes", "\n".join(NOTAS))
     gs = os.environ.get("GITHUB_STEP_SUMMARY")
