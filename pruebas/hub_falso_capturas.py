@@ -9,6 +9,7 @@ Usage: python hub_falso_capturas.py <port>
   everything else      -> minimal answers so the pet and its Settings panel have something to show
 """
 import json
+import socketserver
 import sys
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -115,5 +116,15 @@ class H(BaseHTTPRequestHandler):
         return self._json({"ok": True})
 
 
+class Servidor(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def server_bind(self):
+        # HTTPServer.server_bind calls socket.getfqdn(), which can block for many seconds on a macOS runner (reverse DNS) BEFORE the socket listens
+        socketserver.TCPServer.server_bind(self)
+        self.server_name = "127.0.0.1"
+        self.server_port = self.server_address[1]
+
+
 if __name__ == "__main__":
-    ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), H).serve_forever()
+    Servidor(("127.0.0.1", int(sys.argv[1])), H).serve_forever()

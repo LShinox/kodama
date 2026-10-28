@@ -26,6 +26,7 @@ import urllib.request
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 PUERTO = 8791
+ACTUAL = {"pet": None}   # the pet process in use (so the waits notice if it died)
 RESUMEN = []     # one dict per screenshot
 NOTAS = []
 
@@ -81,6 +82,10 @@ def esperar(work, cond, timeout=45.0, que=""):
     t0 = time.time()
     ult = None
     while time.time() - t0 < timeout:
+        pa = ACTUAL.get("pet")
+        if pa is not None and pa.p.poll() is not None:
+            NOTAS.append("the pet process exited (rc=%s) while waiting for: %s" % (pa.p.poll(), que))
+            return ult, False
         d = pedir(work)
         if d is not None:
             ult = d
@@ -145,8 +150,10 @@ class Pet:
         self.log = open(os.path.join(work, "pet-%s.log" % etiqueta), "w")
         self.p = subprocess.Popen([binario], cwd=work, env=env, stdout=self.log, stderr=subprocess.STDOUT, start_new_session=True)
         self.pid = self.p.pid
+        ACTUAL["pet"] = self
 
     def parar(self):
+        ACTUAL["pet"] = None
         # only the process we started, by its PID (Popen handle); children of the webview are system XPC services that exit with it
         try:
             self.p.terminate()
@@ -232,76 +239,93 @@ def main():
         def lista(d):
             return d is not None and d.get("isla") is not None
 
-        # ---------- A: island with a SIMULATED notch (conf "auto"; the runner has no real notch) ----------
-        escribir_conf(work, "auto")
-        pet = Pet(a.bin, work, {"KODAMA_ISLA_MUESCA_PRUEBA": "190x32"}, "A")
-        d, ok = esperar(work, lambda d: lista(d) and d.get("estado") is not None, 60, "A: island up and state loaded")
-        time.sleep(2)
-        d = pedir(work) or d
-        foto(out, "A1-isla-muesca-reposo", "auto + muesca simulada", d, pet.pid, exe_v, base_sha)
+        def sec_A():
+            nonlocal pet
+            # ---------- A: island with a SIMULATED notch (conf "auto"; the runner has no real notch) ----------
+            escribir_conf(work, "auto")
+            pet = Pet(a.bin, work, {"KODAMA_ISLA_MUESCA_PRUEBA": "190x32"}, "A")
+            d, ok = esperar(work, lambda d: lista(d) and d.get("estado") is not None, 60, "A: island up and state loaded")
+            time.sleep(2)
+            d = pedir(work) or d
+            foto(out, "A1-isla-muesca-reposo", "auto + muesca simulada", d, pet.pid, exe_v, base_sha)
 
-        hub_set("trabajando")
-        d, ok = esperar(work, lambda d: d.get("estado") == "trabajando", 30, "A: working state")
-        time.sleep(1.5)
-        foto(out, "A2-isla-muesca-trabajando", "auto + muesca simulada", d, pet.pid, exe_v, base_sha)
+            hub_set("trabajando")
+            d, ok = esperar(work, lambda d: d.get("estado") == "trabajando", 30, "A: working state")
+            time.sleep(1.5)
+            foto(out, "A2-isla-muesca-trabajando", "auto + muesca simulada", d, pet.pid, exe_v, base_sha)
 
-        hub_set("pregunta")
-        d, ok = esperar(work, lambda d: d.get("asomo") and "abierta" in (d.get("isla") or [""])[0], 40, "A: question notice expanded")
-        time.sleep(0.9)
-        foto(out, "A3-isla-muesca-aviso-pregunta", "auto + muesca simulada", pedir(work) or d, pet.pid, exe_v, base_sha)
-        pedir(work, "kodama:globo")
-        d, ok = esperar(work, lambda d: d.get("globo"), 20, "A: bubble open (question)")
-        time.sleep(1.2)
-        foto(out, "A4-isla-muesca-globo-pregunta", "auto + muesca simulada", pedir(work) or d, pet.pid, exe_v, base_sha)
-        pedir(work, "kodama:globo")
-        esperar(work, lambda d: not d.get("globo") and "abierta" not in (d.get("isla") or [""])[0], 20, "A: bubble closed")
+            hub_set("pregunta")
+            d, ok = esperar(work, lambda d: d.get("asomo") and "abierta" in (d.get("isla") or [""])[0], 40, "A: question notice expanded")
+            time.sleep(0.9)
+            foto(out, "A3-isla-muesca-aviso-pregunta", "auto + muesca simulada", pedir(work) or d, pet.pid, exe_v, base_sha)
+            pedir(work, "kodama:globo")
+            d, ok = esperar(work, lambda d: d.get("globo"), 20, "A: bubble open (question)")
+            time.sleep(1.2)
+            foto(out, "A4-isla-muesca-globo-pregunta", "auto + muesca simulada", pedir(work) or d, pet.pid, exe_v, base_sha)
+            pedir(work, "kodama:globo")
+            esperar(work, lambda d: not d.get("globo") and "abierta" not in (d.get("isla") or [""])[0], 20, "A: bubble closed")
 
-        hub_set("reposo")
-        time.sleep(22)   # the pet shows one notice every 20 s at most
-        hub_set("permiso")
-        d, ok = esperar(work, lambda d: d.get("asomo") and "abierta" in (d.get("isla") or [""])[0], 40, "A: permission notice expanded")
-        time.sleep(0.9)
-        foto(out, "A5-isla-muesca-aviso-permiso", "auto + muesca simulada", pedir(work) or d, pet.pid, exe_v, base_sha)
-        pedir(work, "kodama:globo")
-        d, ok = esperar(work, lambda d: d.get("globo"), 20, "A: bubble open (permission)")
-        time.sleep(1.2)
-        foto(out, "A6-isla-muesca-globo-permiso", "auto + muesca simulada", pedir(work) or d, pet.pid, exe_v, base_sha)
-        pedir(work, "kodama:globo")
-        esperar(work, lambda d: not d.get("globo"), 20, "A: bubble closed 2")
+            hub_set("reposo")
+            time.sleep(22)   # the pet shows one notice every 20 s at most
+            hub_set("permiso")
+            d, ok = esperar(work, lambda d: d.get("asomo") and "abierta" in (d.get("isla") or [""])[0], 40, "A: permission notice expanded")
+            time.sleep(0.9)
+            foto(out, "A5-isla-muesca-aviso-permiso", "auto + muesca simulada", pedir(work) or d, pet.pid, exe_v, base_sha)
+            pedir(work, "kodama:globo")
+            d, ok = esperar(work, lambda d: d.get("globo"), 20, "A: bubble open (permission)")
+            time.sleep(1.2)
+            foto(out, "A6-isla-muesca-globo-permiso", "auto + muesca simulada", pedir(work) or d, pet.pid, exe_v, base_sha)
+            pedir(work, "kodama:globo")
+            esperar(work, lambda d: not d.get("globo"), 20, "A: bubble closed 2")
 
-        hub_set("reposo")
-        pedir(work, "kodama:ajustes")
-        d, ok = esperar(work, lambda d: d.get("panel"), 20, "A: Settings open")
-        time.sleep(1.2)
-        foto(out, "A7-isla-muesca-ajustes", "auto + muesca simulada", pedir(work) or d, pet.pid, exe_v, base_sha)
-        pet.parar()
-        pet = None
+            hub_set("reposo")
+            pedir(work, "kodama:ajustes")
+            d, ok = esperar(work, lambda d: d.get("panel"), 20, "A: Settings open")
+            time.sleep(1.2)
+            foto(out, "A7-isla-muesca-ajustes", "auto + muesca simulada", pedir(work) or d, pet.pid, exe_v, base_sha)
+            pet.parar()
+            pet = None
 
-        # ---------- B: island WITHOUT notch (conf "si": pill just below the menu bar) ----------
-        escribir_conf(work, "si")
-        hub_set("reposo")
-        pet = Pet(a.bin, work, {}, "B")
-        d, ok = esperar(work, lambda d: lista(d) and d.get("estado") is not None, 60, "B: island up and state loaded")
-        time.sleep(2)
-        foto(out, "B1-isla-sin-muesca-reposo", "si, sin muesca", pedir(work) or d, pet.pid, exe_v, base_sha)
-        hub_set("pregunta")
-        d, ok = esperar(work, lambda d: d.get("asomo") and "abierta" in (d.get("isla") or [""])[0], 40, "B: question notice expanded")
-        time.sleep(0.9)
-        foto(out, "B2-isla-sin-muesca-aviso-pregunta", "si, sin muesca", pedir(work) or d, pet.pid, exe_v, base_sha)
-        pet.parar()
-        pet = None
+        def sec_B():
+            nonlocal pet
+            # ---------- B: island WITHOUT notch (conf "si": pill just below the menu bar) ----------
+            escribir_conf(work, "si")
+            hub_set("reposo")
+            pet = Pet(a.bin, work, {}, "B")
+            d, ok = esperar(work, lambda d: lista(d) and d.get("estado") is not None, 60, "B: island up and state loaded")
+            time.sleep(2)
+            foto(out, "B1-isla-sin-muesca-reposo", "si, sin muesca", pedir(work) or d, pet.pid, exe_v, base_sha)
+            hub_set("pregunta")
+            d, ok = esperar(work, lambda d: d.get("asomo") and "abierta" in (d.get("isla") or [""])[0], 40, "B: question notice expanded")
+            time.sleep(0.9)
+            foto(out, "B2-isla-sin-muesca-aviso-pregunta", "si, sin muesca", pedir(work) or d, pet.pid, exe_v, base_sha)
+            pet.parar()
+            pet = None
 
-        # ---------- C: normal pet (conf "no"), for comparison ----------
-        escribir_conf(work, "no")
-        hub_set("reposo")
-        pet = Pet(a.bin, work, {}, "C")
-        d, ok = esperar(work, lambda d: d.get("estado") is not None, 60, "C: normal pet up and state loaded")
-        time.sleep(3)
-        foto(out, "C1-normal-reposo", "no (mascota normal)", pedir(work) or d, pet.pid, exe_v, base_sha)
-        hub_set("pregunta")
-        d, ok = esperar(work, lambda d: d.get("asomo"), 40, "C: question notice")
-        time.sleep(1.2)
-        foto(out, "C2-normal-aviso-pregunta", "no (mascota normal)", pedir(work) or d, pet.pid, exe_v, base_sha)
+        def sec_C():
+            nonlocal pet
+            # ---------- C: normal pet (conf "no"), for comparison ----------
+            escribir_conf(work, "no")
+            hub_set("reposo")
+            pet = Pet(a.bin, work, {}, "C")
+            d, ok = esperar(work, lambda d: d.get("estado") is not None, 60, "C: normal pet up and state loaded")
+            time.sleep(3)
+            foto(out, "C1-normal-reposo", "no (mascota normal)", pedir(work) or d, pet.pid, exe_v, base_sha)
+            hub_set("pregunta")
+            d, ok = esperar(work, lambda d: d.get("asomo"), 40, "C: question notice")
+            time.sleep(1.2)
+            foto(out, "C2-normal-aviso-pregunta", "no (mascota normal)", pedir(work) or d, pet.pid, exe_v, base_sha)
+
+        for nom, fn in (("A", sec_A), ("B", sec_B), ("C", sec_C)):
+            try:
+                fn()
+            except Exception:
+                anotar("error", "capturas_mac section " + nom, traceback.format_exc())
+                NOTAS.append("section %s failed: see annotation" % nom)
+            finally:
+                if pet is not None:
+                    pet.parar()
+                    pet = None
     except Exception:
         anotar("error", "capturas_mac exception", traceback.format_exc())
         raise
@@ -328,6 +352,7 @@ def main():
                     pass
         shutil.rmtree(work, ignore_errors=True)
         resumen(out)   # also when something failed above: whatever was captured is reported
+    return 0 if RESUMEN else 1
 
 
 def resumen(out):
@@ -387,4 +412,4 @@ def resumen(out):
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
