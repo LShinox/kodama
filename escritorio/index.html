@@ -323,6 +323,8 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
       <div class="pie2" data-t>Es la misma mascota en la PC y en el celular.</div>
     </section>
     <section class="pg" data-p="uso"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Uso del plan</h2>
+      <div class="sec" id="aj-uso" hidden><div class="fi"><span id="aj-uso5l"></span><span class="v" id="aj-uso5"></span></div><div class="fi"><span id="aj-usowl"></span><span class="v" id="aj-usow"></span></div></div>
+      <div class="pie2" id="aj-uso-nota"></div>
       <div class="sec"><div class="fi"><span data-t>Usar el chat de Kodama para el dato exacto</span><span class="sw" id="aj-lectura"></span></div></div>
       <div class="pie2" id="aj-lectura-nota"></div>
     </section>
@@ -1556,6 +1558,14 @@ if (ajP) $("aj-ojos").onclick = async e => { const v = e.target.dataset.v; if (!
   await ajP.poner("pj", v); ajPersonaje(); ajPintar(); };   // (27-oct, 4.a vuelta) Ojos: con pupila = gatoPro, lisos = gato (se sincroniza igual que el personaje)
 async function ajLectura(cuerpo) {
   const j = await ajP.hub("/api/lectura-exacta", cuerpo || {}); $("aj-lectura").classList.toggle("si", !!j.activa);
+  // (28-oct) 5 h y semana con la hora LOCAL de reinicio: exacto si Claude Code se lo pasó a Kodama (statusLine), si no ≈ estimado
+  const u = j.uso || {}, hr = (x, largo) => { const f = new Date(x * 1000), h = f.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return largo ? f.toLocaleDateString([], { weekday: "short" }) + " " + h : h; },
+    val = (x, largo) => x && x.pct != null ? (x.estimado ? "≈ " : "") + Math.round(x.pct) + "%" + (x.reinicia ? " · ↻ " + hr(x.reinicia, largo) : "") : "—";
+  $("aj-uso").hidden = !(u["5h"] || u.semana);
+  $("aj-uso5l").textContent = window.t("Plan · últimas 5 horas"); $("aj-uso5").textContent = val(u["5h"]);
+  $("aj-usowl").textContent = window.t("Plan · semana"); $("aj-usow").textContent = val(u.semana, true);
+  $("aj-uso-nota").textContent = !(u["5h"] || u.semana) ? window.t("Sin dato del uso del plan todavía.") : u.exacto ? window.t("Dato exacto") : window.t("≈ estimado, sin gastar plan");
   $("aj-lectura-nota").textContent = !j.activa ? window.t("Apagado: el uso sale del archivo de la app de Claude y de un estimado (no gasta plan). Actívalo si quieres el dato exacto a pedido; gasta un poco de plan y la app de Claude cambia de chat unos segundos.")
     : j.chat_listo ? window.t("Activo. El chat de Kodama solo lee el uso y archiva chats; no ve tus archivos.")
     : tf("Falta un paso en la PC: en la app de Claude, pestaña Code, abre una sesión nueva en la carpeta {0} y escribe «hola».", j.carpeta);

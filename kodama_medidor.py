@@ -18,30 +18,104 @@ from kodama_cola import prender_pantalla
 
 
 def uso_plan():
-    """(15-oct) % del plan (5 h y semana). Lo calcula el hilo estimar_uso() con estimador.py: exacto si hay un dato de
-    menos de 20 min (app de Claude o chat Medidor), si no ESTIMADO con lo que gastaron los chats (sin gastar plan).
-    {"5h": {"pct", "estimado"?}, "semana": {...}, "ts", "base_ts"?} o None."""
+    """(15-oct) % del plan (5 h y semana). Lo calcula el hilo estimar_uso(): EXACTO si la statusLine de Claude Code lo
+    anoto hace poco (estado\\uso.json, ver uso_statusline) o hay un dato de menos de 20 min (app de Claude o chat
+    Medidor); si no, ESTIMADO con lo que gastaron los chats (sin gastar plan).
+    {"5h": {"pct", "estimado"?, "reinicia"?}, "semana": {...}, "ts", "base_ts"?, "exacto": bool, "fuente"?} o None.
+    "reinicia" = hora de reinicio de la ventana (epoch en segundos) y solo viene con el dato de la statusLine."""
     return _EST.get("v")
 
 
 _EST = {"v": None, "pedido5h": 0}
 
+USO_JSON = os.path.join(BASE, "uso.json")   # lo escribe companero_uso.py (statusLine de Claude Code)
+FRESCO_USO_S = 1200                          # el dato de la statusLine sirve si se escribio hace menos de 20 min
+
+
+def _epoch(x):
+    """resets_at como epoch en segundos: acepta numero (segundos o milisegundos) o texto ISO. None si no se entiende."""
+    if isinstance(x, bool):
+        return None
+    if isinstance(x, (int, float)):
+        return float(x) / 1000 if x > 1e11 else float(x)
+    if isinstance(x, str):
+        try:
+            import datetime
+            return datetime.datetime.fromisoformat(x.strip().replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            return None
+    return None
+
+
+def uso_statusline(ruta=None, ahora=None):
+    """(28-oct) Lectura EXACTA que Claude Code le pasa a la statusLine (rate_limits.five_hour / seven_day) y que
+    companero_uso.py deja en estado\\uso.json. Sirve solo si esta fresca: escrita hace menos de FRESCO_USO_S y con
+    resets_at todavia en el futuro (por ventana). Devuelve {"5h": {"pct", "reinicia"}, "semana": {...}, "ts"} con las
+    ventanas validas, o None si no hay ninguna (archivo ausente, viejo, roto o con la ventana ya reiniciada)."""
+    ruta, ahora = ruta or USO_JSON, time.time() if ahora is None else ahora
+    try:
+        d = json.load(open(ruta, encoding="utf-8-sig"))
+        ts = d.get("ts")
+        ts = float(ts) if isinstance(ts, (int, float)) and not isinstance(ts, bool) else os.path.getmtime(ruta)
+    except (OSError, ValueError, AttributeError):
+        return None
+    if not (0 <= ahora - ts <= FRESCO_USO_S):
+        return None
+    out = {}
+    for k in ("5h", "semana"):
+        v = d.get(k)
+        if not isinstance(v, dict):
+            continue
+        pct, rei = v.get("pct"), _epoch(v.get("reinicia"))
+        if isinstance(pct, bool) or not isinstance(pct, (int, float)) or rei is None or rei <= ahora:
+            continue
+        out[k] = {"pct": max(0, min(100, pct)), "reinicia": int(rei)}
+    if not out:
+        return None
+    out["ts"] = ts
+    return out
+
+
+def combinar_uso(exacto, estimado):
+    """Lo exacto de la statusLine manda en las ventanas que trae; lo que le falte sale del estimador (como antes).
+    Agrega "exacto": True si TODAS las ventanas del resultado son exactas, y "fuente": "statusline" si hay alguna."""
+    if not exacto and estimado is None:
+        return None
+    r = dict(estimado or {})
+    if exacto:
+        for k in ("5h", "semana"):
+            if k in exacto:
+                r[k] = exacto[k]
+        r["ts"], r["fuente"] = exacto["ts"], "statusline"
+    r["exacto"] = not any(isinstance(r.get(k), dict) and r[k].get("estimado") for k in ("5h", "semana"))
+    if r["exacto"]:
+        r.pop("base_ts", None)
+    return r
+
+
+def _ciclo_estimar():
+    """Una vuelta del hilo estimar_uso() (aparte para poder probarla). Con la statusLine fresca el dato es exacto y NO se
+    pide lectura al Medidor; sin ella (o vieja) todo sigue como antes."""
+    import estimador
+    estimador.actualizar()
+    exacto = uso_statusline()
+    v = combinar_uso(exacto, estimador.estimar(grupos_app.APP))
+    _EST["v"] = v
+    p5 = ((v or {}).get("5h") or {})
+    if not exacto and p5.get("estimado") and p5.get("pct", 0) >= 80 and segundos_sin_uso() >= 120 and lectura_exacta_activa() \
+            and time.time() - _EST["pedido5h"] > 5 * 3600:
+        _EST["pedido5h"] = time.time()
+        log(f"estimado 5 h {p5['pct']} %: pido lectura exacta al Medidor")
+        pedir_medicion()
+
 
 def estimar_uso():
     """Cada 60 s: lee lo nuevo de los transcripts y recalcula. Si el estimado de 5 h pasa de 80 % y no estas en la PC,
-    pide UNA lectura exacta al chat Medidor (una sola vez por ventana de 5 h): es lo unico que gasta plan."""
-    import estimador
+    pide UNA lectura exacta al chat Medidor (una sola vez por ventana de 5 h): es lo unico que gasta plan.
+    (28-oct) Si la statusLine de Claude Code dio el dato hace poco, ese es el exacto y no se pide nada."""
     while True:
         try:
-            estimador.actualizar()
-            v = estimador.estimar(grupos_app.APP)
-            _EST["v"] = v
-            p5 = ((v or {}).get("5h") or {})
-            if p5.get("estimado") and p5.get("pct", 0) >= 80 and segundos_sin_uso() >= 120 and lectura_exacta_activa() \
-                    and time.time() - _EST["pedido5h"] > 5 * 3600:
-                _EST["pedido5h"] = time.time()
-                log(f"estimado 5 h {p5['pct']} %: pido lectura exacta al Medidor")
-                pedir_medicion()
+            _ciclo_estimar()
         except Exception as e:
             log(f"estimador: {type(e).__name__}: {e}")
         time.sleep(60)
@@ -93,7 +167,9 @@ def activar_lectura_exacta(on):
 
 
 def estado_lectura():
-    return {"ok": True, "activa": lectura_exacta_activa(), "carpeta": MEDIDOR_DIR, "chat_listo": bool(regs_medidor())}
+    # (28-oct) "uso": el mismo dato que ve el celular (5 h y semana, "reinicia", "exacto"); la mascota lo muestra en Ajustes > Uso del plan
+    return {"ok": True, "activa": lectura_exacta_activa(), "carpeta": MEDIDOR_DIR, "chat_listo": bool(regs_medidor()),
+            "uso": uso_plan()}
 
 
 def ordenar_kodama(orden):

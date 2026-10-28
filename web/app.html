@@ -1030,7 +1030,7 @@ function aplicar(d) {   // estado nuevo, venga del SSE o de una consulta normal
   if (nuevos.map(x => x.join("|")).join() !== CHATS.map(x => x.join("|")).join()) { CHATS = nuevos; if (abierto && !CHATS.some(x => x[0] === abierto)) $("volver").click(); armar(); }
   if (datos._seleccion && datos._seleccion !== $("grpsel").value) grupos();
   if (datos._version) { if (window._ver && window._ver !== datos._version && !$("txt").value) { location.reload(); return; } window._ver = datos._version; }
-  const u = d._uso || {}, pct = k => u[k] && u[k].pct != null ? ` · ${t(k)} ${u[k].estimado ? "≈" : ""}${Math.round(u[k].pct)}%` : "";
+  const u = d._uso || {}, pct = k => u[k] && u[k].pct != null ? ` · ${t(k)} ${u[k].estimado ? "≈" : ""}${Math.round(u[k].pct)}%${k === "5h" && u[k].reinicia ? " ↻" + cuandoReinicia(u[k].reinicia) : ""}` : "";
   $("hora").textContent = t("al día") + " · " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + pct("5h") + pct("semana");
   pintar(false); if (abierto) { mensajes(); marcarSilencio(); pintarPermiso(); }
   window._ultOk = Date.now(); if (!document.hidden) limpiarAvisos();
@@ -1491,6 +1491,11 @@ $("limpiar").onclick = async () => {
     cuenta();
   };
 };
+// (28-oct) hora LOCAL de reinicio de una ventana del plan (epoch en segundos, de la statusLine de Claude Code); largo = con el dia
+function cuandoReinicia(seg, largo) {
+  const f = new Date(seg * 1000), h = f.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return largo ? f.toLocaleDateString([], { weekday: "short" }) + " " + h : h;
+}
 // (15-oct) uso del plan: exacto o estimado (≈, sin gastar plan); "Actualizar" pide una lectura exacta al chat Medidor
 function pintarUso(B, u) {
   B.querySelectorAll(".uso").forEach(x => x.remove());
@@ -1503,6 +1508,9 @@ function pintarUso(B, u) {
   nota.textContent = !u.ts ? t("Sin dato del uso del plan todavía.")
     : est ? tf("≈ estimado con lo que gastaron tus chats desde el último dato exacto ({0}). No gasta plan.", hace(u.base_ts || u.ts))
     : tf("Dato exacto, {0}.", hace(u.ts));
+  const rei = [u["5h"] && u["5h"].reinicia ? tf("5 h: {0}", cuandoReinicia(u["5h"].reinicia)) : "",
+               u.semana && u.semana.reinicia ? tf("semana: {0}", cuandoReinicia(u.semana.reinicia, true)) : ""].filter(Boolean);
+  if (rei.length) { const r = document.createElement("p"); r.className = "sub"; r.textContent = t("Se reinicia") + " · " + rei.join(" · "); caja.appendChild(r); }
   const a = document.createElement("a"); a.href = "#"; a.textContent = t("Actualizar (lectura exacta)"); a.style.cssText = "color:var(--tx);font-size:14px";
   a.onclick = async ev => {
     ev.preventDefault(); a.textContent = t("Pidiendo el dato exacto…");

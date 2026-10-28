@@ -112,6 +112,8 @@ class _Ocultar:   # `sid in OCULTAR` sigue funcionando en todos lados, pero ahor
 OCULTAR = _Ocultar()
 NOMBRE = _C.get("nombre_usuario") or "el usuario"   # como se presenta tu respuesta en el puente
 IDIOMA = "en" if _C.get("idioma") == "en" else "es"   # Telegram y avisos (la interfaz tiene su propio selector)
+# (28-oct) la statusLine que la persona ya tenia al instalar: companero_uso.py la corre y deja su salida igual (ver instalar.py)
+STATUSLINE_PREVIA = _C.get("statusline_previa") if isinstance(_C.get("statusline_previa"), dict) else None
 GRUPOS_APP = _C.get("mostrar_grupos_app", True)   # LShinox 14-oct: false (no quiere chats de empresa en la app)
 FIJAS = {k: tuple(v) for k, v in (_C.get("sesiones_fijas") or {}).items()}   # sesiones de otras carpetas que van igual
 # (14-oct) pestaña "Archivos" del celular: ademas de la carpeta de cada chat personal, estas (p. ej. la de Instalaciones)

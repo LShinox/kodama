@@ -12,6 +12,8 @@ Que hace, en orden:
  3. Crea estado\\ con: clave local (local.key), claves VAPID para avisos al celular, config.json si no existe.
  4. Agrega al ~\\.claude\\settings.json (respaldo antes, une sin pisar lo tuyo): los hooks de Kodama
     (SessionStart, UserPromptSubmit, Notification, Stop + puente, SessionEnd, PostToolUse) y la statusLine de uso.
+    (28-oct) Si ya tenias una statusLine, se guarda en config.json y Kodama la sigue corriendo: tu barra se ve igual
+    y el uso exacto del plan llega a la mascota y al celular. Al desinstalar vuelve la tuya.
  5. Crea la tarea programada "Kodama" (al iniciar sesion y cada 10 min) que corre arrancar.pyw.
  6. (21-oct) La mascota (Tauri) ya viene compilada en el paquete; 7. hooks de Codex y Antigravity si estan instalados.
  Flags (21-oct, para que lo corra el Claude de la persona): --acepto (licencia aceptada en el chat), --si (descargas).
@@ -39,6 +41,7 @@ PYV = os.path.join(AQUI, ".venv", "Scripts", "python.exe")
 CODEX_HOOKS = os.path.join(config.HOME, ".codex", "hooks.json")
 GEMINI_HOOKS = os.path.join(config.HOME, ".gemini", "config", "hooks.json")
 SETTINGS = os.path.join(config.HOME, ".claude", "settings.json")
+CONFIG_JSON = os.path.join(AQUI, "config.json")
 PY = sys.executable
 PYW = os.path.join(os.path.dirname(PY), "pythonw.exe")
 TAREA = "Kodama"
@@ -91,6 +94,37 @@ def es_nuestro(entrada):
     return any(any(n in (x.get("command") or "") for n in NUESTROS) for x in entrada.get("hooks", []))
 
 
+def guardar_previa(valor):
+    """(28-oct) statusLine que la persona ya tenia: se guarda en config.json ("statusline_previa") para que companero_uso.py
+    la siga corriendo y para devolverla al desinstalar. valor=None borra la clave. No hace nada en --prueba."""
+    if PRUEBA:
+        return
+    try:
+        c = json.load(open(CONFIG_JSON, encoding="utf-8-sig"))
+    except FileNotFoundError:
+        c = {}
+    except ValueError:
+        paso("  ojo: config.json no se pudo leer; no guardo tu statusLine anterior (queda en el respaldo de settings.json)")
+        return
+    if valor is None:
+        if "statusline_previa" not in c:
+            return
+        c.pop("statusline_previa")
+    else:
+        c["statusline_previa"] = valor
+    tmp = CONFIG_JSON + ".tmp"
+    json.dump(c, open(tmp, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+    os.replace(tmp, CONFIG_JSON)
+
+
+def previa_guardada():
+    try:
+        v = json.load(open(CONFIG_JSON, encoding="utf-8-sig")).get("statusline_previa")
+        return v if isinstance(v, dict) and v.get("command") else None
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
 def tocar_settings(poner):
     """Une (o saca) nuestros hooks y la statusLine en settings.json sin tocar nada mas. Respaldo antes."""
     try:
@@ -106,12 +140,27 @@ def tocar_settings(poner):
         for ev, entradas in hooks_nuestros().items():
             hooks.setdefault(ev, []).extend(entradas)
         sl = d.get("statusLine")
-        if sl and "companero_uso.py" not in json.dumps(sl):
-            paso("  ojo: ya tenes una statusLine propia; no la piso (el medidor de uso queda apagado)")
+        mia = {"type": "command", "command": cmd_hook("companero_uso.py")}
+        if not sl:
+            d["statusLine"] = mia
+        elif "companero_uso.py" in json.dumps(sl):   # ya es la nuestra (reinstalar): se deja igual, con lo que traiga de su previa
+            previa = previa_guardada()
+            d["statusLine"] = dict({k: v for k, v in (previa or {}).items() if k != "command"}, **mia)
+        elif isinstance(sl, dict) and sl.get("type") == "command" and isinstance(sl.get("command"), str) and sl["command"].strip():
+            # (28-oct) ya tiene la suya: se guarda en config.json y companero_uso.py la corre despues de anotar el uso
+            guardar_previa(sl)
+            d["statusLine"] = dict({k: v for k, v in sl.items() if k != "command"}, **mia)
+            paso("  tu statusLine anterior se conserva: Kodama anota el uso y despues corre tu comando (la barra se ve igual)")
         else:
-            d["statusLine"] = {"type": "command", "command": cmd_hook("companero_uso.py")}
+            paso("  ojo: tu statusLine no es de tipo comando; no la piso (el medidor de uso queda apagado)")
     elif "companero_uso.py" in json.dumps(d.get("statusLine") or {}):
-        d.pop("statusLine")
+        previa = previa_guardada()
+        if previa:   # devuelve la statusLine que tenia la persona antes de Kodama
+            d["statusLine"] = previa
+            paso("  tu statusLine anterior vuelve a settings.json")
+        else:
+            d.pop("statusLine")
+        guardar_previa(None)
     if not hooks:
         d.pop("hooks", None)
     paso(f"  settings.json: eventos con hooks de Kodama -> {sorted(hooks_nuestros()) if poner else 'ninguno'}")
@@ -318,7 +367,9 @@ def restaurar_original():
 
 def quitar():
     print("Kodama — desinstalación" + (" (PRUEBA)" if PRUEBA else ""))
-    if not ("--restaurar" in sys.argv and restaurar_original()):
+    if "--restaurar" in sys.argv and restaurar_original():
+        guardar_previa(None)   # settings.json ya volvio a como estaba: la previa guardada no hace falta
+    else:
         tocar_settings(False)
     tarea(False)
     otros_agentes(False)
