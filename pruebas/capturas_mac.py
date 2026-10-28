@@ -467,7 +467,7 @@ def main():
             pet = Pet(a.bin, work, {}, "B")
             d, ok = esperar(work, lambda d: lista(d) and d.get("estado") is not None, 60, "B: island up and state loaded")
             time.sleep(2.5)
-            foto(out, "B01-island-no-notch-collapsed-en", "si, no notch", pedir(work) or d, pet.pid, exe_v, base_sha, (342, 0, 340, 60), 2)
+            foto(out, "B01-island-no-notch-collapsed-en", "si, no notch", pedir(work) or d, pet.pid, exe_v, base_sha, (342, 24, 340, 56), 2)
             hub_set("pregunta", "en")
             d, ok = esperar(work, lambda d: d.get("asomo") and abierta(d), 40, "B: question notice expanded")
             time.sleep(1.0)

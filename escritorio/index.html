@@ -292,6 +292,7 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
   body.isla #asomo::before, body.isla #asomo::after, body.isla #burbuja::before, body.isla #burbuja::after { display:none; }
   body.isla #asomo { padding:6px 16px 14px 18px; align-items:flex-start; flex-wrap:wrap; gap:8px; } body.isla #asomo .t { flex:1 1 100%; }
   body.isla #asomo .n { color:var(--tx); } body.isla #asomo .l { color:var(--tx); -webkit-line-clamp:3; } body.isla #asomo:hover .l { -webkit-line-clamp:6; }
+  body.isla #asomo .l { margin-right:-6px; padding-right:6px; }   /* el recorte del texto no se come el ultimo signo ("manana?" quedaba cortado) */
   body.isla #ascerrar { position:absolute; top:4px; right:10px; }
   body.isla #burbuja { padding:6px 16px 14px 18px; max-height:540px; overflow-y:auto; scrollbar-width:thin; }
   #isla.tile #asomo, #isla.tile #burbuja { padding-left:0; }

@@ -59,7 +59,7 @@ jobs:
 
       - name: Take the screenshots
         env:
-          KODAMA_PREVIEW_SOLO: "A06,B01,B02,C01,C02,D02,D03"   # preview crops (annotations) only for these shots; empty = all
+          KODAMA_PREVIEW_SOLO: "B01,D02"   # preview crops (annotations) only for these shots; empty = all
         run: python pruebas/capturas_mac.py --bin escritorio-tauri/src-tauri/target/release/kodama --out "$RUNNER_TEMP/capturas-mac"
 
       - name: "Print preview crops as annotations, part 1 (test aid, only when the commit message has [previews])"
