@@ -1,0 +1,19 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permisos de la mascota: eventos, ventana propia, bandeja con menu y atajos globales. Nada de archivos ni red desde JS (eso lo hacen los comandos propios y el hub).",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-position",
+    "core:window:allow-set-size",
+    "core:window:allow-outer-position",
+    "core:window:allow-scale-factor",
+    "core:window:allow-current-monitor",
+    "core:tray:default",
+    "core:menu:default",
+    "core:app:allow-default-window-icon",
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-unregister-all"
+  ]
+}

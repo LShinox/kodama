@@ -1,0 +1,90 @@
+<!doctype html>
+<!-- © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt. -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f1e7">
+<title data-t>¿No puedes conectar?</title>
+<script src="i18n.js"></script>
+<style>
+  /* (14-oct) diagnostico del Companero: revisa en orden lo que puede fallar y dice que hacer en cada caso */
+  :root { --bg:#f6f1e7; --card:#fffdf8; --tx:#3a3530; --sub:#6f655a; --btn:#ece4d6; --ok:#2E8B57; --mal:#c93a55; --ojo:#b07a10; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1e1c1a; --card:#2a2724; --tx:#f1ece4; --sub:#b3a99d; --btn:#3a3632; --ok:#5fc48a; --mal:#ec7a90; --ojo:#e0b44a; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--tx); font:16px/1.45 -apple-system, system-ui, sans-serif; padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 20px); }
+  header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  h1 { font-size:20px; margin:0; flex:1; }
+  a.volver, button { border:0; border-radius:999px; padding:9px 14px; background:var(--btn); color:var(--tx); font:inherit; font-size:15px; text-decoration:none; min-height:40px; }
+  .p { background:var(--card); border-radius:16px; padding:12px 14px; margin-bottom:10px; display:flex; gap:10px; }
+  .p .i { font-size:20px; line-height:1.2; width:24px; text-align:center; flex:none; }
+  .p b { display:block; } .p small { color:var(--sub); display:block; margin-top:2px; }
+  .ok .i { color:var(--ok); } .mal .i { color:var(--mal); } .ojo .i { color:var(--ojo); }
+  .acciones { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+</style>
+</head>
+<body>
+<header><a class="volver" href="app.html" data-t>‹ Volver</a><h1 data-t>¿No puedes conectar?</h1></header>
+<div id="lista"></div>
+<div class="acciones"><button id="otra" data-t>Revisar de nuevo</button><button id="probar" data-t>Mandarme un aviso de prueba</button></div>
+<script>
+const L = document.getElementById("lista");
+function fila(estado, titulo, detalle) {   // estado: ok | mal | ojo
+  const d = document.createElement("div"); d.className = "p " + estado;
+  d.innerHTML = `<span class="i">${{ ok: "✓", mal: "✗", ojo: "!" }[estado]}</span><div><b></b><small></small></div>`;
+  d.querySelector("b").textContent = titulo; d.querySelector("small").textContent = detalle || ""; L.appendChild(d);
+}
+const hace = ts => { const m = Math.round((Date.now() / 1000 - ts) / 60); return m < 1 ? t("hace un momento") : tf("hace {0} min", m); };
+async function revisar() {
+  L.innerHTML = "";
+  // 1. internet del celular
+  if (!navigator.onLine) fila("mal", t("El celular no tiene internet"), t("Activa Wi-Fi o datos y vuelve a revisar."));
+  // 2. la PC (a traves de Tailscale)
+  let salud = null; const t0 = performance.now();
+  try {
+    const r = await fetch("api/salud", { cache: "no-store" });
+    if (r.status === 403) { fila("mal", t("La PC respondió, pero no te reconoce"), t("Abre Tailscale en el celular y entra con tu cuenta personal (la misma de la PC).")); return; }
+    salud = await r.json();
+    fila("ok", t("Conectado con la PC"), tf("Respondió en {0} ms · Kodama encendido {1}", Math.round(performance.now() - t0), hace(salud.arranque)));
+  } catch (e) {
+    fila("mal", t("No llego a la PC"), t("Revisa en orden: 1) Tailscale encendido en el celular, con tu cuenta personal. 2) La PC prendida y con internet (si se suspendió, despiértala). 3) Espera 10 min: la PC relanza Kodama sola si se cayó."));
+    return;
+  }
+  // 3. el Companero en la PC
+  if (salud.cola_sin_procesar > 0) fila("ojo", t("Hay avisos sin procesar en la PC"), t("Se mandan en unos segundos; si no baja, reinicia la PC."));
+  if (salud.reintentos_pendientes > 0) fila("ojo", tf("{0} aviso(s) de Telegram esperando reintento", salud.reintentos_pendientes), t("Telegram falló hace poco; se reintenta solo."));
+  if (salud.telegram_ok && Date.now() / 1000 - salud.telegram_ok > 600) fila("ojo", tf("Telegram no responde desde {0}", hace(salud.telegram_ok)), t("Puede ser la red de la PC. La app del celular sigue funcionando."));
+  else if (salud.telegram_ok) fila("ok", t("Telegram al día"), tf("Última respuesta {0}", hace(salud.telegram_ok)));
+  if (salud.push_error) fila("ojo", t("El último aviso al celular falló"), tf("Error {0}. Si se repite, toca «Mandarme un aviso de prueba».", salud.push_error));
+  // 4. tiempo real (SSE)
+  const sse = await new Promise(res => {
+    if (!window.EventSource) return res("no");
+    const es = new EventSource("api/eventos"), t = setTimeout(() => { es.close(); res("lento"); }, 6000);
+    es.onmessage = () => { clearTimeout(t); es.close(); res("ok"); };
+    es.onerror = () => { clearTimeout(t); es.close(); res("error"); };
+  });
+  if (sse === "ok") fila("ok", t("Actualización al instante funcionando"));
+  else fila("ojo", t("La actualización al instante no llega"), t("La app igual se actualiza cada 4 s. Si pasa siempre, avisa en el chat de Instalaciones."));
+  // 5. avisos en este celular
+  const ios = /iPhone|iPad/.test(navigator.userAgent), instalada = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if (ios && !instalada) fila("mal", t("En iPhone los avisos solo funcionan con la app en la pantalla de inicio"), t("Safari → Compartir → «Agregar a inicio», y abre Kodama desde ese ícono."));
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) { fila("mal", t("Este navegador no admite avisos"), ios ? t("Actualiza iOS (16.4 o más).") : t("Usa Chrome.")); return; }
+  if (Notification.permission === "denied") fila("mal", t("Los avisos están bloqueados"), ios ? t("Ajustes → Notificaciones → Kodama → Permitir.") : t("Chrome → ⋮ → Configuración → Notificaciones → permite este sitio."));
+  else if (Notification.permission !== "granted") fila("ojo", t("Los avisos no están activados"), t("Vuelve a la app y toca «🔔 Activar avisos en esta app»."));
+  else {
+    const reg = await navigator.serviceWorker.getRegistration(), sub = reg && await reg.pushManager.getSubscription();
+    if (sub) fila("ok", t("Avisos activados en este celular"), t("Prueba con el botón de abajo."));
+    else fila("ojo", t("Permiso dado, pero falta registrar el celular"), t("Vuelve a la app y toca «🔔 Activar avisos en esta app»."));
+  }
+}
+document.getElementById("otra").onclick = revisar;
+document.getElementById("probar").onclick = async ev => {
+  ev.target.disabled = true;
+  try { const j = await (await fetch("api/probar", { method: "POST" })).json(); alert(j.ok ? tf("Listo: mandé el aviso a {0} celular(es). Debería llegarte en segundos.", j.celulares) : tf("No se pudo: {0}", j.error || "error")); }
+  catch (e) { alert(t("Sin conexión con la PC")); }
+  ev.target.disabled = false;
+};
+revisar();
+</script>
+</body>
+</html>

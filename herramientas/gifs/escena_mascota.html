@@ -1,0 +1,24 @@
+<!doctype html>
+<!-- © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt. -->
+<html><head><meta charset="utf-8">
+<style>
+  html, body { margin:0; width:480px; height:320px; overflow:hidden; background:#f5f1ea; font-family:"Segoe UI", system-ui, sans-serif; }
+  #pj { position:absolute; left:50%; top:40px; width:190px; height:190px; transform:translateX(-50%); }
+  #pj svg { width:100%; height:100%; overflow:visible; }
+  #txt { position:absolute; left:0; right:0; bottom:34px; text-align:center; color:#1c1c1e; font-size:21px; font-weight:600; transition:opacity .25s; }
+  #sub { position:absolute; left:0; right:0; bottom:12px; text-align:center; color:#8a847d; font-size:13px; }
+</style>
+<script src="../../web/gsap.min.js"></script>
+<script src="../../web/personajes.js"></script>
+</head><body>
+<div id="pj"></div><div id="txt"></div><div id="sub">Kodama · para Claude Code</div>
+<script>
+  const k = Companero.crear(document.getElementById("pj"), "gatoPro", "#8fcf5f");
+  const PASOS = [["reposo", "Te acompaña mientras trabajas", null], ["trabajando", "Tu chat está trabajando…", null],
+                 ["escribio", "¡Terminó! Te avisa", "termino"], ["escribio", "Te pregunta algo", "pregunta"], ["enviado", "Respondes y sigue", null]];
+  let i = 0; const T = document.getElementById("txt");
+  function paso() { const [e, txt, ins] = PASOS[i % PASOS.length]; T.style.opacity = 0;
+    setTimeout(() => { T.textContent = txt; T.style.opacity = 1; }, 250); k.ir(e); k.insignia(ins); i++; }
+  paso(); setInterval(paso, 2200);
+</script>
+</body></html>

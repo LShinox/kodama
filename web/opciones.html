@@ -1,0 +1,51 @@
+<!doctype html>
+<!-- © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt. -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Las 4 opciones de borde</title>
+<style>
+  :root { --bg:#f6f1e7; --card:#fffdf8; --tx:#3a3530; --sub:#948a7e; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1e1c1a; --card:#2a2724; --tx:#f1ece4; --sub:#a59b8f; } }
+  body { margin:0; padding:calc(env(safe-area-inset-top) + 12px) 16px 24px; background:var(--bg); color:var(--tx); font:15px/1.4 -apple-system, system-ui, sans-serif; }
+  h1 { font-size:20px; margin:0 0 4px; } p { color:var(--sub); margin:0 0 12px; }
+  .g { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; max-width:560px; }
+  .c { background:var(--card); border-radius:22px; padding:10px; text-align:center; }
+  .c svg, .c .caja { width:100%; aspect-ratio:1; display:block; position:relative; }
+  .c .caja img, .c .caja svg { position:absolute; inset:0; width:100%; height:100%; }
+  .c b { display:block; margin-top:6px; } .c small { color:var(--sub); }
+</style>
+</head>
+<body>
+<h1>Las 4 opciones de borde (mismo Brote)</h1>
+<p>Iguales en el iPhone en fluidez (60 cuadros por segundo las cuatro). Lo que cambia es el look.</p>
+<div class="g" id="g"></div>
+<script>
+const C = "M60 37 C86 37 100 56 100 80 C100 99 86 105 60 105 C34 105 20 99 20 80 C20 56 34 37 60 37 Z";
+const OJOS = '<ellipse cx="47" cy="76" rx="6.4" ry="7.4" fill="#2b2622"/><circle cx="49" cy="73.5" r="2.7" fill="#fff"/><circle cx="45" cy="79" r="1.1" fill="#fff"/><ellipse cx="73" cy="76" rx="6.4" ry="7.4" fill="#2b2622"/><circle cx="75" cy="73.5" r="2.7" fill="#fff"/><circle cx="71" cy="79" r="1.1" fill="#fff"/>';
+const HOJA = '<path d="M60 39 C51 36 46 27 50 19 C57 21 61 30 60 39 Z" fill="#8fcf5f" stroke="#7fb35a" stroke-width="2.4"/><path d="M60 39 C69 36 74 27 70 19 C63 21 59 30 60 39 Z" fill="#a3dc74" stroke="#7fb35a" stroke-width="2.4"/>';
+const MEJ = '<ellipse cx="60" cy="88" rx="26" ry="13" fill="#eef7e0" opacity=".9"/><ellipse cx="37" cy="86" rx="6.5" ry="3.8" fill="rgb(255,120,150)" opacity=".38"/><ellipse cx="83" cy="86" rx="6.5" ry="3.8" fill="rgb(255,120,150)" opacity=".38"/>';
+const F = id => `<filter id="${id}" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="2.6"/></filter>`;
+function arquitos(cx, cy, rx, ry, n = 44, l = 3.2) {
+  const pt = (a, k) => [cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k]; let [x, y] = pt(0, 1), d = `M${x} ${y}`;
+  for (let i = 1; i <= n; i++) { const a1 = 2 * Math.PI * i / n, am = 2 * Math.PI * (i - .5) / n, k = 1 + l * (.8 + Math.random() * .4) / rx, [qx, qy] = pt(am, k), [x1, y1] = pt(a1, 1); d += ` Q${qx} ${qy} ${x1} ${y1}`; }
+  return d + " Z";
+}
+const sv = (cuerpo, defs = "") => `<svg viewBox="-6 -6 132 132"><defs>${defs}</defs>${cuerpo}${MEJ}${HOJA}${OJOS}</svg>`;
+const ops = [
+  ["A · Peludo de antes", "efecto en vivo", sv(`<path d="${C}" fill="#c4e6a3" stroke="#7fb35a" stroke-width="2.6" filter="url(#fa)"/>`, F("fa"))],
+  ["B · Peludo horneado", "igual que A, se dibuja 1 vez", null],
+  ["C · Arquitos", "borde de nubecita", sv(`<path d="${arquitos(60, 72, 40, 33)}" fill="#c4e6a3" stroke="#7fb35a" stroke-width="1.6"/>`)],
+  ["D · Liso", "sin pelo", sv(`<path d="${C}" fill="#c4e6a3" stroke="#7fb35a" stroke-width="2.6"/>`)],
+];
+(async () => {
+  const s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -6 132 132" width="528" height="528"><defs>${F("f")}</defs><path d="${C}" fill="#c4e6a3" stroke="#7fb35a" stroke-width="2.6" filter="url(#f)"/></svg>`;
+  const img = new Image(); img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s); await img.decode();
+  const cv = document.createElement("canvas"); cv.width = cv.height = 528; cv.getContext("2d").drawImage(img, 0, 0);
+  ops[1][2] = `<div class="caja"><img src="${cv.toDataURL()}">${sv("")}</div>`;
+  document.getElementById("g").innerHTML = ops.map(([n, d, h]) => `<div class="c">${h}<b>${n}</b><small>${d}</small></div>`).join("");
+})();
+</script>
+</body>
+</html>

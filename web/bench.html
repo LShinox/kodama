@@ -1,0 +1,85 @@
+<!doctype html>
+<!-- © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt. -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prueba de rendimiento</title>
+<script src="gsap.min.js"></script>
+<style>
+  :root { --bg:#f6f1e7; --card:#fffdf8; --tx:#3a3530; --sub:#948a7e; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1e1c1a; --card:#2a2724; --tx:#f1ece4; --sub:#a59b8f; } }
+  body { margin:0; padding:calc(env(safe-area-inset-top) + 12px) 16px 24px; background:var(--bg); color:var(--tx); font:15px/1.4 -apple-system, system-ui, sans-serif; }
+  h1 { font-size:20px; margin:0 0 4px; } p { color:var(--sub); margin:0 0 10px; }
+  .g { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
+  .c { background:var(--card); border-radius:20px; aspect-ratio:1; position:relative; overflow:hidden; }
+  .c > * { position:absolute; inset:8%; width:84%; height:84%; }
+  table { width:100%; border-collapse:collapse; margin-top:12px; font-size:14px; } td, th { padding:6px 4px; border-bottom:1px solid rgba(127,127,127,.25); text-align:left; }
+  button { border:0; border-radius:999px; padding:12px 18px; background:#8fcf5f; font:inherit; font-weight:600; margin:8px 0; }
+  #estado { font-weight:600; }
+</style>
+</head>
+<body>
+<h1>Prueba: ¿qué borde peludo cuesta menos?</h1>
+<p>Corre 4 técnicas, 12 s cada una, con 4 personajes respirando y saltando (como en la app). Dejá el iPhone quieto y la pantalla encendida. Al final los resultados le llegan solos a la PC.</p>
+<button id="go">▶ Empezar (≈1 minuto)</button> <span id="estado"></span>
+<div class="g" id="g"></div>
+<table id="tabla"><tr><th>Técnica</th><th>FPS prom.</th><th>Cuadros lentos</th><th>Peor cuadro</th></tr></table>
+<script>
+const CUERPO = "M60 37 C85 37 99 55 99 77 C99 98 83 108 60 108 C37 108 21 98 21 77 C21 55 35 37 60 37 Z";
+const OJOS = '<ellipse cx="47" cy="76" rx="6.4" ry="7.4" fill="#2b2622"/><circle cx="49" cy="73.5" r="2.7" fill="#fff"/><ellipse cx="73" cy="76" rx="6.4" ry="7.4" fill="#2b2622"/><circle cx="75" cy="73.5" r="2.7" fill="#fff"/>';
+function pelo(cx, cy, rx, ry, n = 44, largo = 3.2) {
+  const pt = (a, k) => [cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k]; let [x, y] = pt(0, 1), d = `M${x} ${y}`;
+  for (let i = 1; i <= n; i++) { const a1 = 2 * Math.PI * i / n, am = 2 * Math.PI * (i - .5) / n, k = 1 + largo * (.8 + Math.random() * .4) / rx, [qx, qy] = pt(am, k), [x1, y1] = pt(a1, 1); d += ` Q${qx} ${qy} ${x1} ${y1}`; }
+  return d + " Z";
+}
+const FILTRO = id => `<filter id="${id}" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="2.6"/></filter>`;
+const svgCuerpo = (extra, filtro) => `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><defs>${filtro ? FILTRO("f") : ""}</defs><g class="mueve"><path d="${CUERPO}" fill="#c4e6a3" stroke="#7fb35a" stroke-width="3" ${filtro ? 'filter="url(#f)"' : ""}/>${extra}${OJOS}</g></svg>`;
+const TECNICAS = [
+  ["A · filtro vivo (el peludo de antes)", () => svgCuerpo("", true)],
+  ["B · filtro horneado a imagen (mismo look, 1 sola vez)", null],
+  ["C · borde de arquitos (el actual)", () => svgCuerpo(`<path d="${pelo(60, 73, 39.5, 35.5)}" fill="#c4e6a3" stroke="#7fb35a" stroke-width="1.6"/>`, false)],
+  ["D · sin pelo (liso)", () => svgCuerpo("", false)],
+];
+async function hornear() {   // B: el cuerpo con filtro se dibuja UNA vez a una imagen; los ojos van en SVG encima
+  const s = `<svg viewBox="0 0 120 120" width="480" height="480" xmlns="http://www.w3.org/2000/svg"><defs>${FILTRO("f")}</defs><path d="${CUERPO}" fill="#c4e6a3" stroke="#7fb35a" stroke-width="3" filter="url(#f)"/></svg>`;
+  const img = new Image(); img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s); await img.decode();
+  const c = document.createElement("canvas"); c.width = c.height = 480; c.getContext("2d").drawImage(img, 0, 0);
+  const url = c.toDataURL("image/png");
+  return () => `<div class="mueve" style="position:absolute;inset:0"><img src="${url}" style="width:100%;height:100%"><svg viewBox="0 0 120 120" style="position:absolute;inset:0;width:100%;height:100%">${OJOS}</svg></div>`;
+}
+function medir(seg) {
+  return new Promise(res => {
+    const t0 = performance.now(); let prev = t0, n = 0, lentos = 0, peor = 0;
+    function f(t) { const dt = t - prev; prev = t; n++; if (dt > 34) lentos++; if (dt > peor) peor = dt; if (t - t0 < seg * 1000) requestAnimationFrame(f); else res({ fps: n / ((t - t0) / 1000), lentos, peor }); }
+    requestAnimationFrame(f);
+  });
+}
+document.getElementById("go").onclick = async () => {
+  document.getElementById("go").disabled = true;
+  TECNICAS[1][1] = await hornear();
+  const resultados = [];
+  for (const [nombre, html] of TECNICAS) {
+    document.getElementById("estado").textContent = "Midiendo " + nombre.split(" · ")[0] + "…";
+    const G = document.getElementById("g"); G.innerHTML = "";
+    for (let i = 0; i < 4; i++) { const c = document.createElement("div"); c.className = "c"; c.innerHTML = html(); G.appendChild(c); }
+    const tl = [];
+    G.querySelectorAll(".mueve").forEach((m, i) => {
+      gsap.set(m, { transformOrigin: "50% 100%" });
+      tl.push(gsap.timeline({ repeat: -1, yoyo: true, delay: i * .2 }).to(m, { scaleX: 1.035, scaleY: .965, duration: 1.2, ease: "sine.inOut" }));
+      tl.push(gsap.timeline({ repeat: -1, repeatDelay: 1.5, delay: i * .5 }).to(m, { y: -12, duration: .15, ease: "power3.out" }).to(m, { y: 0, duration: .25, ease: "bounce.out" }));
+    });
+    await new Promise(r => setTimeout(r, 800));
+    const m = await medir(12); tl.forEach(x => x.kill());
+    resultados.push({ tecnica: nombre, ...m });
+    document.getElementById("tabla").insertAdjacentHTML("beforeend", `<tr><td>${nombre}</td><td>${m.fps.toFixed(1)}</td><td>${m.lentos}</td><td>${m.peor.toFixed(0)} ms</td></tr>`);
+  }
+  document.getElementById("estado").textContent = "Listo. Enviando a la PC…";
+  try {
+    await fetch("api/bench", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ua: navigator.userAgent, dpr: devicePixelRatio, resultados }) });
+    document.getElementById("estado").textContent = "Listo, resultados enviados ✓";
+  } catch (e) { document.getElementById("estado").textContent = "Listo (no se pudieron enviar: mandame captura)"; }
+};
+</script>
+</body>
+</html>

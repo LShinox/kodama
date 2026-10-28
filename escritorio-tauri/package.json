@@ -1,0 +1,14 @@
+{
+  "name": "companero-escritorio-tauri",
+  "private": true,
+  "version": "0.1.0",
+  "description": "© 2026 LShinox — PolyForm Noncommercial 1.0.0. Mascota de escritorio de Kodama en Tauri (más liviana que Electron).",
+  "scripts": {
+    "ui": "node preparar-ui.js",
+    "tauri": "tauri",
+    "build": "node preparar-ui.js && tauri build --no-bundle"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

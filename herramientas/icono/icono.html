@@ -1,0 +1,20 @@
+<!doctype html>
+<!-- © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt. -->
+<html><head><meta charset="utf-8">
+<style>
+  html, body { margin:0; width:1024px; height:1024px; background:transparent; overflow:hidden; }
+  #ico { position:absolute; inset:0; overflow:hidden;
+    background:radial-gradient(120% 90% at 30% 15%, #fffaf0 0%, #f6efe2 55%, #eadfcb 100%); }
+  body.redondo #ico { border-radius:23%; box-shadow:inset 0 0 0 4px rgba(0,0,0,.06); }
+  #ico svg { position:absolute; width:106%; height:106%; left:-3%; top:6%; filter:drop-shadow(0 60px 50px rgba(60,40,20,.28)); }
+</style>
+<script src="../../web/gsap.min.js"></script>
+<script src="../../web/personajes.js"></script>
+</head><body>
+<div id="ico"></div>
+<script>
+  if (location.hash === "#redondo") document.body.className = "redondo";
+  window.Companero.crear(document.getElementById("ico"), "gatoPro", "#8fcf5f");
+  gsap.globalTimeline.pause(); gsap.globalTimeline.progress(0);   // cuadro quieto, ojos abiertos
+</script>
+</body></html>

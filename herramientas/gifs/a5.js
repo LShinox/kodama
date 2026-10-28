@@ -1,0 +1,2 @@
+// © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt.
+(() => { const e=[...document.querySelectorAll(".op h3")].find(h=>h.textContent.startsWith("A5")); e.parentNode.scrollIntoView(); })();

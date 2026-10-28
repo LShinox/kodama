@@ -1,0 +1,112 @@
+<!doctype html>
+<!-- © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt. -->
+<!-- (21-oct-2026) Asistente "Conectar celular": se abre desde el menu del gato (ticket de un solo uso -> cookie).
+     Telegram (sin instalar nada) y/o la app del celular (Tailscale). Los tokens se pegan AQUI, en la PC, nunca en un chat. -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Conectar celular</title>
+<style>
+:root{--bg:#17191e;--card:#21242b;--ink:#eceef1;--muted:#a3a9b2;--line:#323742;--ok:#4cc38a;--warn:#e8b55c;--acento:#5aa2e6}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Segoe UI",system-ui,sans-serif;padding:22px 16px 40px}
+main{max-width:720px;margin:auto}
+h1{font-size:22px;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:14px 0}
+h2{font-size:17px;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+.est{font-size:12.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:#2c313b;color:var(--muted)}
+.est.ok{background:rgba(76,195,138,.15);color:var(--ok)} .est.pend{background:rgba(232,181,92,.15);color:var(--warn)}
+ol{margin:10px 0 0;padding-left:20px} li{margin:6px 0}
+a{color:var(--acento)}
+input{width:100%;background:#15171b;border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:9px 11px;font:inherit}
+button{background:var(--acento);color:#fff;border:0;border-radius:9px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+.fila{display:flex;gap:8px;margin-top:8px}
+.qrs{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
+.qr{text-align:center;font-size:13px;color:var(--muted);max-width:190px}
+.qr img{width:170px;height:170px;background:#fff;border-radius:10px;display:block;margin:0 auto 6px}
+.msg{margin-top:8px;font-size:13.5px} .msg.mal{color:#ff8a80} .msg.bien{color:var(--ok)}
+.nota{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body><main>
+<h1>Conectar tu celular</h1>
+<p class="sub">Dos caminos; puedes usar uno o los dos. Todo lo que pegues aquí se queda en esta PC.</p>
+
+<div class="card" id="tg">
+  <h2>Telegram <span class="est" id="tgEst">…</span></h2>
+  <div class="nota">Lo más fácil: avisos, responder y aprobar permisos desde Telegram, sin instalar nada más.</div>
+  <ol id="tgPasos">
+    <li>Abre <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a> en Telegram, escribe <b>/newbot</b> y ponle un nombre.</li>
+    <li>Te responde con un <b>token</b> (algo como <code>123456:ABC…</code>). Cópialo y pégalo aquí:
+      <div class="fila"><input id="tgTok" type="password" autocomplete="off" placeholder="Pega el token de tu bot"><button id="tgGuardar">Guardar</button></div>
+      <div class="msg" id="tgMsg"></div></li>
+    <li id="tgPar" hidden>Escanea este código con el celular (o toca el enlace): abre tu bot y se empareja solo contigo.
+      <div class="qrs"><div class="qr"><img id="tgQr" alt=""><a id="tgLink" target="_blank" rel="noopener">Abrir mi bot</a></div></div></li>
+  </ol>
+</div>
+
+<div class="card" id="ts">
+  <h2>App del celular <span class="est" id="tsEst">…</span></h2>
+  <div class="nota">La completa: la mascota en el celular, la lista de chats, archivos y uso del plan. Necesita Tailscale (gratis) en la PC y en el celular, con la misma cuenta.</div>
+  <ol>
+    <li id="tsInst">Instala Tailscale en esta PC: <a href="https://tailscale.com/download/windows" target="_blank" rel="noopener">tailscale.com/download</a>. Después vuelve a esta página.</li>
+    <li id="tsLogin" hidden>Inicia sesión una vez (Google, Microsoft o Apple):
+      <div class="fila"><button id="tsLoginBtn">Iniciar sesión</button></div><div class="msg" id="tsLoginMsg"></div></li>
+    <li id="tsPub" hidden>Publica la app en tu red privada:
+      <div class="fila"><button id="tsPubBtn">Publicar la app</button></div><div class="msg" id="tsPubMsg"></div></li>
+    <li id="tsCel" hidden>En el celular:
+      <div class="qrs">
+        <div class="qr"><img id="qrApp1" alt="">1. Instala <b>Tailscale</b> y entra con <b id="tsUser">la misma cuenta</b>.</div>
+        <div class="qr"><img id="qrApp2" alt="">2. Abre la app de Kodama y agrégala a la pantalla de inicio (Compartir → Agregar a inicio).</div>
+      </div></li>
+  </ol>
+</div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const qr = t => "/api/qr?t=" + encodeURIComponent(t);
+async function get() { return (await fetch("/api/conectar", { credentials: "same-origin" })).json(); }
+async function post(ruta, d) { return (await fetch(ruta, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) })).json(); }
+function est(el, txt, clase) { el.textContent = txt; el.className = "est " + (clase || ""); }
+async function pintar() {
+  let s; try { s = await get(); } catch (e) { return; }
+  const t = s.telegram || {};
+  if (t.emparejado) { est($("tgEst"), "✓ conectado" + (t.bot ? " · @" + t.bot : ""), "ok"); $("tgPasos").hidden = true; }
+  else if (t.token) { est($("tgEst"), "falta emparejar", "pend"); $("tgPar").hidden = !t.enlace; if (t.enlace) { $("tgQr").src = qr(t.enlace); $("tgLink").href = t.enlace; } }
+  else est($("tgEst"), "sin configurar");
+  const ts = s.tailscale || {};
+  $("tsInst").hidden = !!ts.instalado;
+  $("tsLogin").hidden = !ts.instalado || ts.estado === "Running";
+  $("tsPub").hidden = ts.estado !== "Running" || (ts.publicado && ts.url_publica);
+  const listo = ts.estado === "Running" && ts.publicado && ts.url_publica;
+  $("tsCel").hidden = !listo;
+  if (listo) { $("qrApp1").src = qr("https://tailscale.com/download"); $("qrApp2").src = qr(ts.url_publica); if (ts.usuario) $("tsUser").textContent = ts.usuario; }
+  est($("tsEst"), listo ? "✓ lista" : !ts.instalado ? "falta Tailscale" : ts.estado === "Running" ? "falta publicar" : "falta iniciar sesión", listo ? "ok" : "pend");
+  if (ts.auth_url) $("tsLoginMsg").innerHTML = 'Se abrió el inicio de sesión. Si no, <a target="_blank" rel="noopener" href="' + ts.auth_url + '">ábrelo aquí</a>.';
+}
+$("tgGuardar").onclick = async () => {
+  const b = $("tgGuardar"); b.disabled = true; $("tgMsg").textContent = "Probando el token…"; $("tgMsg").className = "msg";
+  const r = await post("/api/conectar/telegram", { token: $("tgTok").value.trim() });
+  b.disabled = false; $("tgTok").value = "";
+  $("tgMsg").textContent = r.ok ? "Listo: tu bot es @" + r.bot + ". Ahora el paso 3." : (r.error || "No se pudo.");
+  $("tgMsg").className = "msg " + (r.ok ? "bien" : "mal"); pintar();
+};
+$("tsLoginBtn").onclick = async () => {
+  $("tsLoginBtn").disabled = true; $("tsLoginMsg").textContent = "Preparando el inicio de sesión…";
+  const r = await post("/api/conectar/tailscale", { accion: "login" });
+  $("tsLoginBtn").disabled = false;
+  if (r.tailscale && r.tailscale.auth_url) window.open(r.tailscale.auth_url, "_blank");
+  pintar();
+};
+$("tsPubBtn").onclick = async () => {
+  $("tsPubBtn").disabled = true; $("tsPubMsg").textContent = "Publicando…";
+  const r = await post("/api/conectar/tailscale", { accion: "publicar" });
+  $("tsPubBtn").disabled = false; $("tsPubMsg").textContent = r.ok ? "Publicada en " + r.url : (r.error || "No se pudo.");
+  $("tsPubMsg").className = "msg " + (r.ok ? "bien" : "mal"); pintar();
+};
+pintar(); setInterval(pintar, 4000);
+</script>
+</body></html>

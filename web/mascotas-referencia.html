@@ -1,0 +1,120 @@
+<!doctype html>
+<!-- © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt. -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mascotas de referencia para Kodama</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1f;--mute:#5f6368;--line:#dcdad4;--acc:#7a4fd6;--warn-bg:#fff4d6;--warn-ink:#5a4300;--idea-bg:#eef7ee;--idea-line:#9bcf9b}
+@media (prefers-color-scheme:dark){:root{--bg:#141416;--card:#1e1e22;--ink:#ececf0;--mute:#a0a3ab;--line:#33343a;--acc:#b49bff;--warn-bg:#3a3012;--warn-ink:#ffe9a8;--idea-bg:#1b2b1d;--idea-line:#3f7a43}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Arial,sans-serif;padding:24px 16px 60px}
+main{max-width:1000px;margin:0 auto}
+h1{margin:0 0 4px;font-size:1.6rem}
+.sub{color:var(--mute);margin:0 0 18px}
+.aviso{background:var(--warn-bg);color:var(--warn-ink);border:1px solid #d9b94a;border-radius:10px;padding:12px 16px;font-weight:600;margin-bottom:24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:28px}
+.card h2{margin:0 0 4px;font-size:1.3rem}
+.meta{color:var(--mute);font-size:.9rem;margin:0 0 14px}
+a{color:var(--acc)}
+.imgs{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0 16px}
+.imgs figure{margin:0;flex:1 1 260px;max-width:100%}
+.imgs img,.imgs video{width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#8884}
+figcaption{font-size:.8rem;color:var(--mute);margin-top:4px}
+ul{padding-left:20px;margin:6px 0 14px}
+li{margin:3px 0}
+h3{margin:16px 0 4px;font-size:1rem}
+.idea{background:var(--idea-bg);border:1px solid var(--idea-line);border-radius:10px;padding:10px 16px}
+.idea h3{margin-top:4px}
+.nota{background:#8882;border-radius:8px;padding:8px 12px;font-size:.9rem}
+code{background:#8883;padding:1px 5px;border-radius:4px;font-size:.9em}
+</style>
+</head>
+<body>
+<main>
+<h1>Mascotas de referencia para Kodama</h1>
+<p class="sub">Idea de LShinox: una mascota útil tipo Clippy para los chats de Claude. Fecha: 13-oct-2026. Las imágenes cargan desde GitHub (hace falta internet).</p>
+<div class="aviso">Solo referencia: no se reusa arte ni código con licencia restrictiva.</div>
+
+<section class="card">
+<h2>1. clawd-on-desk</h2>
+<p class="meta"><a href="https://github.com/rullerzhou-afk/clawd-on-desk">github.com/rullerzhou-afk/clawd-on-desk</a> · web: <a href="https://clawdondesk.com/">clawdondesk.com</a> · Electron · código AGPL-3.0 · arte aparte (Clawd es de Anthropic)</p>
+<div class="imgs">
+<figure><img loading="lazy" src="https://github.com/rullerzhou-afk/clawd-on-desk/raw/main/assets/hero.gif" alt="Demo general de Clawd on Desk"><figcaption>Demo general (hero.gif)</figcaption></figure>
+<figure><img loading="lazy" src="https://github.com/rullerzhou-afk/clawd-on-desk/raw/main/assets/gif/clawd-idle.gif" alt="Clawd en reposo"><figcaption>Reposo</figcaption></figure>
+<figure><img loading="lazy" src="https://github.com/rullerzhou-afk/clawd-on-desk/raw/main/assets/gif/clawd-typing.gif" alt="Clawd tecleando"><figcaption>Tecleando (Claude escribe)</figcaption></figure>
+<figure><img loading="lazy" src="https://github.com/rullerzhou-afk/clawd-on-desk/raw/main/assets/gif/clawd-juggling.gif" alt="Clawd haciendo malabares"><figcaption>Malabares (2+ subagentes)</figcaption></figure>
+</div>
+<p class="nota">El README también enlaza un video de demo multi-monitor (<a href="https://github.com/rullerzhou-afk/clawd-on-desk/blob/main/assets/videos/clawd-multi-monitor-demo.mp4">ver en GitHub</a>); no es un enlace directo al archivo, por eso no se incrusta.</p>
+<h3>Qué hace</h3>
+<ul>
+<li>12 estados: reposo, pensando, tecleando, construyendo, 1 subagente, malabares con varios, error, feliz, notificación, barriendo, cargando, dormido.</li>
+<li>Reacciona a Claude Code, Codex CLI y otros agentes mediante hooks que se registran solos.</li>
+<li>Burbuja flotante Permitir/Denegar con atajos globales (Ctrl+Shift+Y/N); modo No molestar.</li>
+<li>Varias sesiones: se muestra el estado de mayor prioridad; detecta procesos huérfanos.</li>
+<li>Se arrastra al borde (modo mini), se duerme a los 60 s con bostezo y despierta sobresaltado; en reposo los ojos siguen el cursor.</li>
+<li>Instalación: instalador .exe en GitHub Releases (Windows, también macOS y Linux). Temas con <code>theme.json</code>.</li>
+</ul>
+<div class="idea"><h3>Idea para nosotros</h3>
+<ul>
+<li>Copiar el concepto, no el código ni a Clawd: tabla corta de estados (pensando, trabajando, esperando permiso, error, éxito, dormido) con nuestro propio personaje.</li>
+<li>La burbuja "Permitir / Denegar" es justo lo que hace útil a un Clippy: la mascota avisa que Claude espera algo y deja contestar desde ahí.</li>
+<li>Prioridad de estado entre varios chats y modo mini al borde para no estorbar.</li>
+<li>Al ser AGPL, solo lo usamos como inspiración funcional.</li>
+</ul></div>
+</section>
+
+<section class="card">
+<h2>2. OpenPets</h2>
+<p class="meta"><a href="https://github.com/OpenPetsHQ/openpets">github.com/OpenPetsHQ/openpets</a> · web: <a href="https://openpets.dev">openpets.dev</a> · Electron + TypeScript · MIT</p>
+<div class="imgs">
+<figure><img loading="lazy" src="https://github.com/OpenPetsHQ/openpets/raw/main/assets/intro.png" alt="OpenPets reaccionando en varias sesiones"><figcaption>Reaccionando en varias sesiones de agentes</figcaption></figure>
+<figure><img loading="lazy" src="https://github.com/OpenPetsHQ/openpets/raw/main/assets/manage-pets.png" alt="Gestor de mascotas"><figcaption>Gestor de mascotas</figcaption></figure>
+<figure><img loading="lazy" src="https://github.com/OpenPetsHQ/openpets/raw/main/assets/claude.png" alt="Integración con Claude Code"><figcaption>Integración con Claude Code</figcaption></figure>
+<figure><img loading="lazy" src="https://github.com/OpenPetsHQ/openpets/raw/main/assets/openpets.png" alt="Plataforma OpenPets"><figcaption>Portada del proyecto</figcaption></figure>
+</div>
+<h3>Qué hace</h3>
+<ul>
+<li>Mascota de escritorio para agentes (Claude Code, OpenCode, Devin) con galería de mascotas.</li>
+<li>Estados: pensando, editando, probando, éxito, error, esperando; en reposo: quieta, paseando, reaccionando.</li>
+<li>Servidor MCP (<code>openpets_status</code>, <code>openpets_react</code>, <code>openpets_say</code>) para que el propio agente haga hablar a la mascota; SDK de plugins.</li>
+<li>Varias sesiones: cada sesión toma su mascota libre de un grupo (pool).</li>
+<li>Windows: reafirma "siempre encima" cada 1 s para que no la tape una app a pantalla completa.</li>
+<li>Instalación: <code>OpenPets-*-win-x64-setup.exe</code> en Releases; integración opcional con una línea de configuración MCP. Plataformas: Windows, macOS, Linux.</li>
+</ul>
+<div class="idea"><h3>Idea para nosotros</h3>
+<ul>
+<li>Que la mascota hable por una herramienta (tipo <code>say</code>/<code>react</code>): así Claude puede dar avisos útiles reales, no solo animaciones.</li>
+<li>Una mascota por chat, con enfriamientos para no repetir frases, y frases tomadas de listas fijas (sin copiar texto real del chat).</li>
+<li>Patrón MIT de "siempre encima" cada segundo: adaptable con nuestro propio código.</li>
+</ul></div>
+</section>
+
+<section class="card">
+<h2>3. claude-pet (IMMINJU)</h2>
+<p class="meta"><a href="https://github.com/IMMINJU/claude-pet">github.com/IMMINJU/claude-pet</a> · sin web propia · Tauri 2 (~8 MB) · MIT · pocas estrellas (12)</p>
+<div class="imgs">
+<figure><img loading="lazy" src="https://github.com/IMMINJU/claude-pet/raw/main/assets/demo.gif" alt="Demo de Claude Pet"><figcaption>Demo (demo.gif), la única imagen del README</figcaption></figure>
+</div>
+<p class="nota">Este README solo tiene una imagen real (la demo); el resto son insignias. Las otras temas (por ejemplo "Fruits") se mencionan sin imagen.</p>
+<h3>Qué hace</h3>
+<ul>
+<li>Emoji o animación con globo de texto según 17 estados (leer, escribir, bash, buscar, error, esperar...).</li>
+<li>Varias sesiones de Claude Code lado a lado, una mascota por sesión.</li>
+<li>El hook <code>claude-pet --hook</code> manda el evento por TCP local (127.0.0.1:19876); los hooks se registran solos al arrancar.</li>
+<li>Ventana sin marco, transparente, siempre encima y fuera de la barra de tareas.</li>
+<li>Instalación: script PowerShell (<code>install.ps1</code>) a <code>%LOCALAPPDATA%\claude-pet</code>. Windows, macOS, Linux.</li>
+</ul>
+<div class="idea"><h3>Idea para nosotros</h3>
+<ul>
+<li>Es la plantilla más chica y clara de la ruta Tauri en Windows: un hook diminuto + puerto local + ventana transparente.</li>
+<li>Globo de texto corto por estado ("leyendo archivos...", "esperando tu OK") como base del Clippy útil.</li>
+<li>Tomarlo como ejemplo de arquitectura, no como dependencia (proyecto muy joven).</li>
+</ul></div>
+</section>
+
+<p class="sub">Fuente de contexto: <code>instalaciones\investigaciones\2026-10-13_mascotas-github.md</code>. Las URLs de imágenes se comprobaron con una petición de cabecera (200) el 13-oct-2026; no se descargó nada.</p>
+</main>
+</body>
+</html>

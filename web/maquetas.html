@@ -1,0 +1,161 @@
+<!doctype html>
+<!-- © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt. -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Maquetas de la app</title>
+<script src="gsap.min.js"></script>
+<script src="personajes.js"></script>
+<style>
+  /* (14-oct) maquetas para elegir el nuevo diseño de la app del celular. v2: iconos de linea minimalistas (sin emojis),
+     A con la pantalla de "como se ven los chats", B primero porque es la que le va gustando a LShinox */
+  :root { --bg:#1e1c1a; --card:#2a2724; --tx:#f1ece4; --sub:#b3a99d; --btn:#3a3632; --acento:#8fcf5f; --morado:#7B5FD0; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#121110; color:var(--tx); font:15px/1.4 -apple-system, system-ui, sans-serif; padding:16px 12px 40px; }
+  h1 { font-size:20px; margin:0 0 4px; } .intro { color:var(--sub); font-size:14px; margin:0 0 18px; }
+  .op { margin:0 0 26px; } .op h2 { font-size:17px; margin:0 0 2px; } .op p { color:var(--sub); font-size:13.5px; margin:0 0 10px; }
+  .par { display:flex; gap:12px; overflow-x:auto; padding-bottom:6px; scroll-snap-type:x mandatory; }
+  .tel { flex:none; width:230px; height:470px; background:var(--bg); border-radius:28px; border:3px solid #333; position:relative; overflow:hidden; scroll-snap-align:start; }
+  .tel small.cap { position:absolute; top:6px; left:0; right:0; text-align:center; color:var(--sub); font-size:10px; }
+  svg.i { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; display:block; margin:0 auto 2px; }
+  .tabs { position:absolute; left:0; right:0; bottom:0; height:54px; background:#171615; display:flex; justify-content:space-around; align-items:center; border-top:1px solid #2c2a27; font-size:9.5px; color:#8a8178; }
+  .tabs div { text-align:center; position:relative; } .tabs .on { color:var(--tx); }
+  .tabs .pto { position:absolute; top:-2px; right:2px; width:7px; height:7px; border-radius:50%; background:#f2879b; }
+  .mas { width:150px; height:150px; margin:0 auto; border-radius:50%; background:radial-gradient(circle at 50% 55%, #4a443d 0%, #2c2926 45%, transparent 70%); }
+  .mas svg, .chico svg { width:100%; height:100%; overflow:visible; }
+  .globo { background:var(--card); border-radius:16px; padding:9px 11px; font-size:11.5px; margin:0 12px; position:relative; }
+  .globo b { font-size:12px; } .globo .chips { display:flex; gap:5px; margin-top:7px; flex-wrap:wrap; }
+  .chip { background:var(--btn); border-radius:99px; padding:4px 8px; font-size:10.5px; }
+  .caja { position:absolute; left:10px; right:10px; display:flex; gap:6px; align-items:center; }
+  .caja div { flex:1; background:var(--card); border-radius:16px; padding:8px 10px; font-size:11px; color:var(--sub); }
+  .caja span { width:30px; height:30px; border-radius:50%; background:var(--acento); display:flex; align-items:center; justify-content:center; color:#1e1c1a; }
+  .caja span svg.i { width:15px; height:15px; margin:0; stroke-width:2.2; }
+  .badge { position:absolute; background:#f2879b; color:#fff; border-radius:99px; font-size:10px; font-weight:700; padding:2px 7px; }
+  .pills { display:flex; gap:6px; overflow:hidden; padding:0 10px; }
+  .pill { flex:none; background:var(--card); border-radius:99px; padding:5px 10px; font-size:10.5px; white-space:nowrap; display:flex; align-items:center; gap:5px; }
+  .pill.on { outline:1.5px solid var(--tx); }
+  .d { width:7px; height:7px; border-radius:50%; flex:none; display:inline-block; }   /* punto de color del chat */
+  .q { font-weight:700; color:#f2c26b; font-size:10px; }
+  .fila { display:flex; gap:9px; align-items:center; padding:8px 12px; font-size:11.5px; border-bottom:1px solid #2a2826; }
+  .fila .av { width:28px; height:28px; border-radius:50%; border:1.5px solid; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; flex:none; }
+  .fila small { display:block; color:var(--sub); font-size:10px; } .fila .q { margin-left:auto; }
+  .msg { background:var(--card); border-radius:12px; padding:6px 8px; font-size:10.5px; margin:5px 10px; max-width:80%; }
+  .msg.yo { margin-left:auto; background:#3a3530; }
+  .cab { display:flex; align-items:center; gap:7px; padding:22px 10px 6px; font-size:12px; }
+  .chico { width:34px; height:34px; } .cab small { display:block; color:var(--sub); font-size:10px; }
+  .hoja { position:absolute; left:0; right:0; bottom:54px; background:#25221f; border-radius:18px 18px 0 0; padding:8px 0 4px; box-shadow:0 -8px 24px #0008; }
+  .hoja .asa { width:34px; height:4px; border-radius:2px; background:#4a453f; margin:0 auto 6px; }
+  .hoja h4 { margin:0 12px 2px; font-size:11px; color:var(--sub); font-weight:500; }
+  .velo { position:absolute; inset:0; background:#0007; }
+  .rec { color:var(--acento); font-weight:600; }
+</style>
+</head>
+<body>
+<!-- iconos de linea (estilo minimalista, 1.7 de trazo) -->
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-inicio" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/></symbol>
+  <symbol id="i-chats" viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/></symbol>
+  <symbol id="i-avisos" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-ajustes" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></symbol>
+</svg>
+<template id="tabs4"><div class="tabs">
+  <div class="on"><svg class="i"><use href="#i-inicio"/></svg>Inicio</div>
+  <div><span class="pto"></span><svg class="i"><use href="#i-chats"/></svg>Chats</div>
+  <div><svg class="i"><use href="#i-avisos"/></svg>Avisos</div>
+  <div><svg class="i"><use href="#i-ajustes"/></svg>Ajustes</div></div></template>
+<template id="tabs3"><div class="tabs">
+  <div class="on"><svg class="i"><use href="#i-inicio"/></svg>Inicio</div>
+  <div><span class="pto"></span><svg class="i"><use href="#i-chats"/></svg>Chats</div>
+  <div><svg class="i"><use href="#i-ajustes"/></svg>Ajustes</div></div></template>
+<template id="enviar"><span><svg class="i"><use href="#i-enviar"/></svg></span></template>
+
+<h1>Nueva interfaz de la app (v2)</h1>
+<p class="intro">Iconos de línea, sin emojis: cada chat se distingue por su punto de color y su nombre (los adornos personalizables vienen después). Desliza de lado para ver cada momento.</p>
+
+<div class="op">
+  <h2>B · Mascota + carrusel de chats <span class="rec">(la que te va gustando)</span></h2>
+  <p>El gato grande arriba; debajo, una fila de chats que deslizas. Los que te esperan van primero y llevan "?". El que eliges es el que "habla" el gato en el globo. Al tocar la caja para escribir, el gato sube a la cabecera chiquito y la fila de chats queda arriba para saltar de uno a otro.</p>
+  <div class="par">
+    <div class="tel"><small class="cap">Portada</small>
+      <div class="mas" id="b1" style="margin-top:34px"></div>
+      <div class="pills" style="margin:4px 0 10px">
+        <span class="pill on"><i class="d" style="background:#e8a46b"></i>Cuentos <span class="q">?</span></span>
+        <span class="pill"><i class="d" style="background:#f2879b"></i>Latido <span class="q">?</span></span>
+        <span class="pill"><i class="d" style="background:#6bb7e8"></i>Música</span>
+        <span class="pill"><i class="d" style="background:#9b8be8"></i>D&D</span></div>
+      <div class="globo"><b>Cuentos</b> · te pregunta algo<br>¿Cuál prefieres: código privado o visible?
+        <div class="chips"><span class="chip">1 · Privado</span><span class="chip">2 · Visible</span></div></div>
+      <div class="caja" style="bottom:64px"><div>Escríbele a Cuentos…</div><slot data-t="enviar"></slot></div>
+      <slot data-t="tabs3"></slot>
+    </div>
+    <div class="tel"><small class="cap">Escribiendo</small>
+      <div class="cab"><div class="chico" id="b2"></div><div><b>Cuentos</b><small>te pregunta algo</small></div></div>
+      <div class="pills" style="margin:0 0 6px">
+        <span class="pill on"><i class="d" style="background:#e8a46b"></i>Cuentos</span>
+        <span class="pill"><i class="d" style="background:#f2879b"></i>Latido <span class="q">?</span></span>
+        <span class="pill"><i class="d" style="background:#6bb7e8"></i>Música</span></div>
+      <div class="msg">¿Cuál prefieres: código privado o visible?</div>
+      <div class="msg yo">El 1, privado</div>
+      <div class="caja" style="bottom:64px"><div style="color:var(--tx)">El 1, privado|</div><slot data-t="enviar"></slot></div>
+      <slot data-t="tabs3"></slot>
+    </div>
+  </div>
+</div>
+
+<div class="op">
+  <h2>A · La mascota es la portada</h2>
+  <p>Cómo se ven los chats aquí: en la portada sale <b>solo el que más te necesita</b> (como el globo de Windows). Los demás aparecen al tocar el aviso "+2 esperan" o el gato: sube una hoja con la lista, igual que en Windows cuando hay varios. La pestaña Chats tiene la lista completa.</p>
+  <div class="par">
+    <div class="tel"><small class="cap">Portada</small>
+      <span class="badge" style="top:46px;right:40px">+2 esperan</span>
+      <div class="mas" id="a1" style="margin-top:40px"></div>
+      <div class="globo"><b>Cuentos</b> · te pregunta algo<br>¿Cuál prefieres: código privado o visible?
+        <div class="chips"><span class="chip">1 · Privado</span><span class="chip">2 · Visible</span></div></div>
+      <div class="caja" style="bottom:64px"><div>Escríbele a Cuentos…</div><slot data-t="enviar"></slot></div>
+      <slot data-t="tabs4"></slot>
+    </div>
+    <div class="tel"><small class="cap">Tocaste "+2 esperan"</small>
+      <div class="mas" id="a3" style="margin-top:40px"></div>
+      <div class="velo"></div>
+      <div class="hoja"><div class="asa"></div><h4>Te esperan</h4>
+        <div class="fila"><div class="av" style="border-color:#e8a46b;color:#e8a46b">C</div><div><b>Cuentos</b><small>¿Cuál prefieres…</small></div><span class="q">?</span></div>
+        <div class="fila"><div class="av" style="border-color:#f2879b;color:#f2879b">L</div><div><b>Juego Latido</b><small>Necesito tu OK…</small></div><span class="q">?</span></div>
+        <div class="fila"><div class="av" style="border-color:#6bb7e8;color:#6bb7e8">M</div><div><b>Música</b><small>Terminó el render</small></div><span class="q">!</span></div>
+      </div>
+      <slot data-t="tabs4"></slot>
+    </div>
+    <div class="tel"><small class="cap">Escribiendo</small>
+      <div class="cab"><div class="chico" id="a2"></div><div><b>Cuentos</b><small>te pregunta algo</small></div></div>
+      <div class="msg">¿Cuál prefieres: código privado o visible?</div>
+      <div class="msg yo">El 1, privado</div>
+      <div class="caja" style="bottom:64px"><div style="color:var(--tx)">El 1, privado|</div><slot data-t="enviar"></slot></div>
+      <slot data-t="tabs4"></slot>
+    </div>
+  </div>
+</div>
+
+<div class="op">
+  <h2>C · Lista de chats con la mascota arriba</h2>
+  <p>Más parecida a WhatsApp: el gato arriba reacciona al chat más urgente y debajo está la lista. Es la más ordenada si tienes muchos chats, pero el gato pesa menos.</p>
+  <div class="par">
+    <div class="tel"><small class="cap">Portada</small>
+      <div class="mas" id="c1" style="width:110px;height:110px;margin-top:26px"></div>
+      <div class="fila"><div class="av" style="border-color:#e8a46b;color:#e8a46b">C</div><div><b>Cuentos</b><small>¿Cuál prefieres…</small></div><span class="q">?</span></div>
+      <div class="fila"><div class="av" style="border-color:#f2879b;color:#f2879b">L</div><div><b>Juego Latido</b><small>Necesito tu OK…</small></div><span class="q">?</span></div>
+      <div class="fila"><div class="av" style="border-color:#6bb7e8;color:#6bb7e8">M</div><div><b>Música</b><small>durmiendo</small></div></div>
+      <div class="fila"><div class="av" style="border-color:#9b8be8;color:#9b8be8">D</div><div><b>D&D</b><small>terminó</small></div></div>
+      <slot data-t="tabs3"></slot>
+    </div>
+  </div>
+</div>
+<script>
+document.querySelectorAll("slot[data-t]").forEach(s => s.replaceWith(document.getElementById(s.dataset.t).content.cloneNode(true)));
+gsap.ticker.fps(30);
+const pj = (localStorage.getItem("pj") || "gatoPro").startsWith("brote") ? "brote5" : "gatoPro";
+["a1", "a3", "b1", "c1"].forEach(id => { const k = Companero.crear(document.getElementById(id), pj, null); k.ir("escribio"); setTimeout(() => k.insignia("pregunta"), 400); });
+["a2", "b2"].forEach(id => { const k = Companero.crear(document.getElementById(id), pj, null); k.ir("reposo"); });
+</script>
+</body>
+</html>

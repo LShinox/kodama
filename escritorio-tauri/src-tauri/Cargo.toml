@@ -1,0 +1,25 @@
+# © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt.
+[package]
+name = "companero"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-global-shortcut = "2"
+serde_json = "1"
+# (14-oct, rendimiento) para pedirle a WebView2 que use poca memoria; mismas versiones que ya trae tauri (sin descargas)
+webview2-com = "=0.39.1"
+windows-core = "=0.62.2"
+
+[profile.release]
+# binario chico: es una mascota, no necesita mas
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

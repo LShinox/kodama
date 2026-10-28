@@ -1,0 +1,38 @@
+{
+  "1.0.0": {
+    "es": [
+      "La mascota ahora vive en una cápsula con todo adentro: el aviso, el globo y las respuestas rápidas. La eliges blanca o negra en Ajustes.",
+      "Suelta archivos sobre la mascota: sus patitas los agarran y los adjuntas al chat que elijas.",
+      "Dentro del globo está la lista «Chats que te esperan», con archivar por fila.",
+      "Ves si tu chat está pensando o ejecutando un comando, una búsqueda o un subagente.",
+      "Si respondes directo en la PC, el aviso se cierra solo.",
+      "En el celular, el botón atrás vuelve un paso, y los archivos que tu chat te manda se ven ahí mismo."
+    ],
+    "en": [
+      "The mascot now lives in a capsule with everything inside: the alert, the bubble and the quick replies. Pick white or black in Settings.",
+      "Drop files on the mascot: its paws grab them and you attach them to the chat you choose.",
+      "The «Chats waiting for you» list now lives inside the bubble, with archive on each row.",
+      "You see whether your chat is thinking or running a command, a web search or a subagent.",
+      "If you answer straight on the PC, the alert closes by itself.",
+      "On the phone, the back button goes back one step, and the files your chat sends you show up right there."
+    ]
+  },
+  "0.9.0": {
+    "es": [
+      "El gato ahora está animado a mano: 31 animaciones nuevas, en la PC y en el celular.",
+      "Si entra a tu cuenta un aparato que no es tu celular, Kodama suena la alarma y no lo deja pasar.",
+      "Bloqueo del celular: lo activas desde el celular o desde la PC, y solo se quita en la PC.",
+      "Nueva opción «Volver a la esquina» en el menú de la mascota.",
+      "Ves el progreso de las tareas de cada chat («3/7») en su tarjeta y junto a su nombre en el globo.",
+      "Sueño profundo: cuando nada cambia, la mascota se queda quieta y casi no gasta CPU."
+    ],
+    "en": [
+      "The cat is now hand-animated: 31 new animations, on the PC and on the phone.",
+      "If a device that isn't your phone gets into your account, Kodama sounds the alarm and doesn't let it in.",
+      "Phone lock: you turn it on from the phone or from the PC, and it can only be turned off on the PC.",
+      "New «Back to the corner» option in the mascot's menu.",
+      "You see each chat's task progress («3/7») on its card and next to its name in the bubble.",
+      "Deep sleep: when nothing changes, the mascot stays still and uses almost no CPU."
+    ]
+  }
+}

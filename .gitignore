@@ -1,0 +1,37 @@
+# Estado local y secretos: nunca van al repo
+estado/
+config.json
+web/ajustes.json
+*.pem
+*.key
+web.json
+local.key
+.env
+.env.*
+ts/
+
+# Entornos y compilados
+.venv/
+node_modules/
+target/
+escritorio-tauri/ui/
+escritorio-tauri/src-tauri/gen/
+__pycache__/
+*.pyc
+salida/
+dist/
+respaldos/
+
+# Copias, registros y arte fuente pesado
+*.bak*
+*.log
+ejecutor-log.md
+*.aep
+
+# No publicar (ver reglas de privacidad)
+herramientas/consumo_hoy.py
+herramientas/mcp_por_chat.py
+herramientas/muestreo_memoria.ps1
+pruebas/probar_aparatos.py
+animacion/animar_gato.jsx
+animacion/verificar_gato.jsx

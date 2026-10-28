@@ -1,0 +1,94 @@
+<!doctype html>
+<!-- © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt. -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ajustes de animación</title>
+<script src="gsap.min.js"></script>
+<script src="personajes.js"></script>
+<style>
+  :root { --bg:#f6f1e7; --card:#fffdf8; --tx:#3a3530; --sub:#948a7e; --btn:#ece4d6; --acento:#8fcf5f; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1e1c1a; --card:#2a2724; --tx:#f1ece4; --sub:#a59b8f; --btn:#3a3632; } }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:calc(env(safe-area-inset-top) + 10px) 14px 30px; background:var(--bg); color:var(--tx); font:15px/1.4 -apple-system, system-ui, sans-serif; }
+  .w { max-width:640px; margin:auto; }
+  h1 { font-size:20px; margin:0 0 4px; } p { color:var(--sub); margin:0 0 8px; font-size:14px; }
+  .g { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; position:sticky; top:0; background:var(--bg); padding:6px 0; z-index:5; }
+  .c { background:var(--card); border-radius:18px; padding:4px; text-align:center; font-size:12px; color:var(--sub); }
+  .c div { aspect-ratio:1; } .c svg { width:100%; height:100%; overflow:visible; }
+  .b { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0; }
+  button { border:0; border-radius:99px; padding:8px 12px; background:var(--btn); color:var(--tx); font:inherit; font-size:14px; }
+  button.prim { background:var(--acento); font-weight:600; color:#1e1c1a; }
+  fieldset { border:0; background:var(--card); border-radius:16px; padding:8px 12px 10px; margin:10px 0; }
+  legend { font-weight:600; padding:0 4px; }
+  label { display:grid; grid-template-columns:1fr 70px; align-items:center; gap:6px; font-size:14px; margin:6px 0 0; }
+  input[type=range] { grid-column:1 / -1; width:100%; }
+  .v { text-align:right; color:var(--sub); font-variant-numeric:tabular-nums; }
+  #msg { color:var(--sub); font-size:13px; min-height:18px; }
+</style>
+</head>
+<body>
+<div class="w">
+  <h1>Ajustes de animación</h1>
+  <p>Mové los controles y mirá el cambio en vivo. "Guardar" lo deja así en la app (se actualiza sola). "Volver a lo de antes" deshace todo.</p>
+  <div class="g" id="g"></div>
+  <div class="b" id="est"><button data-v="reposo">Reposo</button><button data-v="trabajando">Trabajando</button><button data-v="escribio">Te escribió</button><button data-v="enviado">Terminó</button><button data-v="atascado">Atascado</button><button data-v="dormido">Dormido</button></div>
+  <div class="b"><button id="tocar">Un toque</button><button id="gesto">Gesto al azar</button>
+    <label style="display:flex;gap:6px;margin:0">Cámara lenta <select id="lento"><option value="1">normal</option><option value=".5">½</option><option value=".25">¼</option></select></label></div>
+  <div id="campos"></div>
+  <div class="b"><button class="prim" id="guardar">Guardar</button><button id="restaurar">Volver a lo de antes</button></div>
+  <div id="msg"></div>
+</div>
+<script>
+const NOMBRES = {
+  respiracion: ["Respiración", { duracion: ["Duración de cada respiración (s)", .8, 4, .05], amplitud: ["Cuánto se infla", 0, .08, .002] }],
+  gestos: ["Gestos al azar", { reposoMin: ["En reposo: cada (mín, s)", 2, 20, .5], reposoMax: ["En reposo: cada (máx, s)", 3, 30, .5], trabajandoMin: ["Trabajando: cada (mín, s)", .5, 8, .1], trabajandoMax: ["Trabajando: cada (máx, s)", 1, 12, .1] }],
+  parpadeo: ["Parpadeo", { cierre: ["Cerrar (s)", .02, .3, .01], apertura: ["Abrir (s)", .04, .5, .01], cadaMin: ["Cada (mín, s)", .8, 10, .1], cadaMax: ["Cada (máx, s)", 1.5, 15, .1], doble: ["Probabilidad de parpadeo doble", 0, 1, .01] }],
+  cara: ["Cambio de expresión", { cambio: ["Velocidad del cambio (s)", .04, .5, .01] }],
+  resorte: ["Inercia (hoja, antena)", { rigidez: ["Rigidez", 10, 200, 1], freno: ["Freno", 1, 30, .5] }],
+  toque: ["Al tocarlo", { salto: ["Altura del saltito", 0, 20, .5], rebote: ["Rebote al caer", 0, 4, .1] }],
+  acurrucar: ["Acurrucarse (gato)", { cuerpo: ["Cuerpo (s)", .3, 3, .05], cola: ["Cola (s)", .3, 3, .05] }],
+  mirar: ["Mirar a los costados", { rango: ["Cuánto mueve los ojos", 0, 6, .1], velocidad: ["Velocidad (s)", .08, 1, .01] }],
+};
+let A = {};
+const cs = [];
+function armar() {
+  cs.forEach(k => k.destruir()); cs.length = 0; g.innerHTML = "";
+  [["gatoPro", "Gato"], ["gato", "Gato ojos lisos"], ["brote5", "Brote"]].forEach(([p, n]) => {
+    const c = document.createElement("div"); c.className = "c"; c.innerHTML = "<div></div>" + n; g.appendChild(c);
+    const k = Companero.crear(c.firstChild, p, null); k.ir("reposo"); cs.push(k);
+  });
+}
+function campos() {
+  const D = Companero.DEF; campos_el = document.getElementById("campos"); campos_el.innerHTML = "";
+  for (const sec in NOMBRES) {
+    const [titulo, props] = NOMBRES[sec], fs = document.createElement("fieldset");
+    fs.innerHTML = `<legend>${titulo}</legend>`;
+    for (const k in props) {
+      const [txt, min, max, paso] = props[k], val = (A[sec] && A[sec][k] != null) ? A[sec][k] : D[sec][k];
+      const l = document.createElement("label");
+      l.innerHTML = `<span>${txt}</span><span class="v">${val}</span><input type="range" min="${min}" max="${max}" step="${paso}" value="${val}">`;
+      l.querySelector("input").oninput = e => { const v = +e.target.value; (A[sec] = A[sec] || {})[k] = v; l.querySelector(".v").textContent = v; window.CompaneroAjustes = A; };
+      fs.appendChild(l);
+    }
+    campos_el.appendChild(fs);
+  }
+}
+est.onclick = e => { const b = e.target.closest("button"); if (b) cs.forEach(k => k.ir(b.dataset.v)); };
+tocar.onclick = () => cs.forEach(k => k.tocar());
+gesto.onclick = () => cs.forEach(k => { const n = k.nombresGestos(); for (let i = 0; i < 8 && !k.gesto(n[Math.floor(Math.random() * n.length)]); i++); });
+lento.onchange = e => gsap.globalTimeline.timeScale(+e.target.value);
+guardar.onclick = async () => {
+  try { const r = await fetch("api/ajustes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(A) });
+        msg.textContent = (await r.json()).ok ? "Guardado ✓ — la app se actualiza sola en unos segundos." : "No se pudo guardar."; }
+  catch (e) { msg.textContent = "Sin conexión con la PC (los cambios siguen acá, sin guardar)."; }
+};
+restaurar.onclick = () => { A = {}; window.CompaneroAjustes = A; campos(); armar(); msg.textContent = "Volviste a los valores de antes (tocá Guardar para dejarlo así)."; };
+(async () => {
+  try { A = await (await fetch("ajustes.json", { cache: "no-store" })).json(); } catch (e) { A = {}; }
+  window.CompaneroAjustes = A; campos(); armar();
+})();
+</script>
+</body>
+</html>

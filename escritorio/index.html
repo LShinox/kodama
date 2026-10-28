@@ -1,0 +1,1588 @@
+<!doctype html>
+<!-- © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt. -->
+<!-- Globo v2 (13-oct-2026), estudio investigaciones\2026-10-13_globos-mascotas.md, cambios 1-10. La v1 quedo en index-v1.html.bak.
+     Verificar con estado\escritorio-captura.pedido (vacio = captura PNG; con una expresion JS = su resultado en .txt). -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+<title>Kodama</title>
+<script src="../web/i18n.js"></script>
+<script src="../web/gsap.min.js"></script>
+<script src="../web/personajes.js"></script>
+<script src="../web/lottie/lottie_light.min.js"></script>
+<script>/* (27-oct) clic derecho: sin el menu por defecto del WebView (Atras / Recargar / Inspeccionar). La mascota no tenia accion propia con el clic derecho (el menu de verdad es el de la bandeja); en cajas de texto se deja, para poder pegar. */
+document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t.closest && t.closest("input,textarea,[contenteditable='true']"))) e.preventDefault(); }, true);</script>
+<script>window.KODAMA_LOTTIE_BAJA = 3.75 / 128;   /* (27-oct) el gato Lottie baja 3,75 px (de 128) para que el piso toque el borde inferior; ver personajes-lottie.js */</script>
+<script src="../web/personajes-lottie.js"></script>
+<style>
+  /* v2 del globo (estudio globos-mascotas 13-oct): destino imposible de confundir, resumen + "ver todo",
+     chips con su texto y caducidad, caja que crece, borrador por chat, autocierre, mensaje nuevo sin pisar lo que lees */
+  :root { --card:#fffdf8; --tx:#3a3530; --sub:#6f655a; --btn:#ece4d6; --acento:#8fcf5f; --sombra:0 6px 24px rgba(0,0,0,.18); }
+  @media (prefers-color-scheme: dark) { :root { --card:#2a2724; --tx:#f1ece4; --sub:#b3a99d; --btn:#3a3632; --sombra:0 6px 24px rgba(0,0,0,.5); } }
+  html, body { margin:0; height:100%; background:transparent; overflow:hidden; font:14px/1.4 "Segoe UI", system-ui, sans-serif; color:var(--tx); user-select:none; }
+  /* (19-oct, LShinox) despierto "flota" 20 px sobre la barra de tareas; dormido baja y se apoya en ella */
+  #pie { position:absolute; right:10px; bottom:24px; width:150px; text-align:center; transition:bottom .9s cubic-bezier(.3017,.7,.3,1); }
+  body.duerme #pie { bottom:4px; }
+  /* (27-oct) "Con cápsula" (prototipo kodama-ventana-ajustes, modos "en cápsula"): la mascota descansa dentro de un circulo del color
+     de la ventana de Ajustes (--caps-bg = el --bg de #ajpc). #caps es hermano de #pie (no hijo) para quedarse quieto cuando la mascota
+     salta; el gato va a escala .72 (como en el prototipo) y la caja de #pie sigue siendo la misma. #morph es el circulo que se
+     estira hasta ser la ventana. Piso: despierto flota 20 px sobre la barra; dormido apoya (circulo a 6 px de la barra; la ventana
+     queda 15 px por debajo de la barra, ver esquina() en companero-tauri.js). */
+  :root { --caps-bg:#f5f1ea; --caps-fill:#fff; } @media (prefers-color-scheme: dark) { :root { --caps-bg:#000; } }
+  /* (27-oct, 4.a vuelta) el CIRCULO (--caps-fill) es BLANCO por defecto y lo elige el USUARIO: Ajustes > "Color de la cápsula" (Blanca | Negra) pone body.caps-negra.
+     Ya no hay regla automatica por color del gato (reemplaza la de la 3.a vuelta). */
+  body.caps-negra { --caps-fill:#000; }
+  /* El #morph (la ventana que se estira) conserva el color de la ventana (--caps-bg) y se tiñe de uno a otro con GSAP. */
+  /* (27-oct, 4.a vuelta) estilos que antes iban en atributos style="" (markup o innerHTML): la CSP de Tauri con nonce los BLOQUEA; ahora son clases */
+  .aj-sep10 { margin-top:10px; } .aj-der { margin-left:auto; }
+  .pto-sub { background:var(--sub); }
+  .rg-c { flex:1; min-width:0; } .rg-c .rg-a { font-size:13px; word-break:break-all; } .rg-c .rg-b { font-size:12px; color:var(--sub); } .rg-q { color:var(--verde); cursor:pointer; }
+  #caps { display:none; position:absolute; right:27px; bottom:35px; width:116px; height:116px; border-radius:50%; background:var(--caps-fill); z-index:0; cursor:pointer;
+          box-shadow:0 8px 24px rgba(0,0,0,.45), inset 0 0 0 1px rgba(128,128,128,.14); transition:bottom .9s cubic-bezier(.3,.7,.3,1); }
+  body.caps #caps { display:block; }
+  body.caps #pie { bottom:29px; z-index:1; transform:scale(.72); transform-origin:50% 50%; clip-path:circle(80.5px at 50% 50%); }
+  /* (27-oct, recorte) TODO el gato (Lottie, colita detras, respiracion, z, corazon, chispas) queda DENTRO del circulo de la capsula: #pie (caja 150x128, escala .72, centrada en el circulo de 116 px) se recorta con un circulo de 58/.72 = 80,5 px. La insignia (#otros) esta fuera de #pie y puede quedar sobre el borde. Con Ajustes abiertos (el gato sale de la capsula) no se recorta. */
+  body.con-panel #pie, body.caps-anim #pie { clip-path:none; }   /* (27-oct, 9.a vuelta) con capsula el gato queda SIEMPRE en el lugar del despierto: dormido ya no baja (sin reglas body.caps.duerme) */
+  #morph { display:none; position:absolute; background:var(--caps-bg); box-shadow:0 20px 50px rgba(0,0,0,.55); z-index:29; pointer-events:none; }
+  body.caps-anim #pie { z-index:31; }
+  #pj { width:128px; height:128px; margin:0 auto; cursor:pointer; position:relative; } #pj svg { width:100%; height:100%; overflow:visible; }
+  /* (27-oct, 9.a vuelta) UNA sola insignia, arriba a la derecha de la mascota (o de la capsula): cuantos chats te esperan (rojo). Si alguno pide
+     PERMISO o se atoro (error) la MISMA insignia pasa a ambar y dice "!N" (un pulso al aparecer). "?" y "termino" ya no son insignia.
+     Va fuera de #pie/#pj (la escala .72 de la capsula no la achica) y cuelga de la esquina de arriba a la derecha de la caja del gato. */
+  #otros { position:absolute; right:22px; bottom:132px; min-width:22px; height:22px; border-radius:11px; background:#d93036; color:#fff; font-size:12.5px; font-weight:700; line-height:1; display:none; align-items:center; justify-content:center; padding:0 6px; box-sizing:border-box; box-shadow:0 0 0 2px #fff, 0 3px 8px rgba(0,0,0,.4); cursor:pointer; z-index:32; font-variant-numeric:tabular-nums; transition:bottom .9s cubic-bezier(.3,.7,.3,1); }
+  #otros.grave { background:#f5a623; color:#2a1d00; }
+    body.con-panel #otros, body.caps:has(#asomo.si) #otros, body.caps:has(#burbuja.si) #otros { display:none !important; }   /* en Ajustes y con la capsula estirada (aviso o globo adentro) la insignia no se muestra */
+  body.duerme #otros { bottom:112px; } body.caps #otros { right:30px; bottom:128px; } body.caps.duerme #otros { bottom:128px; }
+  #nombre { display:inline-flex; align-items:center; gap:5px; font-size:13px; background:var(--card); border-radius:99px; padding:3px 10px; box-shadow:var(--sombra); cursor:pointer; max-width:146px; transition:box-shadow .25s; }
+  #nombre span.txt { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pto { width:10px; height:10px; border-radius:50%; flex:none; display:inline-block; }
+  #lista { position:absolute; right:10px; bottom:166px; z-index:20; width:290px; max-height:420px; overflow-y:auto; background:var(--card); border-radius:16px; box-shadow:var(--sombra); padding:6px; display:none; }
+  #lista.si { display:block; }
+  .it { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; cursor:pointer; font-size:13px; }
+  .it:hover, .it.on { background:var(--btn); } .it small { color:var(--sub); margin-left:auto; font-size:12px; }
+  /* (14-oct) lista v2: punto de color + nombre y debajo de que se trata; a la derecha la marca (? pregunta, ! permiso o error, • termino) */
+  .it .pto { width:8px; height:8px; }
+  .it .tx { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+  .it .tx b { font-weight:500; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .it .tx span { color:var(--sub); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .marca { flex:none; min-width:20px; height:20px; padding:0 5px; border-radius:10px; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; box-sizing:border-box; }
+  .marca.q { background:rgba(242,194,107,.2); color:#d99a2b; } .marca.x { background:rgba(242,135,155,.2); color:#e0607d; } .marca.ok { background:rgba(143,207,95,.2); color:#6fae43; }
+  .cabl { padding:8px 10px 4px; font-size:11.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--sub); font-weight:600; }
+  .pie-l { border-top:1px solid var(--btn); margin:4px 4px 0; padding:9px 6px 5px; font-size:12.5px; color:var(--sub); cursor:pointer; text-align:center; }
+  .pie-l:hover { color:var(--tx); }
+  #asa { position:absolute; right:2px; bottom:34px; width:12px; height:56px; border-radius:6px; background:var(--btn); opacity:0; cursor:grab; transition:opacity .2s; }   /* (14-oct) del lado derecho */
+  #pie:hover ~ #asa, #asa:hover { opacity:.85; }
+  #burbuja { position:absolute; bottom:166px; right:10px; width:340px; max-height:408px; z-index:15; background:var(--card); border-radius:16px; box-shadow:var(--sombra);
+             padding:12px 12px 10px 17px; display:none; flex-direction:column; gap:8px; transform-origin:85% 100%; overflow:hidden; }
+  #burbuja.si { display:flex; }
+  #burbuja::before { content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--color, #999); }
+  #burbuja::after { content:""; position:absolute; bottom:-8px; right:67px; border:8px solid transparent; border-top-color:var(--card); border-bottom:0; }
+  #cab { display:flex; align-items:flex-start; gap:6px; }
+  #cab .t { flex:1; min-width:0; }
+  #para { font-size:12.5px; color:var(--sub); } #para b { font-size:16px; color:var(--tx); }
+  #estadoLn { font-size:12.5px; color:var(--sub); }
+  .ib { border:0; background:var(--btn); color:var(--tx); width:32px; height:32px; border-radius:10px; cursor:pointer; font-size:14px; flex:none; }
+  #nuevo { display:none; align-self:flex-start; border:0; border-radius:99px; padding:3px 10px; background:#f2a64a; color:#1e1c1a; font:inherit; font-size:12.5px; cursor:pointer; }
+  #resumen { font-size:14px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; user-select:text; }
+  #resumen.preg { font-weight:600; }
+  #vertodo { align-self:flex-end; border:0; background:none; color:var(--sub); font:inherit; font-size:12.5px; cursor:pointer; padding:0; }
+  #todo { display:none; flex:1 1 auto; min-height:48px; max-height:150px; overflow-y:auto; white-space:pre-wrap; font-size:13px; user-select:text; background:var(--btn); border-radius:10px; padding:8px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; flex:none; max-height:108px; overflow-y:auto; }
+  #cab, #bform, #destino, #nuevo, #vertodo, #resumen { flex:none; }   /* (14-oct) con "Ver todo" abierto, lo que se achica es #todo, no el resto */
+  .chip { border:0; border-radius:99px; min-height:32px; padding:0 12px; background:var(--btn); color:var(--tx); font:inherit; font-size:13px; cursor:pointer; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chip:disabled { opacity:.4; cursor:default; }
+  #bform { display:flex; gap:6px; align-items:flex-end; }
+  #bin { box-sizing:border-box; flex:1; border:0; border-radius:12px; padding:10px; background:var(--btn); color:var(--tx); font:inherit; outline:none; resize:none; height:40px; max-height:96px; overflow-y:hidden; line-height:1.35; transition:height .08s; }
+  #benv { border:0; border-radius:12px; height:40px; padding:0 12px; background:var(--color, var(--acento)); color:#fff; font-weight:600; cursor:pointer; white-space:nowrap; }
+  #destino { font-size:12.5px; color:var(--sub); display:block; min-height:18px; line-height:1.5; }   /* texto corrido: el error largo ya no se parte en columnas */
+  #destino:empty { display:none; }   /* (14-oct) vacio dejaba un hueco entre la caja y "Cambiar de chat" */
+  /* (14-oct) el chat te espera (puente): lo que respondas aca cuenta como TU respuesta */
+  #espera { display:none; flex:none; font-size:12.5px; color:var(--color); font-weight:600; align-items:center; gap:6px; }
+  #espera.si { display:flex; } #esplib { display:none !important; }   /* (15-oct) "No me esperes" apagado por defecto */ #espera button { border:0; border-radius:8px; background:var(--btn); color:var(--tx); cursor:pointer; padding:1px 7px; font-size:12px; }
+  #destino .pto { vertical-align:middle; margin:0 2px; } #destino button { margin-left:4px; }
+  #destino.ok { color:var(--color); font-weight:600; } #destino.mal { color:#c93a55; font-weight:600; }
+  #cuenta { position:absolute; left:0; bottom:0; height:2px; background:var(--color, #999); width:0; }
+  #bcerrar { order:2; }   /* Tab: ✕ -> selector -> ver todo -> chips -> caja -> enviar; a la vista: ▾ ✕ */
+  #destino button { border:0; border-radius:8px; padding:2px 8px; background:#c93a55; color:#fff; font:inherit; font-size:12.5px; cursor:pointer; }
+  /* asomo: tarjeta que sube sola cuando un chat te bloquea (pregunta/permiso/error); no toma foco */
+  /* (19-oct, opcion "D + flechas" que eligio LShinox) 380 px, nombre entero + etiqueta del tipo, mensaje en 2 lineas
+     (6 con el mouse encima) y "‹ 1 de N ›" si hay avisos de varios chats */
+  #asomo { position:absolute; right:10px; bottom:166px; width:380px; box-sizing:border-box; z-index:14; background:var(--card); border-radius:14px; box-shadow:var(--sombra);
+           padding:9px 9px 9px 15px; display:none; align-items:flex-start; gap:8px; overflow:hidden; }
+  #asomo .cab { display:flex; align-items:center; gap:6px; min-width:0; }
+  #asomo .etq { flex:none; font-size:11.5px; font-weight:700; border-radius:8px; padding:1px 7px; color:#d99a2b; background:rgba(242,194,107,.18); }
+  #asomo .nav { margin-left:auto; display:none; align-items:center; gap:2px; color:var(--sub); font-size:12px; flex:none; }
+  #asomo .nav.si { display:flex; } #asomo .nav button { width:24px; height:24px; font-size:14px; }
+  #asomo .l { margin-top:2px; white-space:normal !important; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  #asomo:hover .l { -webkit-line-clamp:6; }
+  #asomo.si { display:flex; }
+  #asomo::before { content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--color, #999); }
+  #asomo .t { flex:1; min-width:0; } #asomo .n { font-size:13px; font-weight:700; color:var(--color); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } #asomo .l { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #asomo .r { border:0; border-radius:10px; height:32px; padding:0 10px; background:var(--color, var(--acento)); color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer; flex:none; }
+  #pborr { position:absolute; right:164px; bottom:6px; display:none; font-size:12.5px; background:var(--card); border-radius:99px; padding:3px 10px; box-shadow:var(--sombra); cursor:pointer; max-width:210px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #otros, .it small { font-size:12.5px; }
+  @media (prefers-reduced-motion: reduce) { body:not(.anim-full) #bin, body:not(.anim-full) #nombre { transition:none; } }   /* (5.a vuelta) con "Animaciones completas" (clase anim-full) se ignora */
+  /* (14-oct, LShinox: mascota mas limpia) sin la pastilla de abajo; cambiar de chat va debajo de la caja de texto */
+  #nombre, #bsel { display:none !important; }
+  #bcambiar { flex:none; align-self:stretch; border:0; border-radius:10px; min-height:30px; background:transparent; color:var(--sub); font:inherit; font-size:12.5px; cursor:pointer; text-align:left; padding:2px 4px; }
+  /* (27-oct, adjuntar) lo que sueltas sobre la mascota (o pegas) queda ADJUNTO en la caja: un chip por archivo (icono, nombre corto, ✕) y la captura pegada aparte; se envia solo con Enviar */
+  #badj { display:none; flex:none; flex-direction:column; gap:6px; font-size:12.5px; color:var(--sub); }
+  #badj.si { display:flex; }
+  #badjfoto { display:none; align-items:center; gap:8px; } #badjfoto.si { display:flex; }
+  #badj img { max-height:56px; max-width:120px; border-radius:8px; display:none; } #badj img.si { display:block; }
+  #badjtxt { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #badjchips { display:flex; flex-wrap:wrap; gap:5px 6px; max-height:96px; overflow-y:auto; } #badjchips:empty { display:none; }
+  .achip { display:inline-flex; align-items:center; gap:5px; box-sizing:border-box; max-width:100%; height:26px; padding:0 4px 0 9px; border-radius:99px; background:var(--btn); color:var(--tx); font-size:12.5px; flex:none; }
+  .achip .ai { flex:none; font-size:13px; line-height:1; } .achip .an { min-width:0; max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .achip .ax { flex:none; border:0; background:transparent; color:var(--sub); width:20px; height:20px; padding:0; border-radius:50%; font-size:11px; line-height:1; cursor:pointer; }
+  .achip .ax:hover, .achip .ax:focus-visible { background:color-mix(in srgb, var(--tx) 16%, transparent); color:var(--tx); outline:none; }
+  .achip.mas { background:transparent; color:var(--sub); padding:0 6px; }
+  #destino button.sec { background:var(--btn); color:var(--tx); }
+  /* (27-oct, arrastre) un archivo pasa por encima: aro suave verde alrededor del gato (o del circulo de la capsula) y la etiqueta "Suéltalo aquí". Posicion y tamaño los pone aroPosicion() por CSSOM (la CSP bloquea style=""). */
+  #aro { display:none; position:absolute; z-index:33; pointer-events:none; box-sizing:border-box; border-radius:50%; border:2px solid var(--acento);
+         background:color-mix(in srgb, var(--acento) 10%, transparent); box-shadow:0 0 0 5px color-mix(in srgb, var(--acento) 24%, transparent), 0 0 26px 6px color-mix(in srgb, var(--acento) 48%, transparent); }
+  #aro.si { display:block; }
+  #arotxt { display:none; position:absolute; z-index:34; pointer-events:none; white-space:nowrap; padding:4px 10px; border-radius:99px; background:var(--card); color:var(--tx); font-size:12.5px; font-weight:600; box-shadow:var(--sombra), 0 0 0 2px var(--acento); }
+  #arotxt.si { display:block; }
+  #bcambiar:hover { background:var(--btn); color:var(--tx); }
+  /* (20-oct, globo v5 aprobado por LShinox): sin "Para:", sin "te pregunta algo" ni "te está esperando"; la hora al lado
+     del nombre (si el nombre ocupa dos filas, la hora sigue en la segunda); flechas ‹ › junto al ✕ en vez de "Cambiar
+     de chat"; preguntas numeradas en texto (2 lineas c/u); botones chicos y "Ver todo" en la misma fila; la barra de
+     color sigue la curva del borde (sombra interior) y una muesca de comic apunta al gato */
+  #burbuja { overflow:visible; box-shadow:inset 5px 0 0 var(--color, #999), var(--sombra); }
+  #burbuja::before { display:none; }
+  #burbuja::after { bottom:-20px; right:70px; border:0; border-left:26px solid transparent; border-right:2px solid transparent; border-top:21px solid var(--card); filter:drop-shadow(0 4px 3px rgba(0,0,0,.3)); }
+  #para b { font-size:16px; color:var(--tx); } #bhora { font-size:12.5px; color:var(--sub); white-space:nowrap; margin-left:2px; }
+  /* (26-oct) progreso de tareas "3/7" junto al nombre del chat en el globo */
+  #btar { font-size:11.5px; color:var(--sub); white-space:nowrap; margin-left:6px; padding:1px 7px; border-radius:99px; background:color-mix(in srgb, var(--color, #8fcf5f) 22%, transparent); font-variant-numeric:tabular-nums; }
+  #btar:empty { display:none; }
+  /* (27-oct, idea de clawd #1018) fase del chat que trabaja, en letra chica junto a la hora */
+  #bfase { font-size:11.5px; color:var(--sub); white-space:nowrap; margin-left:4px; } #bfase:empty { display:none; }
+  /* (27-oct, punto 4 del dueño) boton "Chats que te esperan" (lista + numero) en el lugar del de archivar; despliega DENTRO del globo la lista de chats pendientes.
+     Funciona con y sin capsula (blanca o negra): los colores salen de las variables del globo (--tx, --sub, --btn), que la capsula ya redefine. */
+  #blistap { width:auto; min-width:32px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center; gap:4px; color:var(--tx); }
+  #blistap svg { width:16px; height:16px; flex:none; } #blistap b { font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; } #blistap b:empty { display:none; }
+  #blistap[aria-expanded="true"] { background:color-mix(in srgb, var(--color, #999) 30%, var(--btn)); }
+  #bpend { display:none; flex:none; overflow:hidden; border-radius:12px; } #bpend.si { display:block; }
+  #bpendin { max-height:150px; overflow-y:auto; scrollbar-width:thin; padding:0 2px 2px 0; }
+  .pf { display:flex; align-items:center; gap:9px; padding:7px 8px; border-radius:10px; cursor:pointer; outline:none; }
+  .pf:hover, .pf:focus-visible { background:var(--btn); }
+  .pf .pto { width:8px; height:8px; } .pf .tx { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+  .pf .l1 { display:flex; align-items:baseline; gap:7px; min-width:0; } .pf .l1 b { font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+  .pf .l1 small { color:var(--sub); font-size:11.5px; white-space:nowrap; flex:none; }
+  .pf .l2 { color:var(--sub); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pf .ar { flex:none; border:0; background:none; color:var(--sub); min-width:26px; height:26px; border-radius:8px; cursor:pointer; font-size:14px; font-family:inherit; padding:0; }
+  .pf .ar:hover { background:var(--btn); color:var(--tx); } .pf .ar.conf { padding:0 8px; background:#c93a55; color:#fff; font-size:11.5px; font-weight:600; }
+  .pfsep { font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--sub); padding:8px 8px 2px; font-weight:600; }
+  .pfvac { color:var(--sub); font-size:12.5px; padding:10px 8px; text-align:center; }
+  .pfmas { text-align:center; color:var(--sub); font-size:12.5px; padding:8px 6px 4px; cursor:pointer; border-top:1px solid var(--btn); margin-top:4px; outline:none; } .pfmas:hover, .pfmas:focus-visible { color:var(--tx); }
+  #burbuja.pend { max-height:430px; } body.caps #burbuja.pend { max-height:520px; }
+  /* (26-oct) "Lo nuevo" en Ajustes */
+  #ajpc #aj-lonuevo { background:var(--card); border-radius:12px; padding:12px 14px; margin:0 0 12px; } #ajpc #aj-lonuevo[hidden] { display:none; }
+  #ajpc #aj-lonuevo h3 { margin:0 0 6px; font-size:15px; } #ajpc #aj-lonuevo ul { margin:0 0 6px; padding-left:18px; font-size:13px; line-height:1.4; } #ajpc #aj-lonuevo li { margin:2px 0; }
+  #ajpc #aj-lonuevo .est { font-size:12px; color:var(--sub); margin:4px 0 8px; } #ajpc #aj-lonuevo .bt { margin-top:4px; }
+  #estadoLn, #espera, #bcambiar { display:none !important; }
+  #bnav { display:flex; gap:2px; flex:none; } .fl { border:0; width:26px; height:32px; border-radius:8px; background:none; color:var(--sub); font-size:18px; line-height:1; cursor:pointer; }
+  .fl:hover { background:var(--btn); color:var(--tx); }
+  #resumen.lista { display:block; -webkit-line-clamp:unset; font-weight:400 !important; }
+  #resumen.lista p { margin:0 0 6px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  #bacc { display:flex; align-items:center; gap:6px; flex:none; } #bacc .chips { flex:1; min-width:0; }
+  #bacc #vertodo { align-self:center; flex:none; }
+  #bchips .chip { min-height:26px; padding:0 10px; font-size:12.5px; }
+  #asomo { align-items:center; }
+  /* ======== (22-oct) Ajustes DENTRO de la mascota (prototipo kodama-ventana-ajustes.html, aprobado) ======== */
+  #ajpc { position:absolute; left:0; top:0; width:380px; height:560px; z-index:30; display:none; flex-direction:column; border-radius:14px; overflow:hidden;
+    --bg:#f5f1ea; --card:#fff; --tx:#1c1c1e; --sub:#8a847d; --btn:#ece7df; --verde:#4fae2e; --rojo:#e5484d; --linea:rgba(60,55,50,.13);
+    background:var(--bg); color:var(--tx); font:14.5px/1.35 "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; box-shadow:0 18px 44px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.08); }
+  @media (prefers-color-scheme: dark) { #ajpc { --bg:#000; --card:#1c1b1a; --tx:#f4efe8; --sub:#9b938a; --btn:#2a2826; --verde:#5cbf38; --rojo:#ff5a5f; --linea:rgba(255,245,230,.12); box-shadow:0 18px 44px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.1); } }
+  body.con-panel #ajpc { display:flex; }
+  body.con-panel #burbuja, body.con-panel #lista, body.con-panel #asomo, body.con-panel #pborr, body.con-panel #nombre { display:none !important; }
+  #ajpc .tb { height:34px; display:flex; align-items:center; padding:0 0 0 14px; font-size:12px; color:var(--sub); flex:none; }
+  #ajpc .tb button { margin-left:auto; width:44px; height:34px; border:0; background:none; color:var(--sub); font-size:14px; cursor:pointer; }
+  #ajpc .tb button:hover { background:#c42b1c; color:#fff; }
+  #ajpc .cu { flex:1; overflow:auto; padding:2px 16px 20px; scrollbar-width:thin; }
+  #ajpc .pg { display:none; } #ajpc .pg.on { display:block; animation:ajEntra .18s ease; }
+  @keyframes ajEntra { from { opacity:.3; transform:translateX(14px); } }
+  #ajpc h2 { font-size:26px; font-weight:700; letter-spacing:-.4px; margin:2px 0 10px; }
+  #ajpc .at { border:0; background:none; color:var(--verde); font:inherit; padding:2px 0; cursor:pointer; margin-left:-3px; }
+  #ajpc .cab { font-size:11.5px; text-transform:uppercase; color:var(--sub); margin:16px 12px 6px; }
+  #ajpc .pie2 { font-size:12px; color:var(--sub); margin:6px 12px 0; line-height:1.35; }
+  #ajpc .sec { background:var(--card); border-radius:12px; overflow:hidden; }
+  #ajpc .fi { display:flex; align-items:center; gap:10px; padding:9px 14px; min-height:40px; position:relative; }
+  #ajpc .fi + .fi::before { content:""; position:absolute; top:0; left:14px; right:0; height:1px; background:var(--linea); }
+  #ajpc .fi.ir { cursor:pointer; } #ajpc .fi.ir:hover { background:color-mix(in srgb, var(--tx) 5%, var(--card)); }
+  #ajpc .fi .v { margin-left:auto; color:var(--sub); display:flex; align-items:center; gap:6px; }
+  #ajpc .fi.ir .v::after { content:"›"; font-size:19px; line-height:1; opacity:.6; }
+  #ajpc .bdg { background:var(--rojo); color:#fff; border-radius:99px; font-size:11.5px; font-weight:700; min-width:19px; height:19px; display:grid; place-items:center; padding:0 6px; }
+  #ajpc .sw { width:42px; height:25px; border-radius:99px; background:#d9d4cc; position:relative; margin-left:auto; flex:none; cursor:pointer; transition:background .15s; }
+  @media (prefers-color-scheme: dark) { #ajpc .sw { background:#3a3734; } }
+  #ajpc .sw::after { content:""; position:absolute; top:2px; left:2px; width:21px; height:21px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:left .15s; }
+  #ajpc .sw.si { background:var(--verde) !important; } #ajpc .sw.si::after { left:19px; }
+  #ajpc .sg { display:flex; background:var(--btn); border-radius:9px; padding:2px; margin-left:auto; }
+  #ajpc .sg span { padding:3px 10px; border-radius:7px; font-size:12.5px; cursor:pointer; color:var(--sub); } #ajpc .sg span.on { background:var(--card); color:var(--tx); box-shadow:0 1px 2px rgba(0,0,0,.12); }
+  #ajpc .op { display:flex; gap:10px; padding:10px 12px 12px; flex-wrap:wrap; }
+  #ajpc .op .o { width:54px; text-align:center; font-size:11px; color:var(--sub); cursor:pointer; }
+  #ajpc .op .o i { display:block; width:38px; height:38px; border-radius:50%; margin:0 auto 4px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.14); }
+  #ajpc .op .o.on i { box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--verde); } #ajpc .op .o.on { color:var(--tx); }
+  #ajpc .bt { display:block; width:100%; border:0; border-radius:10px; padding:9px; font:inherit; font-weight:600; background:var(--verde); color:#fff; margin-top:10px; cursor:pointer; }
+  #ajpc .bt[hidden] { display:none; } #ajpc .txt { padding:10px 14px; color:var(--sub); font-size:13px; }
+  /* ======== (27-oct, 6.a vuelta) TODO DENTRO DE LA CAPSULA (como Coucou; guia: instalaciones\capsula-prototipo.html) ========
+     Con "Con cápsula" el aviso (#asomo) y el globo (#burbuja) ya NO flotan arriba de la mascota: viven DENTRO de la capsula. La capsula
+     (#caps, blanca o negra segun lo elija el usuario: --caps-fill) se estira desde el circulo hacia la izquierda y hacia arriba (la mascota
+     queda en su esquina de abajo a la derecha) y DESPUES entra el texto; #asomo y #burbuja quedan encima de ella, sin fondo ni sombra, con la
+     misma caja (el JS, capsAbrir/capsCerrar, le da el tamaño a la capsula). Los colores del texto salen del color de la capsula.
+     Las filas de abajo (chips, caja, destino) dejan libre el lugar del circulo de la mascota (110 px a la derecha). Sin capsula nada de esto aplica. */
+  body.caps #asomo, body.caps #burbuja { right:27px; bottom:35px; width:364px; box-sizing:border-box; z-index:1; background:none; box-shadow:none; border-radius:0; overflow:visible;
+    transition:bottom .9s cubic-bezier(.3,.7,.3,1); --card:transparent; --tx:#2a2622; --sub:#6f655a; --btn:#efe9df; color:var(--tx); }
+
+  body.caps.caps-negra #asomo, body.caps.caps-negra #burbuja { --tx:#f4efe8; --sub:#b8afa4; --btn:#2c2926; }
+  body.caps #asomo::before, body.caps #asomo::after, body.caps #burbuja::before, body.caps #burbuja::after { display:none; }
+  body.caps #asnom::before, body.caps #paranom::before { content:""; display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--color, #999); margin-right:6px; }
+  body.caps #asomo { padding:16px 126px 14px 20px; min-height:138px; flex-wrap:wrap; align-items:flex-start; align-content:flex-start; gap:8px; }
+  body.caps #asomo .t { flex:1 1 100%; } body.caps #asomo .cab { flex-wrap:wrap; row-gap:2px; }
+  body.caps #asomo .nav { margin-left:0; } body.caps #asomo .n { color:var(--tx); min-width:0; } body.caps #asomo .l { -webkit-line-clamp:3; color:var(--tx); } body.caps #asomo:hover .l { -webkit-line-clamp:6; }
+  body.caps #asomo .r { margin-top:2px; } body.caps #ascerrar { position:absolute; top:8px; right:12px; }
+  body.caps #burbuja { padding:14px 16px 14px 20px; min-height:190px; max-height:408px; }
+  body.caps #bacc, body.caps #bform, body.caps #destino, body.caps #badj { margin-right:110px; }
+  body.caps #bacc { flex-direction:column; align-items:flex-start; gap:4px; } body.caps #bacc .chips, body.caps #bchips { max-height:none; overflow:visible; width:100%; flex:none; }
+  body.caps #vertodo, body.caps #bacc #vertodo { align-self:flex-start; padding:2px 0; }
+  body.caps #benv { font-size:0; width:44px; padding:0; } body.caps #benv::after { content:"➤"; font-size:16px; } body.caps #cuenta { left:26px; bottom:7px; border-radius:2px; max-width:calc(100% - 52px); }
+</style>
+</head>
+<body>
+<div id="burbuja" role="dialog" data-t aria-label="Responder">
+  <div id="cab"><div class="t"><div id="para"><b id="paranom"></b> <span id="btar" title=""></span> <span id="bhora"></span> <span id="bfase"></span></div><div id="estadoLn"></div></div>
+    <span id="bnav"><button type="button" class="fl" id="bant" title="Chat anterior" aria-label="Chat anterior">‹</button><button type="button" class="fl" id="bsig" title="Chat siguiente" aria-label="Chat siguiente">›</button></span>
+    <button class="ib" id="bcerrar" data-t title="Cerrar (Esc)" aria-label="Cerrar">✕</button><button class="ib" id="bsel" data-t title="Cambiar de chat (Ctrl+↓)" aria-label="Cambiar de chat">▾</button><button class="ib" id="babrir" data-t title="Abrir este chat en Claude" aria-label="Abrir este chat en Claude">↗</button><button class="ib" id="blistap" data-t title="Chats que te esperan" aria-label="Chats que te esperan" aria-expanded="false" aria-controls="bpend"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b id="blistapn"></b></button></div>
+    <div id="bpend" role="region" data-t aria-label="Chats que te esperan"><div id="bpendin"></div><div class="pfmas" id="bpendmas" role="button" tabindex="0"></div></div>
+  <div id="espera"><span id="esptxt"></span> <button type="button" id="esplib" title="Que siga sin tu respuesta">✕</button></div>
+  <button id="nuevo" data-t>Llegó otro mensaje ▸</button>
+  <div id="resumen"></div><div id="todo"></div>
+  <div id="bacc"><div class="chips" id="bchips"></div><button id="vertodo" data-t>Ver todo ▾</button></div>
+  <div id="badj"><div id="badjfoto"><img id="badjimg" alt=""><span id="badjtxt"></span><button type="button" class="ib" id="badjq" aria-label="Quitar">✕</button></div><div id="badjchips" role="list" aria-label="Adjuntos"></div></div>
+  <form id="bform"><textarea id="bin" rows="1"></textarea><button type="button" class="ib" id="bpegar" title="Para APROBAR: abre el chat con tu texto copiado; pégalo con Ctrl+V y Enter">📋</button><button id="benv" data-t>Enviar ➤</button></form>
+  <div id="destino"></div>
+  <button type="button" id="bcambiar" title="Cambiar de chat (Ctrl+↓)">⇄ <span id="bcambiartxt"></span></button>
+  <div id="cuenta"></div>
+</div>
+<div id="asomo" role="status" aria-live="polite"><div class="t"><div class="cab"><span class="n" id="asnom"></span><span class="etq" id="aschip"></span>
+  <span class="nav" id="asnav"><button class="ib" id="asant" aria-label="Aviso anterior">‹</button><span id="asi"></span><button class="ib" id="assig" aria-label="Aviso siguiente">›</button></span></div><div class="l" id="aslin"></div></div>
+  <button class="r" id="asresp" data-t title="Responder (Ctrl+Shift+F11)">Responder</button><button class="ib" id="ascerrar" data-t aria-label="Descartar aviso">✕</button></div>
+<div id="lista"></div>
+<div id="pborr" role="button" tabindex="0"></div>
+<div id="caps" aria-hidden="true"></div><div id="morph" aria-hidden="true"></div>
+<div id="pie"><div id="pj" role="button" tabindex="0"></div><div id="nombre"><span class="pto" id="nompto"></span><span class="txt" id="nomtxt">…</span>▾</div></div>
+<span id="otros" role="button" tabindex="0" data-t title="Chats que te esperan"></span>
+<div id="aro" aria-hidden="true"></div><div id="arotxt" aria-hidden="true" data-t>Suéltalo aquí</div>
+<div id="asa" data-t title="Arrastrar"></div>
+<!-- (22-oct) Ajustes dentro de la mascota: lo abre "Ajustes…" del menu de la bandeja -->
+<div id="ajpc" role="dialog" aria-label="Ajustes de Kodama">
+  <div class="tb"><span>Kodama · <span data-t>Ajustes</span></span><button type="button" id="aj-x" aria-label="Cerrar">✕</button></div>
+  <div class="cu">
+    <section class="pg on" data-p="inicio"><h2 data-t>Ajustes</h2>
+      <div id="aj-lonuevo" hidden><h3 data-t>Lo nuevo en Kodama</h3><ul id="aj-lonuevo-lista"></ul><div class="est" id="aj-lonuevo-est"></div><button type="button" class="bt" id="aj-lonuevo-ok" data-t>Entendido</button></div>
+      <div class="sec">
+        <div class="fi ir" data-ir="personaje"><span data-t>Personaje</span><span class="v" id="aj-pjv"></span></div>
+        <div class="fi"><span data-t>Idioma</span><div class="sg" id="aj-idioma"><span data-v="es">Español</span><span data-v="en">English</span></div></div>
+      </div>
+      <div class="cab" data-t>En esta PC</div>
+      <div class="sec">
+        <div class="fi"><span data-t>Ojos siguen al mouse</span><span class="sw" data-k="ojos"></span></div>
+        <div class="fi"><span data-t>Aparecer solo cuando me necesitan</span><span class="sw" data-k="modo"></span></div>
+        <div class="fi"><span data-t>Con cápsula</span><span class="sw" data-k="capsula"></span></div>
+        <div class="fi" id="aj-capcolfila"><span data-t>Color de la cápsula</span><div class="sg" id="aj-capcol"><span data-v="blanca" data-t>Blanca</span><span data-v="negra" data-t>Negra</span></div></div>
+        <div class="fi"><span data-t>Sonidos</span><span class="sw" data-k="sonido"></span></div>
+        <div class="fi"><span data-t>Animaciones completas</span><span class="sw" data-k="animCompletas"></span></div>
+        <div class="fi"><span data-t>Sueño profundo</span><span class="sw" data-k="sueno"></span></div>
+        <div class="fi" id="aj-suenomin-fila"><span data-t>Minutos sin cambios</span><div class="sg" id="aj-suenomin"><span data-v="2">2</span><span data-v="5">5</span><span data-v="10">10</span></div></div>
+        <div class="fi ir" data-accion="esquina"><span data-t>Volver a la esquina</span><span class="v"></span></div>
+      </div>
+      <div class="pie2" data-t>Solo cambia la mascota de esta PC.</div>
+      <div class="pie2" data-t>La mascota descansa dentro de un círculo del color de la ventana; al abrir Ajustes se estira hasta ser la ventana y, al cerrarla, vuelve a ser un círculo y la mascota cae adentro.</div>
+      <div class="pie2" data-t>Cuando nada cambia, la mascota se queda quieta y casi no gasta CPU. Despierta con un aviso, al pasarle el mouse, con un clic o al abrir Ajustes.</div>
+      <div class="pie2" data-t>Encendido: la mascota hace todos los gestos aunque tu sistema tenga los efectos de animación apagados. Apagado: respeta ese ajuste de Windows o iOS. Es de este aparato y no se sincroniza.</div>
+      <div class="cab" data-t>Celular</div>
+      <div class="sec"><div class="fi ir" data-accion="conectar"><span data-t>Conectar celular</span><span class="v"></span></div></div>
+      <div class="cab" data-t>Más</div>
+      <div class="sec">
+        <div class="fi ir" data-ir="uso"><span data-t>Uso del plan</span><span class="v"></span></div>
+        <div class="fi ir" data-ir="reglas"><span data-t>Reglas de permisos</span><span class="v" id="aj-nreglas"></span></div>
+        <div class="fi ir" data-ir="conexion"><span data-t>Conexión con Claude</span><span class="v"></span></div>
+        <div class="fi ir" data-ir="actualiz"><span data-t>Actualizaciones</span><span class="v"><span class="bdg" id="aj-bdg" hidden>1</span></span></div>
+        <div class="fi ir" data-accion="reportar"><span data-t>Reportar un problema</span><span class="v"></span></div>
+      </div>
+    </section>
+    <section class="pg" data-p="personaje"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Personaje</h2>
+      <div class="sec"><div class="fi"><span data-t>Personaje</span><div class="sg" id="aj-tipo"><span data-v="gato" data-t>Gato</span><span data-v="brote" data-t>Brote</span></div></div>
+        <!-- (27-oct, 4.a vuelta) los ojos del gato aparte del personaje; por dentro siguen siendo gatoPro (con pupila) / gato (lisos), asi lo guardado y lo que se comparte con el celular no cambia -->
+        <div class="fi" id="aj-ojosfila"><span data-t>Ojos</span><div class="sg" id="aj-ojos"><span data-v="gatoPro" data-t>Con pupila</span><span data-v="gato" data-t>Lisos</span></div></div></div>
+      <div class="cab" id="aj-collbl"></div>
+      <div class="sec"><div class="op" id="aj-colores"></div></div>
+      <div class="sec aj-sep10" id="aj-florsec"><div class="fi"><span data-t>Cactus con flor</span><span class="sw" data-k="florCactus"></span></div></div>
+      <div class="pie2" data-t>Es la misma mascota en la PC y en el celular.</div>
+    </section>
+    <section class="pg" data-p="uso"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Uso del plan</h2>
+      <div class="sec"><div class="fi"><span data-t>Usar el chat de Kodama para el dato exacto</span><span class="sw" id="aj-lectura"></span></div></div>
+      <div class="pie2" id="aj-lectura-nota"></div>
+    </section>
+    <section class="pg" data-p="reglas"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Reglas de permisos</h2>
+      <div class="sec" id="aj-reglas"></div>
+      <div class="pie2" data-t>Lo que aprobaste con «Permitir siempre esto» o «Permitir en esta tarea» ya no te lo pregunta.</div>
+    </section>
+    <section class="pg" data-p="conexion"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Conexión con Claude</h2>
+      <div class="sec" id="aj-hooks"><div class="txt" data-t>Revisando…</div></div>
+      <button type="button" class="bt" id="aj-arreglar" hidden data-t>Arreglar (se guarda un respaldo antes)</button>
+    </section>
+    <section class="pg" data-p="actualiz"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Actualizaciones</h2>
+      <div class="sec">
+        <div class="fi"><span data-t>Versión instalada</span><span class="v aj-der" id="aj-actual"></span></div>
+        <div class="fi"><span id="aj-estado"></span></div>
+      </div>
+      <div class="pie2" id="aj-notas"></div>
+      <button type="button" class="bt" id="aj-act" hidden data-t>Actualizar ahora</button>
+      <div class="cab" data-t>Automático</div>
+      <div class="sec"><div class="fi"><span data-t>Actualizar sola</span><span class="sw" id="aj-auto"></span></div></div>
+      <div class="pie2" data-t>De noche (1 a 5 h) y con la PC 30 min sin usar. Viene apagada.</div>
+    </section>
+  </div>
+</div>
+
+<script>
+// (14-oct) nada fijo: nombre, emoji y color de cada chat vienen del hub (config.json + grupos de la app)
+const NOMBRES = {}, EMO = {}, COLOR = {};
+const SUB = { pregunta: window.t("te pregunta algo"), permiso: window.t("te pide permiso"), error: window.t("se atoró"), termino: window.t("terminó") };
+const TXT = { reposo: window.t("esperando"), trabajando: window.t("trabajando…"), escribio: window.t("te escribió"), dormido: window.t("durmiendo"), enviado: window.t("recibió tu mensaje"), atascado: window.t("algo falló") };
+const PRIO = { error: 0, permiso: 1, pregunta: 2, termino: 3 };
+let pjTipo = "gatoPro", datos = {}, comp = null, chat = null, fijado = false, abierto = false, vistos = {}, ultEnvio = 0, mostrado = null, saludado = false;
+// (27-oct, 4.a vuelta) color de la capsula: lo elige el usuario (Blanca por defecto | Negra); sin regla por color del gato (ver --caps-fill en el CSS)
+const aplicarCapsulaColor = v => document.body.classList.toggle("caps-negra", v === "negra");
+if (window.companero && companero.alCapsulaColor) companero.alCapsulaColor(aplicarCapsulaColor);
+const $ = id => document.getElementById(id);
+const chats = () => Object.keys(datos).filter(k => !k.startsWith("_"));
+// (14-oct) con un grupo de la app de Claude elegido, los chats vienen del hub: nombre/emoji de ahi y color estable por chat
+const nomDe = c => NOMBRES[c] || String((datos[c] || {}).nombre || c).replace(/[<>]/g, "");   // & se deja: "D&D"
+const emoDe = c => EMO[c] || (datos[c] || {}).emoji || "";
+const colDe = c => COLOR[c] || (datos[c] || {}).color || `hsl(${[...c].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 7)} 45% 45%)`;
+const etiqueta = c => `${emoDe(c)} ${nomDe(c)}`.trim();   // (16-oct) sin emoji inventado: emoDe ya no pone 💬
+// (27-oct, idea de clawd #1018) "pensando" vs "ejecutando": el hub manda fase ("pensando" | "ejecutando") y fase_tipo (comando, web, subagente, herramienta)
+const FASE_TXT = { comando: window.t("ejecutando un comando…"), web: window.t("ejecutando una búsqueda web…"), subagente: window.t("ejecutando un subagente…"), herramienta: window.t("ejecutando una herramienta…") };
+function faseTxt(c) { const d = datos[c] || {}; return d.fase === "ejecutando" ? (FASE_TXT[d.fase_tipo] || FASE_TXT.herramienta) : d.fase === "pensando" ? window.t("pensando…") : ""; }
+// el gato hace el gesto de la fase (teclear / pensar) SIN cambiar su estado "trabajando"
+function faseGato(c, e) { try { if (comp && comp.fase) comp.fase(e === "trabajando" ? (datos[c] || {}).fase || null : null); } catch (x) {} }
+const txtDe = (c, e) => (e === "trabajando" && (faseTxt(c) || String((datos[c] || {}).haciendo || "").replace(/[<>&]/g, ""))) || TXT[e];   // (14-oct) "editando x.py"; (27-oct) fase
+// (27-oct, 5.a vuelta) "Animaciones completas" (Ajustes, encendido por defecto, por aparato): encendido = se ignora prefers-reduced-motion (morph de la
+// capsula, saltos, gestos al azar, guiño); apagado = RM sigue al ajuste de Windows. RM es `let`: se recalcula cuando el ajuste cambia.
+const RM_SISTEMA = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let animCompletas = true, RM = false;   // movimiento reducido: solo fundidos de 80 ms
+function calcularRM() { RM = RM_SISTEMA && !animCompletas; document.body.classList.toggle("anim-full", animCompletas); }
+calcularRM();
+if (window.companero && companero.alAnimCompletas) companero.alAnimCompletas(v => { animCompletas = v !== false; window.KODAMA_ANIM_COMPLETAS = animCompletas; calcularRM(); });
+let visibleVen = true;
+gsap.ticker.fps(24);
+// (19-oct) con la PC en uso seguia en ~15 % de un nucleo AUN con la ventana chica (medido 19:23): el costo es por
+// CUADRO (componer la ventana transparente), no por tamaño. Cuadros segun lo que pasa: 24 por segundo con un gesto,
+// el mouse encima, un aviso o el globo; 10 si solo respira (la respiracion es lenta y se ve igual).
+let fpsAct = 24;
+setInterval(() => {
+  const vivo = (comp && comp.ocupado) || window._sobre || asomoAct || abierto;
+  const n = vivo ? 24 : 10;
+  if (n !== fpsAct) { fpsAct = n; gsap.ticker.fps(n); }
+}, 200);
+// (19-oct) la mascota gastaba ~23 % de un nucleo SIN HACER NADA (medido): el reloj de animacion (requestAnimationFrame)
+// despertaba a la ventana transparente en cada refresco de pantalla aunque las animaciones estuvieran en pausa. Ahora,
+// oculta o con la PC sin uso 60 s (y nada abierto), la animacion DUERME del todo y despierta al mover el mouse.
+let animDormida = false;
+function dormirAnim(si) {
+  if (si === animDormida) return; animDormida = si;
+  // (27-oct, 4.a vuelta) 2.o argumento = la ventana SIGUE visible: el gato dormido sigue respirando (animacion del navegador, casi sin CPU); oculta, se pausa todo
+  if (si) { if (comp && comp.pausar) comp.pausar(true, visibleVen && !document.hidden); gsap.globalTimeline.pause(); gsap.ticker.sleep(); }
+  else { gsap.ticker.wake(); gsap.globalTimeline.resume(); if (comp && comp.pausar) comp.pausar(false); }
+}
+document.addEventListener("visibilitychange", () => dormirAnim(document.hidden));
+companero.alVisible(v => { visibleVen = v; dormirAnim(!v); });
+// (21-oct, LShinox: "despierta consume porque parpadea") ademas de con la PC sin uso, se duerme (cuadro quieto, ~0 %)
+// si pasan 2 min sin avisos nuevos ni que la toques, AUNQUE uses la PC. Despierta al pasarle el mouse o con un aviso.
+let ultInter = Date.now(), despiertoHasta = 0;
+// (26-oct) SUEÑO PROFUNDO: tras `min` minutos sin cambios de estado de ningun chat y sin el puntero encima, la mascota queda en un
+// cuadro fijo (dormirAnim pausa Lottie, GSAP y los temporizadores de gestos). Interruptor y minutos en Ajustes (companero-tauri.js).
+// Por defecto 2 min: es lo que la mascota ya hacia desde el 21-oct (antes con 120000 fijo); subirlo solo la deja mas rato despierta.
+// Despierta con: un cambio de estado de un chat (tocada() en cargar), el puntero encima (sobreEn), un clic y abrir Ajustes.
+let sueno = { on: true, min: 2 };
+if (companero.alSueno) companero.alSueno(s => { sueno = s; });
+const quieta = () => sueno.on && Date.now() - ultInter > sueno.min * 60000;
+function tocada() { ultInter = Date.now(); if (animDormida && visibleVen && !document.hidden) dormirAnim(false); }
+document.addEventListener("pointerdown", tocada, true);   // un clic (sobre la mascota, el globo o el panel) la despierta
+setInterval(async () => {   // PC sin uso: duerme; se despierta abajo con el mouse (evento "cursor" de Rust) o aqui
+  if (!visibleVen || document.hidden || Date.now() < despiertoHasta) return;
+  let s = 0; try { s = await companero.inactivo(); } catch (e) { return; }
+  dormirAnim((s >= 60 || quieta()) && !abierto && !asomoAct && !window._sobre && !panelAbierto);
+}, 5000);
+// animaciones del estudio §3.5: abrir 180 ms con rebote leve desde la cola, cerrar 120 ms
+function animAbrir(el, ms = 180) { if ((el.id === "asomo" || el.id === "burbuja") && capsOn()) return capsAbrir(el); return el.animate(RM ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: "translateY(10px) scale(.96)" }, { opacity: 1, transform: "none" }], { duration: RM ? 80 : ms, easing: RM ? "linear" : "cubic-bezier(.2,.9,.3,1.15)" }); }
+function animCerrar(el, ms = 120) { if ((el.id === "asomo" || el.id === "burbuja") && capsOn()) return capsCerrar(el); return el.animate(RM ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.97)" }], { duration: RM ? 80 : ms, easing: "ease-in" }); }
+try { vistos = JSON.parse(localStorage.getItem("vistos") || "{}"); chat = localStorage.getItem("chat"); fijado = !!chat; } catch (e) {}
+const borrador = c => { try { return localStorage.getItem("borrador:" + c) || ""; } catch (e) { return ""; } };
+const guardarBorrador = (c, v) => { try { v ? localStorage.setItem("borrador:" + c, v) : localStorage.removeItem("borrador:" + c); } catch (e) {} };
+
+function estadoDe(c) {
+  const d = datos[c]; if (!d) return "dormido";
+  if (d.estado === "trabajando") return "trabajando";
+  if (d.ultimo_ts && d.ultimo_ts > (vistos[c] || 0) && d.estado === "termino") return "escribio";
+  if (Date.now() / 1000 - (d.visto || 0) > 1800) return "dormido";
+  return "reposo";
+}
+const teNecesita = c => estadoDe(c) === "escribio";
+// el destino NO cambia solo con el globo/lista abiertos, con borrador escrito, o hasta 10 s despues de enviar
+function bloqueado() { return abierto || $("lista").classList.contains("si") || (chat && borrador(chat)) || Date.now() - ultEnvio < 10000; }
+function elegirChat() {
+  if (fijado && datos[chat]) return chat;
+  if (bloqueado() && chat && datos[chat]) return chat;
+  const pend = chats().filter(teNecesita).sort((a, b) => (PRIO[datos[a].tipo] ?? 9) - (PRIO[datos[b].tipo] ?? 9));
+  if (pend.length) return pend[0];
+  return chats().find(c => estadoDe(c) === "trabajando") || chat || chats()[0];
+}
+// (27-oct) la ventana de la mascota NACE oculta: se muestra recien cuando el gato ya se dibujo (primer cuadro del Lottie o del SVG + 1 requestAnimationFrame)
+// y NO se muestra de mas: en modo "Aparecer solo cuando me necesitan" el puente (companero-tauri.js) la deja oculta hasta el primer aviso.
+let pintadoAvisado = false;
+function avisarPintado() {
+  if (pintadoAvisado) return; pintadoAvisado = true;
+  let hecho = false;
+  const listo = () => { if (hecho) return; hecho = true; try { if (companero.pintado) companero.pintado(); } catch (e) {} };
+  if (document.hidden) return listo();   // con la pagina oculta no hay requestAnimationFrame
+  requestAnimationFrame(listo); setTimeout(listo, 400);   // el timeout: por si el reloj de cuadros no corre con la ventana aun oculta
+}
+function vigilarGato() {
+  const P = $("pj"), hay = () => !!P.querySelector("svg path");   // el SVG del gato ya tiene dibujo (Lottie: llega con el primer JSON)
+  if (hay()) return avisarPintado();
+  const mo = new MutationObserver(() => { if (hay()) { mo.disconnect(); avisarPintado(); } });
+  mo.observe(P, { childList: true, subtree: true });
+}
+function montar(c) {
+  if (comp) comp.destruir();
+  const P = $("pj"); [...P.children].forEach(n => { if (n.id !== "otros") n.remove(); });
+  const cont = document.createElement("div"); cont.style.cssText = "width:100%;height:100%"; P.appendChild(cont);
+  const cambio = chat && chat !== c; chat = c;
+  comp = Companero.crear(cont, pjTipo, null); comp.ir(estadoDe(c)); if (animDormida && comp.pausar) comp.pausar(true, visibleVen && !document.hidden);   // sin adorno: los adornos van a ser personalizables (pendiente)
+  if (!pintadoAvisado) vigilarGato();
+  // (27-oct) saludo: al abrir la mascota (una vez) guiña un ojo; no en modo aviso (escondida), con Ajustes abiertos ni si esta ocupada/dormida
+  if (!saludado) { saludado = true; setTimeout(() => { try { if (comp && comp.gesto && !modoAviso && !panelAbierto && !animDormida && ["reposo", "trabajando", null, undefined].includes(comp.estado)) comp.gesto("guino"); } catch (e) {} }, 900); }
+  // cambio de chat visible: la pastilla destella con el color del chat y el personaje entra con un pequeño rebote
+  if (cambio) { gsap.fromTo($("nombre"), { boxShadow: `0 0 0 3px ${colDe(c)}` }, { boxShadow: "0 6px 24px rgba(0,0,0,.18)", duration: .6 }); animAbrir(cont, 250); }
+}
+// (27-oct, 9.a vuelta) la insignia unica: n = chats que te esperan; grave = alguno pide permiso o se atoro -> ambar y "!n" con UN pulso al aparecer
+let badgeGrave = false;
+function badge(n, grave) {
+  const B = $("otros"), antes = B.style.display === "flex";
+  B.style.display = n ? "flex" : "none"; B.classList.toggle("grave", !!(n && grave));
+  B.textContent = n ? (grave ? "!" : "") + n : "";
+  const tx = n ? tf("{0} te esperan", n) + (grave ? " · " + window.t("te pide permiso") : "") : "";
+  B.title = tx; B.setAttribute("aria-label", tx);
+  if (n && grave && (!badgeGrave || !antes) && !RM) B.animate([{ transform: "scale(1)" }, { transform: "scale(1.3)", offset: .4 }, { transform: "scale(1)" }], { duration: 600, easing: "cubic-bezier(.2,.9,.3,1.2)" });
+  badgeGrave = !!(n && grave);
+}function pintar() {
+  const c = elegirChat(); if (!c) return;
+  if (c !== chat || !comp) montar(c);
+  const e = estadoDe(c), tp = (datos[c] || {}).tipo;
+  if (comp.estado !== e && comp.estado !== "enviado") comp.ir(e);
+  document.body.classList.toggle("duerme", e === "dormido");   // (19-oct) dormido: baja y se apoya en la barra
+  comp.insignia(null);   // (9.a vuelta) la insignia de la mascota la dibuja #otros (una sola, con el numero)
+  faseGato(c, e);
+  pendContador(); if (pendAbierta) refrescarPend();   // (27-oct, punto 4) numero del boton y lista abierta al dia
+  $("bfase").textContent = e === "trabajando" ? faseTxt(c) : "";   // (27-oct) en el globo, junto al nombre: "pensando…" / "ejecutando un comando…"
+  $("nompto").style.background = colDe(c);
+  const tz = (datos[c] || {}).tareas;   // (26-oct) progreso de tareas {h, t, a}: "3/7" junto al nombre (pastilla y globo)
+  $("nomtxt").textContent = `${etiqueta(c)} · ${e === "escribio" && SUB[tp] ? SUB[tp] : txtDe(c, e)}` + (tz ? ` · ${tz.h}/${tz.t}` : "");
+  $("pj").title = $("nomtxt").textContent;   // (14-oct) sin la pastilla: el nombre y el estado salen al pasar el mouse
+  $("btar").textContent = tz ? tz.h + "/" + tz.t : ""; $("btar").title = tz && tz.a ? window.t("tarea en curso") + ": " + String(tz.a).replace(/[<>]/g, "") : "";
+  const esperan = chats().filter(teNecesita), otros = esperan.filter(x => x !== c).length, nEsp = esperan.length, grave = esperan.some(x => ["permiso", "error"].includes((datos[x] || {}).tipo));
+  $("bcambiartxt").textContent = window.t("Cambiar de chat") + (otros ? " · " + tf("{0} te esperan", otros) : "");
+  badge(nEsp, grave);
+  // borrador guardado con el globo cerrado: pastilla "✏ borrador para X" (un toque lo reabre)
+  const cb = abierto ? null : chats().find(x => borrador(x));
+  $("pborr").style.display = cb ? "block" : "none";
+  if (cb) { $("pborr").textContent = tf("✏ borrador para {0}", nomDe(cb)); $("pborr").dataset.chat = cb; }
+  if ($("lista").classList.contains("si") && !$("lista").matches(":hover")) lista();   // no rehacerla bajo el mouse (se perdia el clic)
+}
+function abrirEn(c) { if (c !== chat) montar(c); abrirGlobo(); enfocarCaja(); }
+function enfocarCaja() { companero.escribir(true); setTimeout(() => $("bin").focus(), 30); }
+$("pborr").onclick = () => abrirEn($("pborr").dataset.chat);
+$("pborr").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("pborr").click(); } };
+let listaEsperan = false;   // (14-oct) con varios chats esperando, tocar la mascota abre la lista de esos
+function lista(soloEsperan) {
+  if (soloEsperan !== undefined) listaEsperan = soloEsperan;
+  const L = $("lista"); L.innerHTML = "";
+  if (listaEsperan) {
+    const esperan = chats().filter(teNecesita).sort((a, b) => (PRIO[datos[a].tipo] ?? 9) - (PRIO[datos[b].tipo] ?? 9));
+    const cab = document.createElement("div"); cab.className = "cabl";
+    cab.textContent = tf("{0} te esperan", esperan.length); L.appendChild(cab);
+    esperan.forEach(c => {
+      const tp = (datos[c] || {}).tipo, linea = String((datos[c] || {}).linea || "").trim();
+      const d = filaLista(c, linea ? (SUB[tp] || window.t("te escribió")) + " · " + linea : (SUB[tp] || window.t("te escribió")), tp);
+      d.onclick = () => { listaEsperan = false; irA(c, true); enfocarCaja(); }; L.appendChild(d);
+    });
+    const todos = document.createElement("div"); todos.className = "pie-l"; todos.textContent = window.t("Ver todos los chats");
+    todos.onclick = () => lista(false); L.appendChild(todos);
+    return;
+  }
+  // (14-oct) arriba: que chats sigue el Companero (Personales o un grupo de la app de Claude); es la misma eleccion del celular
+  // botones en vez de un <select>: el desplegable nativo de Windows es otra ventana y la mascota (clic-atraviesa)
+  // lo cerraba sola (14-oct). La lista se rehace cada 4 s: se llena desde la cache; la consulta al hub solo la refresca.
+  const G = document.createElement("div"); G.id = "grpsel"; G.setAttribute("role", "radiogroup"); G.setAttribute("aria-label", window.t("Qué chats seguir"));
+  G.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;margin:0 0 6px;padding:2px";
+  const llenar = g => {
+    G.innerHTML = "";
+    (g ? g.opciones : [{ id: "personales", nombre: "Personales" }]).forEach(o => {
+      const b = document.createElement("button"), on = (g ? g.actual : "personales") === o.id;
+      b.textContent = window.t(o.nombre); b.setAttribute("role", "radio"); b.setAttribute("aria-checked", on);
+      b.style.cssText = `border:0;border-radius:99px;min-height:28px;padding:0 10px;font:inherit;font-size:12.5px;cursor:pointer;background:${on ? "var(--tx)" : "var(--btn)"};color:${on ? "var(--card)" : "var(--tx)"}`;
+      b.onclick = async () => { await companero.grupo(o.id); if (window._grupos) window._grupos.actual = o.id; window._gruposT = 0; fijado = false; localStorage.removeItem("chat"); L.classList.remove("si"); await cargar(); };
+      G.appendChild(b);
+    });
+  };
+  llenar(window._grupos);
+  if (!window._gruposT || Date.now() - window._gruposT > 15000) { window._gruposT = Date.now(); companero.grupos().then(g => { if (g) { window._grupos = g; if (G.isConnected) llenar(g); } }); }
+  L.appendChild(G);
+  const auto = document.createElement("div"); auto.className = "it" + (!fijado ? " on" : "");
+  auto.innerHTML = `<span class="pto pto-sub"></span>${window.t("Automático")}<small>${window.t("el que te necesita")}</small>`;
+  auto.onclick = () => { fijado = false; localStorage.removeItem("chat"); L.classList.remove("si"); pintar(); }; L.appendChild(auto);
+  chats().forEach(c => {
+    const e = estadoDe(c), tp = (datos[c] || {}).tipo;
+    const d = filaLista(c, (e === "escribio" && SUB[tp] ? SUB[tp] : txtDe(c, e)) + (borrador(c) ? " · " + window.t("borrador") : ""), e === "escribio" ? tp : null);
+    if (fijado && c === chat) d.classList.add("on");
+    d.onclick = () => { irA(c, true); enfocarCaja(); }; L.appendChild(d);   // (14-oct) elegir un chat abre su globo con la caja lista
+  });
+  // (22-oct) al pie: los chats archivados, con "Desarchivar" (lo hace el chat de Kodama)
+  if (companero.archivados) {
+    const pie = document.createElement("div"); pie.className = "pie-l"; pie.textContent = window.t("Chats archivados…");
+    pie.onclick = async ev => {
+      ev.stopPropagation(); pie.textContent = window.t("Buscando…");
+      const r = await companero.archivados(); pie.remove();
+      const cab = document.createElement("div"); cab.className = "cabl"; cab.textContent = window.t("Archivados"); L.appendChild(cab);
+      if (!(r.chats || []).length) { const v = document.createElement("div"); v.className = "pie-l"; v.textContent = window.t("No hay chats archivados"); L.appendChild(v); return; }
+      r.chats.forEach(x => {
+        const f = document.createElement("div"); f.className = "it";
+        f.innerHTML = '<span class="pto pto-sub"></span><div class="tx"><b></b><span></span></div>';
+        f.querySelector("b").textContent = x.titulo + (x.duplicado ? " · " + window.t("otra sesión") : "");
+        f.querySelector(".tx span").textContent = window.t("Desarchivar") + (x.carpeta ? " · " + x.carpeta : "");
+        f.onclick = async e => { e.stopPropagation(); f.querySelector(".tx span").textContent = window.t("Desarchivando…");
+          const q = await companero.desarchivar(x.local); f.querySelector(".tx span").textContent = q.ok ? window.t("Listo: vuelve a la lista en unos segundos") : (window.t("No se pudo: ") + (q.error || "")); };
+        L.appendChild(f);
+      });
+    };
+    L.appendChild(pie);
+  }
+}
+// (14-oct) una fila de la lista: punto de color, nombre (sin emoji), debajo el estado o la linea clave, y la marca
+function filaLista(c, sub, tipo) {
+  const d = document.createElement("div"); d.className = "it";
+  d.innerHTML = '<span class="pto"></span><div class="tx"><b></b><span></span></div>';
+  d.querySelector(".pto").style.background = colDe(c);
+  d.querySelector("b").textContent = nomDe(c); d.querySelector(".tx span").textContent = sub;
+  d.title = nomDe(c) + " · " + sub;
+  const M = { pregunta: ["?", "q"], permiso: ["!", "x"], error: ["!", "x"], termino: ["•", "ok"] }[tipo];
+  if (M) { const m = document.createElement("span"); m.className = "marca " + M[1]; m.textContent = M[0]; d.appendChild(m); }
+  return d;
+}
+function irA(c, abrir = false) {
+  if (abierto && chat) guardarBorrador(chat, $("bin").value);      // el borrador se queda en SU chat, nunca viaja
+  fijado = true; localStorage.setItem("chat", c); $("lista").classList.remove("si");
+  montar(c); pintar(); if (abrir || abierto) abrirGlobo();
+}
+$("nombre").onclick = () => { const L = $("lista"); const ab = !L.classList.contains("si"); if (ab) { cerrar(); L.classList.add("si"); lista(); } else L.classList.remove("si"); };
+$("otros").onclick = () => { cerrar(true); $("lista").classList.add("si"); lista(); };   // (27-oct, adjuntar) cerrar(true): los adjuntos viajan al chat que elijas en la lista
+$("bsel").onclick = $("bcambiar").onclick = () => { cerrar(true); $("lista").classList.add("si"); lista(false); };
+function tocarMascota() {   // con 2+ chats esperando: primero elegis cual; con uno o ninguno: su globo
+  if (abierto) return cerrarUsuario();
+  if ($("lista").classList.contains("si")) { if (hayAdj()) limpiarAdjuntos(); return $("lista").classList.remove("si"); }
+  if (chats().filter(teNecesita).length >= 2) { $("lista").classList.add("si"); lista(true); return; }
+  abrirGlobo(); enfocarCaja();
+}
+
+function limpiarMd(s) { return s.replace(/```[\s\S]*?```/g, window.t("[código]")).replace(/\*\*([^*]+)\*\*/g, "$1").replace(/`([^`]+)`/g, "$1").replace(/^#+\s*/gm, "").replace(/^\|.*\|$/gm, "").replace(/\n{3,}/g, "\n\n").trim(); }
+const ultimoDe = c => [...((datos[c] || {}).mensajes || [])].reverse().find(m => !m.yo);
+function chipsPara(ult, tipo) {
+  const fin = ult ? ult.texto.slice(-900) : "", ch = [];
+  // opciones = la ULTIMA lista numerada que arranca en 1 y es consecutiva (una lista de pendientes 5..12 no son opciones)
+  const todas = [...fin.matchAll(/(?:^|\n)\s*(\d)[.)]\s+([^\n]{1,80})/g)];
+  const ini = todas.map(m => m[1]).lastIndexOf("1"), ops = [];
+  if (ini >= 0) for (let i = ini; i < todas.length && ops.length < 4 && todas[i][1] === String(ops.length + 1); i++) ops.push(todas[i]);
+  const pideElegir = /[?]|opci[oó]n|eleg|escog|cu[aá]l (prefer|quer)|prefer[ií]s|prefieres|option|choose|pick|which|prefer/i.test(fin);   // (14-oct) una lista de pasos no son opciones
+  if (ops.length >= 2 && pideElegir) ops.forEach(m => { const l = limpiarMd(m[2]), t = l.length > 28 ? l.slice(0, 27) + "…" : l; ch.push([`${m[1]} · ${t}`, tf("Opción {0}: {1}", m[1], l)]); });
+  else if (tipo === "pregunta" || /\?\s*$/.test(fin.trim())) ch.push([window.t("Sí"), window.t("Sí")], [window.t("No"), window.t("No")]);
+  if (tipo === "termino") ch.push(["OK", window.t("OK, adelante.")], [window.t("Sigue"), window.t("Sigue con lo que ibas.")]);
+  ch.push([window.t("Explícame corto"), window.t("Explícame lo anterior en 3 líneas, sin jerga.")]);
+  return ch;
+}
+function abrirGlobo(msg) {
+  const c = chat; if (!c) return;
+  const primeraVez = !abierto, B0 = $("burbuja"), h0 = primeraVez ? 0 : B0.offsetHeight;
+  ocultarAsomo();
+  abierto = true; B0.setAttribute("aria-label", tf("Responder a {0}", nomDe(c))); vistos[c] = Date.now() / 1000; try { localStorage.setItem("vistos", JSON.stringify(vistos)); } catch (e) {}
+  const d = datos[c] || {}, ult = msg || ultimoDe(c);
+  mostrado = ult ? ult.ts : null; $("nuevo").style.display = "none";
+  $("burbuja").style.setProperty("--color", colDe(c));
+  $("paranom").textContent = etiqueta(c); $("paranom").title = d.titulo || "";   // el titulo de la sesion: distingue dos sesiones del mismo chat
+  $("babrir").style.display = d.abrir ? "" : "none"; $("babrir").onclick = () => { companero.abrir(d.abrir); cerrar(); };
+  // (27-oct, punto 4) archivar ya no es un boton del globo: es una accion por fila dentro de la lista "Chats que te esperan" (⊟ a la derecha, con confirmacion de un toque)
+  pendContador();
+  // (14-oct) aprobar: por el buzon Claude no acepta un "OK" como aprobacion tuya; escrito en el chat si
+  $("bpegar").style.display = "none";   // (14-oct) LShinox: llevar al chat no sirve; se aprueba desde la mascota por el puente
+  marcarEspera();
+  $("bpegar").onclick = () => { const tx = $("bin").value.trim(); companero.abrir(d.abrir, tx); if (tx) { guardarBorrador(c, ""); $("bin").value = ""; } cerrar(); };
+  const hace = ult ? Math.max(0, Math.round((Date.now() / 1000 - ult.ts) / 60)) : null;
+  $("estadoLn").textContent = (d.tipo && SUB[d.tipo] ? SUB[d.tipo] : TXT[estadoDe(c)]) + (hace != null ? " · " + (hace < 1 ? window.t("hace un momento") : tf("hace {0} min", hace)) : "");
+  $("bhora").textContent = hace == null ? "" : hace < 1 ? window.t("hace un momento") : hace < 60 ? tf("hace {0} min", hace) : tf("hace {0} h", Math.round(hace / 60));
+  // (20-oct) varias preguntas: van numeradas, en texto, 2 lineas cada una (la linea del hub ya salta los titulos)
+  const R = $("resumen"), qs = ult && (d.n || 0) > 1 ? preguntasDe(ult.texto) : [];
+  R.classList.toggle("lista", qs.length > 1); R.innerHTML = "";
+  if (qs.length > 1) qs.forEach((q, i) => { const p = document.createElement("p"); p.textContent = (i + 1) + ". " + q; R.appendChild(p); });
+  else R.textContent = ult ? (d.linea || limpiarMd(ult.texto).slice(0, 200)) : window.t("Todavía no hay mensajes de este chat.");
+  R.classList.toggle("preg", qs.length < 2 && (d.tipo === "pregunta" || d.tipo === "permiso"));
+  // (20-oct) al desplegar, el texto completo no repite la linea que ya se ve arriba ("Necesito tu OK en...")
+  let todoTx = ult ? limpiarMd(ult.texto).slice(0, 6000) : "";
+  if (qs.length < 2) {
+    const norma = s => s.replace(/\s+/g, " ").replace(/[…:.\s]+$/, "").trim().toLowerCase();
+    const cab = norma(R.textContent), lns = todoTx.split("\n"), i0 = lns.findIndex(l => l.trim());
+    if (cab && i0 >= 0) { const l0 = norma(lns[i0]); if (l0 && (cab.startsWith(l0) || l0.startsWith(cab))) todoTx = lns.slice(i0 + 1).join("\n").replace(/^\s+/, ""); }
+  }
+  $("todo").textContent = todoTx; $("todo").style.display = "none"; $("vertodo").textContent = window.t("Ver todo ▾");
+  $("vertodo").style.display = ult ? "block" : "none";
+  const B = $("bchips"); B.innerHTML = "";
+  // los chips responden a ESTE mensaje: caducan a los 10 min (salvo "Explícame corto")
+  const viejo = ult && Date.now() / 1000 - ult.ts > 600;
+  chipsPara(ult, d.tipo).forEach(([lbl, envio], i, arr) => { const b = document.createElement("button"); b.className = "chip"; b.textContent = lbl; b.title = envio; b.onclick = () => enviar(envio);
+    if (i < arr.length - 1) { b.dataset.caduca = "1"; if (viejo) { b.disabled = true; b.title = window.t("Respuesta vieja: escribí en la caja"); } } B.appendChild(b); });
+  $("bin").value = borrador(c); $("bin").placeholder = tf("Escríbele a {0}…", etiqueta(c)); crecer();
+  destino("");   // (14-oct, LShinox) sin la fila "Se enviará a": el "Para:" de arriba ya lo dice
+  if (primeraVez) { B0.classList.add("si"); crecer(); animAbrir(B0); }
+  else {   // otro chat u otro mensaje con el globo abierto: fundido cruzado 120 ms y la altura se acomoda en 80 ms
+    crecer(); const h1 = B0.offsetHeight;
+    if (!RM && h0 && h0 !== h1) B0.animate([{ height: h0 + "px" }, { height: h1 + "px" }], { duration: 80, easing: "ease" });
+    ["cab", "resumen", "bchips", "destino"].forEach(id => $(id).animate([{ opacity: .15 }, { opacity: 1 }], { duration: RM ? 80 : 120 }));
+  }
+  actividad(); pintar();
+}
+// (20-oct) las preguntas de un mensaje: lineas con "?" (sin el numero o la viñeta de adelante), hasta 4
+function preguntasDe(texto) {
+  return limpiarMd(texto || "").split("\n").map(l => l.trim().replace(/^(\d+[.)]|[-•*])\s*/, "")).filter(l => l.includes("?")).slice(0, 4);
+}
+// (20-oct) flechas ‹ › del globo: pasan al chat anterior / siguiente (reemplazan "Cambiar de chat")
+function pasarChat(paso) {
+  const L = chats(); if (L.length < 2) return;
+  const i = Math.max(0, L.indexOf(chat)), c = L[(i + paso + L.length) % L.length];
+  fijado = true; try { localStorage.setItem("chat", c); } catch (e) {}
+  montar(c); abrirGlobo();
+}
+$("bant").onclick = () => pasarChat(-1);
+$("bsig").onclick = () => pasarChat(1);
+// ======== (27-oct, punto 4 del dueño) LISTA "CHATS QUE TE ESPERAN" DENTRO DEL GLOBO ========
+// El boton ☰ (con el numero) de arriba, en el lugar del de archivar, despliega la lista de los chats pendientes: una fila por chat con nombre, tipo
+// (pregunta / permiso / terminó), hace cuanto y una linea del mensaje. Tocar una fila abre ese chat en el globo (igual que las flechas). Al final,
+// "Ver todos los chats" suma los que no esperan. Archivar es un ⊟ por fila con confirmacion de un toque. Abre/cierra creciendo (320 ms) / recogiendose
+// (260 ms); con "Animaciones completas" apagado (RM) solo fundidos de 80 ms. Con capsula, la capsula crece y se recoge a la par (misma duracion y curva).
+let pendAbierta = false, pendTodos = false, archArmado = null, tArch = null, pendTok = 0;
+const pendEsperan = () => chats().filter(teNecesita).sort((a, b) => (PRIO[(datos[a] || {}).tipo] ?? 9) - (PRIO[(datos[b] || {}).tipo] ?? 9));
+function haceTxt(ts) {
+  if (!ts) return ""; const m = Math.max(0, Math.round((Date.now() / 1000 - ts) / 60));
+  return m < 1 ? window.t("hace un momento") : m < 60 ? tf("hace {0} min", m) : tf("hace {0} h", Math.round(m / 60));
+}
+function pendContador() { const n = pendEsperan().length; $("blistapn").textContent = n || ""; $("blistap").title = n ? tf("{0} te esperan", n) : window.t("Chats que te esperan"); }
+function filaPend(c) {
+  const d = datos[c] || {}, e = estadoDe(c), tp = d.tipo, f = document.createElement("div");
+  f.className = "pf"; f.tabIndex = 0; f.setAttribute("role", "button");
+  f.innerHTML = '<span class="pto"></span><div class="tx"><div class="l1"><b></b><small></small></div><div class="l2"></div></div>';
+  f.querySelector(".pto").style.background = colDe(c);
+  f.querySelector("b").textContent = nomDe(c);
+  const tipoTxt = e === "escribio" ? (SUB[tp] || window.t("te escribió")) : txtDe(c, e);
+  f.querySelector("small").textContent = [tipoTxt, haceTxt(d.ultimo_ts)].filter(Boolean).join(" · ");
+  f.querySelector(".l2").textContent = String(d.linea || "").replace(/\s+/g, " ").trim() || (e === "escribio" ? "" : tipoTxt);
+  f.title = nomDe(c) + " · " + f.querySelector("small").textContent;
+  const M = { pregunta: ["?", "q"], permiso: ["!", "x"], error: ["!", "x"], termino: ["•", "ok"] }[e === "escribio" ? tp : null];
+  if (M) { const m = document.createElement("span"); m.className = "marca " + M[1]; m.textContent = M[0]; f.appendChild(m); }
+  const abrirFila = () => { cerrarPend(false); irA(c, true); enfocarCaja(); };
+  f.onclick = abrirFila; f.onkeydown = ev => { if (ev.target === f && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); abrirFila(); } };
+  if (companero.archivar && d.abrir) {
+    const ar = document.createElement("button"); ar.type = "button"; ar.className = "ar";
+    const armado = archArmado === c;
+    ar.textContent = armado ? window.t("¿Archivar?") : "⊟"; ar.classList.toggle("conf", armado);
+    ar.title = window.t("Archivar este chat"); ar.setAttribute("aria-label", ar.title);
+    ar.onclick = async ev => {
+      ev.stopPropagation(); clearTimeout(tArch);
+      if (archArmado !== c) { archArmado = c; tArch = setTimeout(() => { archArmado = null; if (pendAbierta) llenarPend(); }, 3500); return llenarPend(); }   // 1.er toque: pide confirmar
+      archArmado = null; ar.disabled = true; ar.textContent = "…";
+      const r = await companero.archivar(c);   // (22-oct) lo hace el chat de Kodama con la herramienta oficial de la app de Claude
+      if (r && r.ok) { const a = RM ? null : f.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, fill: "forwards" }); if (a) a.finished.then(() => f.remove()).catch(() => {}); else f.remove(); }
+      else { alert(window.t("No se pudo: ") + ((r && r.error) || "")); llenarPend(); }
+    };
+    f.appendChild(ar);
+  }
+  return f;
+}
+let pendSig = "";
+function firmaPend() {   // solo se rehace la lista si cambio algo que se ve (asi no pierde el foco ni el scroll cada 4 s)
+  const f = c => { const d = datos[c] || {}; return [c, estadoDe(c), d.tipo, d.linea, Math.floor((Date.now() / 1000 - (d.ultimo_ts || 0)) / 60), d.abrir ? 1 : 0, d.fase, archArmado === c].join("~"); };
+  return [pendTodos, ...chats().map(f)].join("|");
+}
+function refrescarPend() { if (firmaPend() !== pendSig) { const L = $("bpendin"), y = L.scrollTop; llenarPend(); L.scrollTop = y; } }
+function llenarPend() {
+  pendSig = firmaPend();
+  const L = $("bpendin"), esperan = pendEsperan(); L.innerHTML = "";
+  if (!esperan.length) { const v = document.createElement("div"); v.className = "pfvac"; v.textContent = window.t("Ningún chat te espera"); L.appendChild(v); }
+  esperan.forEach(c => L.appendChild(filaPend(c)));
+  if (pendTodos) {
+    const otros = chats().filter(c => !teNecesita(c));
+    if (otros.length) { const s = document.createElement("div"); s.className = "pfsep"; s.textContent = window.t("Los demás chats"); L.appendChild(s); otros.forEach(c => L.appendChild(filaPend(c))); }
+  }
+  const M = $("bpendmas"); M.textContent = pendTodos ? window.t("Ver solo los que te esperan") : window.t("Ver todos los chats");
+  M.onclick = () => { pendTodos = !pendTodos; llenarPend(); L.scrollTop = 0; };
+  M.onkeydown = ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); M.click(); } };
+  pendContador();
+}
+function pendCapsAnim(fin, dur, ease) {   // la capsula crece / se recoge a la par de la lista (si el globo esta dentro de la capsula)
+  // si el globo todavia se esta abriendo o cerrando (capsAnims con algo), NO se toca su animacion: al terminar, capsAjustar acomoda la altura sola
+  if (capsAnims.length) return;
+  const caps = $("caps"), ini = capsRect(), tok = ++capsTok;
+  if (Math.abs(fin - ini.h) < 2) return;
+  const a = caps.animate([{ height: ini.h + "px" }, { height: fin + "px" }], { duration: dur, easing: ease, fill: "forwards" });
+  capsAnims.push(a);
+  a.finished.then(() => { if (tok !== capsTok) return; capsFijar(CAPS_W, fin); capsCancelar(); capsAjustar($("burbuja")); }).catch(() => {});
+}
+function abrirPend(si) {
+  const P = $("bpend"), B = $("burbuja"), btn = $("blistap"), tok = ++pendTok;
+  if (si === pendAbierta) return;
+  pendAbierta = si; btn.setAttribute("aria-expanded", String(si)); archArmado = null; clearTimeout(tArch);
+  const enCaps = capsOn() && capsAdentro === "burbuja", dur = RM ? 80 : si ? 320 : 260;
+  if (si) {
+    B.classList.add("pend"); P.classList.add("si"); llenarPend();
+    const H = P.offsetHeight, fin = enCaps ? Math.max(CAPS_MIN.burbuja, Math.ceil(B.offsetHeight)) : 0;   // altura final, ya con la lista
+    P.getAnimations().forEach(a => a.cancel());
+    P.animate(RM ? [{ opacity: 0 }, { opacity: 1 }] : [{ height: "0px", opacity: 0 }, { height: H + "px", opacity: 1 }], { duration: dur, easing: "cubic-bezier(.2,.9,.3,1.06)" });
+    if (!RM) [...P.querySelectorAll(".pf, .pfsep, .pfvac")].slice(0, 8).forEach((f, i) => f.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 220, delay: 90 + i * 35, easing: "cubic-bezier(.2,.8,.3,1)", fill: "backwards" }));
+    if (enCaps && !RM) pendCapsAnim(fin, dur, "cubic-bezier(.2,.9,.3,1.06)");
+    $("bpendin").scrollTop = 0;
+  } else {
+    const H = P.offsetHeight; let fin = 0;
+    if (enCaps) { P.style.display = "none"; fin = Math.max(CAPS_MIN.burbuja, Math.ceil(B.offsetHeight)); P.style.display = ""; }   // altura de la capsula sin la lista
+    P.getAnimations().forEach(a => a.cancel());
+    if (enCaps && !RM) pendCapsAnim(fin, dur, "cubic-bezier(.4,0,.2,1)");
+    const a = P.animate(RM ? [{ opacity: 1 }, { opacity: 0 }] : [{ height: H + "px", opacity: 1 }, { height: "0px", opacity: 0 }], { duration: dur, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" });
+    a.finished.then(() => { if (tok !== pendTok) return; P.classList.remove("si"); B.classList.remove("pend"); a.cancel(); if (enCaps) capsAjustar(B); }).catch(() => {});
+  }
+}
+function cerrarPend(animado) {   // sin animar: al cambiar de chat o cerrar el globo
+  if (!pendAbierta) return;
+  if (animado) return abrirPend(false);
+  pendAbierta = false; pendTok++; archArmado = null; clearTimeout(tArch);
+  const P = $("bpend"); P.getAnimations().forEach(a => a.cancel()); P.classList.remove("si"); $("burbuja").classList.remove("pend"); $("blistap").setAttribute("aria-expanded", "false");
+}
+$("blistap").onclick = () => abrirPend(!pendAbierta);
+function marcarEspera() {   // el chat te esta esperando: tu respuesta desde aca cuenta como tuya (puente)
+  const d = datos[chat] || {}, E = $("espera");
+  E.classList.toggle("si", !!d.esperando);
+  if (d.esperando) $("esptxt").textContent = "⏳ " + window.t("Te está esperando: lo que respondas cuenta como tuyo");
+}
+$("esplib").onclick = async () => { await companero.liberar(chat); $("espera").classList.remove("si"); };
+function destino(html, clase = "") { const D = $("destino"); D.className = clase; D.innerHTML = html; }
+// (27-oct, adjuntar) cerrar el globo descarta los adjuntos, salvo cerrar(true) = "voy a otro chat" (⇄, insignia): ahi se quedan y viajan al chat elegido.
+// cerrarUsuario() es el cierre del dueño (Esc, ✕, tocar la mascota, atajo): con adjuntos Y texto pide un toque de confirmacion (6 s; un segundo Esc tambien vale).
+let confDescarte = 0;
+function cerrarUsuario() {
+  if (!abierto) return;
+  if (hayAdj() && $("bin").value.trim() && Date.now() > confDescarte) {
+    confDescarte = Date.now() + 6000;
+    destino(`${tf("Se descartan los adjuntos ({0}). Tu texto queda de borrador.", adjN())} <button type="button" id="descartar">${window.t("Descartar")}</button> <button type="button" id="seguir" class="sec">${window.t("Seguir")}</button>`);
+    return;
+  }
+  confDescarte = 0; cerrar();
+}
+function cerrar(conservar) {
+  if (!abierto) return;
+  cerrarPend(false);
+  if (chat) guardarBorrador(chat, $("bin").value.trim() ? $("bin").value : "");
+  if (conservar !== true && hayAdj()) limpiarAdjuntos();
+  abierto = false; companero.escribir(false); clearTimeout(tCierre); gsap.killTweensOf("#cuenta"); $("cuenta").style.width = "0";
+  animCerrar($("burbuja")).onfinish = () => { if (!abierto) $("burbuja").classList.remove("si"); pintar(); salirEscena(); };
+}
+// autocierre: 30 s sin actividad y sin borrador (barra los ultimos 6 s); con borrador no se cierra:
+// a los 60 s se pliega en la pastilla "✏ borrador para X" (el texto queda guardado en su chat)
+let tCierre = null;
+function actividad() {
+  clearTimeout(tCierre); gsap.killTweensOf("#cuenta"); $("cuenta").style.width = "0";
+  if (!abierto) return;
+  if (hayAdj()) return;   // (27-oct, adjuntar) con adjuntos el globo no se cierra solo: se van solo con enviar o al cerrarlo tu
+  if ($("bin").value.trim()) { tCierre = setTimeout(() => { if (!document.hasFocus() || document.activeElement !== $("bin")) cerrar(); else actividad(); }, 60000); return; }
+  tCierre = setTimeout(() => { gsap.fromTo("#cuenta", { width: "100%" }, { width: "0%", duration: 6, ease: "none", onComplete: () => { if (!$("bin").value.trim()) cerrar(); } }); }, 24000);
+}
+["mousemove", "keydown", "wheel"].forEach(ev => $("burbuja").addEventListener(ev, actividad));
+$("vertodo").onclick = () => { const T = $("todo"), ab = T.style.display !== "block"; T.style.display = ab ? "block" : "none"; $("vertodo").textContent = ab ? window.t("Ver menos ▴") : window.t("Ver todo ▾"); };
+$("nuevo").onclick = () => abrirGlobo();
+function crecer() { const t = $("bin"); t.style.height = "40px"; t.style.height = Math.max(40, Math.min(t.scrollHeight, 96)) + "px"; t.style.overflowY = t.scrollHeight > 96 ? "auto" : "hidden";   /* (15-oct) ~4 lineas */ }
+// (14-oct) adjuntos: una captura pegada (va como foto, el hub la guarda y el chat la lee) o archivos arrastrados a
+// la mascota (van sus rutas: el chat esta en esta misma PC y los abre directo)
+// (27-oct, adjuntar) AHORA soltar un archivo NO lo envia: abre el globo del chat y lo deja como ADJUNTO (un chip por archivo: icono, nombre corto y ✕) en la caja.
+// Se envia SOLO con Enviar / Enter (texto + rutas, mismo formato de siempre). Esc o cerrar el globo los descarta (con confirmacion de un toque si hay texto);
+// cambiar de chat (flechas, lista) se los lleva al chat elegido. Tope: 12 chips + "(y N más)" (el mensaje lista 12 y dice cuantos faltan).
+const MAX_ADJ = 12;
+let adjFoto = null, adjRutas = [];
+const adjN = () => adjRutas.length + (adjFoto ? 1 : 0);
+const hayAdj = () => adjN() > 0;
+function nombreCorto(r, max = 24) {   // el nombre del archivo; si es largo se corta en el medio y se conserva la extension
+  const n = String(r).split(/[\\/]/).filter(Boolean).pop() || String(r);
+  if (n.length <= max) return n;
+  const i = n.lastIndexOf("."), ext = i > 0 && n.length - i <= 6 ? n.slice(i) : "";
+  return n.slice(0, max - 1 - ext.length) + "…" + ext;
+}
+const ICONOS = [[/^(png|jpe?g|gif|webp|bmp|svg|heic|avif|tiff?)$/, "🖼"], [/^(pdf|docx?|odt|rtf|pages)$/, "📄"], [/^(xlsx?|csv|ods|numbers)$/, "📊"], [/^(pptx?|key|odp)$/, "📽"],
+  [/^(zip|rar|7z|tar|gz|tgz)$/, "🗜"], [/^(mp4|mov|avi|mkv|webm|m4v)$/, "🎞"], [/^(mp3|wav|ogg|m4a|flac|aac)$/, "🎵"], [/^(txt|md|log|rtf)$/, "📝"],
+  [/^(js|ts|py|json|html?|css|rs|java|c|cpp|cs|php|sh|bat|ps1|sql|xml|ya?ml)$/, "💻"]];
+const iconoDe = r => { const e = ((/\.([a-z0-9]+)$/i.exec(String(r)) || [])[1] || "").toLowerCase(); const m = ICONOS.find(([re]) => re.test(e)); return m ? m[1] : "📎"; };
+function pintarAdjuntos(nuevos) {   // nuevos = rutas recien agregadas: entran con un pequeño rebote
+  $("badj").classList.toggle("si", hayAdj());
+  $("badjfoto").classList.toggle("si", !!adjFoto);
+  $("badjimg").classList.toggle("si", !!adjFoto); if (adjFoto) $("badjimg").src = adjFoto;
+  $("badjtxt").textContent = adjFoto ? window.t("Captura lista para enviar") : "";
+  const C = $("badjchips"); C.innerHTML = "";
+  const ver = adjRutas.slice(0, MAX_ADJ);
+  ver.forEach(r => {
+    const ch = document.createElement("span"); ch.className = "achip"; ch.setAttribute("role", "listitem"); ch.title = r;
+    const ic = document.createElement("span"); ic.className = "ai"; ic.setAttribute("aria-hidden", "true"); ic.textContent = iconoDe(r);
+    const nm = document.createElement("span"); nm.className = "an"; nm.textContent = nombreCorto(r);
+    const x = document.createElement("button"); x.type = "button"; x.className = "ax"; x.textContent = "✕"; x.dataset.ruta = r; x.setAttribute("aria-label", tf("Quitar {0}", nombreCorto(r)));
+    ch.append(ic, nm, x); C.appendChild(ch);
+    if (nuevos && nuevos.includes(r) && !RM) ch.animate([{ opacity: 0, transform: "scale(.7)" }, { opacity: 1, transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.9,.3,1.3)" });
+  });
+  if (adjRutas.length > ver.length) { const m = document.createElement("span"); m.className = "achip mas"; m.textContent = tf("(y {0} más)", adjRutas.length - ver.length); C.appendChild(m); }
+  actividad();   // con adjuntos el globo no se cierra solo
+}
+function agregarRutas(rutas) {
+  const nuevos = [];
+  for (const r of rutas) if (!adjRutas.includes(r) && adjRutas.length < 64) { adjRutas.push(r); nuevos.push(r); }
+  pintarAdjuntos(nuevos);
+}
+function quitarRuta(r) { adjRutas = adjRutas.filter(x => x !== r); pintarAdjuntos(); if (abierto) $("bin").focus(); }
+function limpiarAdjuntos() { adjFoto = null; adjRutas = []; pintarAdjuntos(); }
+$("badjq").onclick = () => { adjFoto = null; pintarAdjuntos(); };
+$("badjchips").addEventListener("click", e => { const b = e.target.closest && e.target.closest(".ax"); if (b) quitarRuta(b.dataset.ruta); });
+// (14-oct, idea de Coucou) arrastrar archivos a la mascota: al pasar por encima se prepara para atraparlos; al soltar quedan ADJUNTOS en la caja del chat.
+// (27-oct, soltar) el drop valia en cualquier parte de la ventana (la region de la ventana ya es solo lo que se ve) y entregaba el archivo directo al chat.
+// (27-oct, adjuntar) YA NO se envia al soltar: se abre el globo del chat destino (el del globo si esta abierto; si no, el que elige elegirChat) y las rutas quedan como
+// chips en la caja (ver "adjuntar" arriba) con el foco en la caja para escribir algo opcional; el envio es el de siempre (enviar() -> /api/responder). Con Ajustes abiertos se ignora.
+function textoArchivos(rutas) {
+  const ver = rutas.slice(0, MAX_ADJ);
+  return window.t("Te paso estos archivos (están en esta PC). Ábrelos con la herramienta Read:") + "\n" + ver.join("\n")
+    + (rutas.length > MAX_ADJ ? "\n" + tf("(y {0} más)", rutas.length - MAX_ADJ) : "");
+}
+function soltarArchivos(rutas) {
+  if (panelAbierto || !rutas.length) return;
+  const c = abierto && chat ? chat : elegirChat(); if (!c) return;
+  $("lista").classList.remove("si");
+  if (!abierto) abrirEn(c); else enfocarCaja();   // abrirEn: cambia al chat destino si hace falta, abre el globo y da el foco a la caja
+  agregarRutas(rutas);
+}
+// (27-oct, arrastre) ARO "Suéltalo aquí": mientras el archivo esta encima, un aro verde suave rodea al gato (o al circulo de la capsula; con el globo estirado, solo al circulo)
+// y una etiqueta lo dice (arriba del aro; a la izquierda si hay globo sin capsula, para no tapar el globo). Posicion por CSSOM; entra/sale con la API de animaciones;
+// con "Animaciones completas" apagado y movimiento reducido: solo fundido, sin pulso. El aro y la etiqueta cuentan en la zona tactil (ZONA_IDS).
+let aroSi = false, aroPulso = null;
+function aroPosicion() {
+  const A = $("aro"), T = $("arotxt"), enCaps = capsOn();
+  let cx, cy, w, h, rad = "50%", abiertaCaps = false;
+  if (enCaps) {
+    const r = $("pie").getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2; w = h = CAPS_D + 24;
+    const cr = $("caps").getBoundingClientRect();
+    // (27-oct, ajuste 1) capsula ABIERTA (aviso o globo adentro): el aro rodea TODA la capsula estirada, siguiendo su borde redondeado; cerrada: el circulo
+    if (cr.width > CAPS_D + 6 || cr.height > CAPS_D + 6) { abiertaCaps = true; const pad = 8; w = cr.width + pad * 2; h = cr.height + pad * 2; cx = cr.left + cr.width / 2; cy = cr.top + cr.height / 2; rad = (capsRect().r + pad) + "px"; }
+  }
+  else { const r = $("pj").getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2 + 2; w = 150; h = 138; }
+  const num = v => Math.round(v) + "px";
+  A.style.left = num(cx - w / 2); A.style.top = num(cy - h / 2); A.style.width = num(w); A.style.height = num(h); A.style.borderRadius = rad;
+  const tw = T.offsetWidth, th = T.offsetHeight;
+  let x, y;
+  if (abiertaCaps) { const p = $("pie").getBoundingClientRect(); x = p.left + p.width / 2 - tw / 2; y = cy - h / 2 - th / 2; }   // sobre el borde de arriba de la capsula abierta, en la columna del gato: no tapa el globo
+  else if (abierto && !enCaps) { x = cx - w / 2 - 8 - tw; y = cy - th / 2; }   // globo sin capsula: a la izquierda del aro
+  else { x = cx - tw / 2; y = cy - h / 2 - th - 7; }
+  T.style.left = num(Math.max(4, Math.min(innerWidth - tw - 4, x))); T.style.top = num(Math.max(4, y));
+}
+function aroMostrar(si) {
+  const A = $("aro"), T = $("arotxt");
+  if (si) {
+    if (aroSi) { aroPosicion(); return; }
+    aroSi = true;
+    [A, T].forEach(el => el.getAnimations().forEach(a => a.cancel())); if (aroPulso) { aroPulso.cancel(); aroPulso = null; }
+    A.classList.add("si"); T.classList.add("si"); aroPosicion();
+    if (RM) { [A, T].forEach(el => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 80 })); return; }
+    A.animate([{ opacity: 0, transform: "scale(.86)" }, { opacity: 1, transform: "scale(1)" }], { duration: 180, easing: "cubic-bezier(.2,.9,.3,1.2)" });
+    T.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 180, delay: 40, fill: "backwards", easing: "ease-out" });
+    aroPulso = A.animate([{ transform: "scale(1)", opacity: 1 }, { transform: "scale(" + (A.offsetWidth > 220 ? 1.015 : 1.045) + ")", opacity: .76 }], { duration: 800, delay: 180, iterations: Infinity, direction: "alternate", easing: "ease-in-out" });
+  } else {
+    if (!aroSi) return; aroSi = false;
+    if (aroPulso) { aroPulso.cancel(); aroPulso = null; }
+    [A, T].forEach(el => { const a = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: RM ? 80 : 130, fill: "forwards" }); a.finished.then(() => { if (!aroSi) { el.classList.remove("si"); } a.cancel(); }).catch(() => {}); });
+  }
+}
+window.addEventListener("companero-arrastre", e => {
+  const d = e.detail || {}, f = window.devicePixelRatio || 1;
+  const sobre = !panelAbierto;   // el evento solo llega si el cursor esta dentro de la ventana, y la ventana es solo lo que se ve (zona tactil)
+  if (!comp || !comp.atrapar) return;
+  if (d.type === "enter" || d.type === "over") {
+    tocada();   // un archivo encima despierta al gato dormido
+    comp.atrapar(sobre); aroMostrar(sobre);
+    if (sobre && d.position) { ojosForzados = true; ojosHacia(d.position.x / f, d.position.y / f, true); }
+  }
+  else if (d.type === "leave") { comp.atrapar(false); aroMostrar(false); ojosForzados = false; ojosActivos = false; comp.mirarA && comp.mirarA(null); }
+  else if (d.type === "drop") {
+    comp.atrapar(false); aroMostrar(false); ojosForzados = false; ojosActivos = false; comp.mirarA && comp.mirarA(null);
+    const rutas = (Array.isArray(d.paths) ? d.paths : []).filter(p => typeof p === "string" && p.trim()).map(p => p.trim());
+    if (sobre && rutas.length) {
+      if (!RM && comp.gesto) { try { comp.gesto("agarrar"); } catch (x) {} }   // (27-oct) las patitas agarran el archivo (gesto_agarrar; con el motor viejo cae al saltito de siempre)
+      soltarArchivos(rutas);
+    }
+  }
+});
+async function fotoDeArchivo(f) {   // achica a 1600 px y JPEG (las capturas PNG pesan mucho)
+  const img = await createImageBitmap(f), k = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+  cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); return cv.toDataURL("image/jpeg", .85);
+}
+$("bin").addEventListener("paste", async ev => {
+  const it = [...(ev.clipboardData && ev.clipboardData.items || [])].find(i => i.type.startsWith("image/"));
+  if (it) { ev.preventDefault(); adjFoto = await fotoDeArchivo(it.getAsFile()); pintarAdjuntos(); }   // (27-oct) la captura pegada ya no borra los archivos adjuntos
+});
+let enviandoAhora = false;
+async function enviar(texto) {
+  const c = chat; if (!c || enviandoAhora) return;
+  if (adjRutas.length) texto = (texto.trim() ? texto.trim() + "\n\n" : "") + textoArchivos(adjRutas);   // texto + rutas, el formato de siempre
+  if (!texto.trim() && !adjFoto) return;
+  enviandoAhora = true; let r;
+  try {
+    destino(`${window.t("Enviando a")} <b>${etiqueta(c)}</b>…`);
+    r = await companero.responder(c, texto.trim(), adjFoto);
+  } finally { enviandoAhora = false; }
+  if (r.ok) {
+    limpiarAdjuntos();
+    ultEnvio = envioPor[c] = Date.now(); guardarBorrador(c, ""); $("bin").value = ""; crecer();
+    destino(r.pendiente ? `⏳ ${window.t("En cola para")} <b>${etiqueta(c)}</b>: ${window.t("está dormido, se entrega al abrirlo en la app de Claude")}` : `${window.t("✓ Enviado a")} <b>${etiqueta(c)}</b>`, "ok");
+    comp.ir("enviado"); sonar("enviado"); setTimeout(cerrar, 1200); setTimeout(() => comp && pintar(), 2600);
+  } else destino(`${window.t("✗ No se pudo enviar a")} <b>${etiqueta(c)}</b>: ${String(r.error || "error").replace(/[<>&]/g, "")} <button type="button" id="reint">${window.t("Reintentar")}</button>`, "mal");
+}
+$("destino").addEventListener("click", e => {
+  if (e.target.id === "reint") enviar($("bin").value);
+  else if (e.target.id === "descartar") { confDescarte = 0; cerrar(); }   // (27-oct, adjuntar) confirmacion de un toque: se van los adjuntos, el texto queda de borrador
+  else if (e.target.id === "seguir") { confDescarte = 0; destino(""); enfocarCaja(); }
+});
+// al perder el foco: cierra a los 5 s si no hay borrador y el mouse no esta encima
+let tBlur = null;
+window.addEventListener("blur", () => { clearTimeout(tBlur); if (abierto && !$("bin").value.trim() && !hayAdj()) tBlur = setTimeout(() => { if (!document.hasFocus() && !window._sobre && !$("bin").value.trim() && !hayAdj()) cerrar(); }, 5000); });
+window.addEventListener("focus", () => clearTimeout(tBlur));
+let t = null, mantuvo = false;
+$("pj").onpointerdown = e => { mantuvo = false; t = setTimeout(() => { mantuvo = true; comp.acariciar(true); }, 350); };
+$("pj").onpointerup = e => { clearTimeout(t); if (mantuvo) comp.acariciar(false); else { comp.tocar(); tocarMascota(); } };
+$("pj").onpointerleave = () => { clearTimeout(t); if (mantuvo) { mantuvo = false; comp.acariciar(false); } };
+$("pj").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tocarMascota(); } };
+$("bcerrar").onclick = () => cerrarUsuario();
+$("bform").onsubmit = ev => { ev.preventDefault(); enviar($("bin").value); };
+$("bin").addEventListener("input", () => { crecer(); guardarBorrador(chat, $("bin").value); actividad(); });
+$("bin").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar($("bin").value); }
+  else if (!$("bin").value && /^[1-3]$/.test(e.key)) { const b = $("bchips").children[+e.key - 1]; if (b) { e.preventDefault(); b.click(); } }
+});
+$("bin").onfocus = () => companero.escribir(true);
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {   // (27-oct) Esc cierra primero la lista de chats del globo; (adjuntar) con el globo abierto descarta los adjuntos (con confirmacion si hay texto); sin globo, los que quedaron de camino a otro chat
+    if (pendAbierta) { abrirPend(false); $("blistap").focus(); return; }
+    if (abierto) cerrarUsuario(); else if (hayAdj()) limpiarAdjuntos();
+    $("lista").classList.remove("si");
+  }
+  if (e.ctrlKey && /^[1-4]$/.test(e.key)) { const c = chats()[+e.key - 1]; if (c) { e.preventDefault(); irA(c, true); } }
+  if (e.ctrlKey && (e.key === "ArrowDown" || e.key === "ArrowUp")) { const L = chats(), i = L.indexOf(chat); const c = L[(i + (e.key === "ArrowDown" ? 1 : L.length - 1)) % L.length]; e.preventDefault(); irA(c, true); }
+});
+// (15-oct) los ojos siguen el mouse cuando esta encima de la mascota o cuando arrastras un archivo hacia ella;
+// "siempre" se activa desde el icono de la bandeja (Ojos siguen el mouse)
+let ojosSiempre = false, ojosActivos = false, ojosForzados = false;
+function ojosHacia(x, y, forzar) {
+  if (!comp || !comp.mirarA) return;
+  const r = $("pj").getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height * .45;
+  const encima = x >= r.left - 20 && x <= r.right + 20 && y >= r.top - 20 && y <= r.bottom + 20;
+  // (27-oct, ajuste 2) arrastrando un archivo (forzar) el rango es 70 px: con 220 el cursor encima del gato daba 0,1 y los ojos casi no se movian
+  if (forzar || ojosSiempre || encima) { ojosActivos = true; const rg = forzar ? 70 : 220; comp.mirarA((x - cx) / rg, (y - cy) / rg); }
+  else if (ojosActivos) { ojosActivos = false; comp.mirarA(null); }
+}
+if (companero.alOjos) companero.alOjos(v => { ojosSiempre = !!v; if (!v && comp && comp.mirarA) { ojosActivos = false; comp.mirarA(null); } });
+function sobreEn(x, y) {
+  if (!ojosForzados) ojosHacia(x, y, false);
+  const dentro = x >= 0 && y >= 0 && x < innerWidth && y < innerHeight;
+  const el = dentro ? document.elementFromPoint(x, y) : null;
+  const sobre = !!(el && el.closest("#pie, #otros, #caps, #burbuja, #lista, #asa, #asomo, #pborr, #ajpc"));
+  if (sobre !== window._sobre) { window._sobre = sobre; companero.interactivo(sobre); }
+  if (sobre) tocada();
+}
+document.addEventListener("mousemove", e => sobreEn(e.clientX, e.clientY));
+companero.alCursor(sobreEn);   // respaldo desde el proceso principal: no depende del reenvio del mouse de Windows
+// (19-oct) mover el mouse la despierta; (21-oct) si se durmio por QUIETA (no por la PC sin uso), solo el mouse ENCIMA
+companero.alCursor(() => { if (animDormida && visibleVen && !document.hidden && (window._sobre || !quieta())) dormirAnim(false); });
+// ======== (27-oct) ZONA TACTIL FIJA ========
+// "El lapiz Wacom atraviesa la mascota" / "en la pantalla de la laptop no se podia tocar": la ventana ignoraba el mouse y el sondeo de Rust (150 ms) +
+// el ida y vuelta por IPC la volvian interactiva DESPUES de que el lapiz ya habia tocado; ademas dependia de la cuenta de coordenadas entre monitores.
+// Ahora la pagina le manda a Rust los rectangulos de lo que se ve y se toca (px CSS) cada vez que cambian, y Rust los vuelve la REGION de la ventana
+// (SetWindowRgn, con la escala del monitor donde este): dentro de la region la ventana recibe SIEMPRE clics, lapiz y tacto; fuera, Windows la trata como
+// si no existiera y todo pasa a lo de abajo. El sondeo del cursor queda solo para los ojos y para dar foco al escribir.
+// Margenes [izq, arriba, der, abajo] en px: lo que se dibuja fuera de la caja (sombras, la colita del globo, la insignia, las orejas y las "z", los saltos).
+// La region recorta tambien el dibujo: lo que quede mas alla de estos margenes no se ve.
+const ZONA_IDS = [["pie", 16, 34, 16, 28], ["otros", 10, 10, 10, 10], ["caps", 26, 22, 26, 38], ["burbuja", 22, 22, 22, 46], ["asomo", 22, 22, 22, 34],
+                  ["lista", 22, 22, 22, 34], ["pborr", 16, 12, 16, 30], ["asa", 8, 8, 8, 8], ["ajpc", 26, 22, 26, 40], ["morph", 30, 24, 30, 64],
+                  ["aro", 32, 32, 32, 32], ["arotxt", 8, 8, 8, 8]];   // (27-oct, arrastre) el aro y su etiqueta se ven (la region recorta el dibujo) solo mientras dura el arrastre
+let zonaPrev = {}, zonaUlt = "", zonaT = 0;
+function zonaCaja(el) {   // [izq, arriba, der, abajo]: la caja DIBUJADA unida con la caja del diseño (sin transformaciones), asi una animacion nunca se sale de la zona
+  const r = el.getBoundingClientRect(), ow = el.offsetWidth, oh = el.offsetHeight;
+  if (!(r.width > 0 && r.height > 0) && !(ow > 0 && oh > 0)) return null;
+  let l = r.left, t = r.top, rr = r.right, b = r.bottom;
+  if (ow > 0 && oh > 0) { l = Math.min(l, el.offsetLeft); t = Math.min(t, el.offsetTop); rr = Math.max(rr, el.offsetLeft + ow); b = Math.max(b, el.offsetTop + oh); }
+  return [l, t, rr, b];
+}
+function zonaTick(forzar) {
+  if (!companero.zona) return;
+  const W = innerWidth, H = innerHeight, rs = [], act = {};
+  for (const [id, ml, mt, mr, mb] of ZONA_IDS) {
+    const el = $(id); if (!el) continue;
+    const c = zonaCaja(el); if (!c) continue;
+    act[id] = c;
+    const p = zonaPrev[id], u = p ? [Math.min(c[0], p[0]), Math.min(c[1], p[1]), Math.max(c[2], p[2]), Math.max(c[3], p[3])] : c;   // con la del cuadro anterior: cubre el movimiento entre dos mediciones
+    const l = Math.floor(Math.max(0, u[0] - ml) / 8) * 8, t = Math.floor(Math.max(0, u[1] - mt) / 8) * 8;   // a una grilla de 8 px: lo que tiembla poco no cambia la region
+    const r = Math.min(W, Math.ceil((u[2] + mr) / 8) * 8), b = Math.min(H, Math.ceil((u[3] + mb) / 8) * 8);
+    if (r > l && b > t) rs.push([l, t, r - l, b - t]);
+  }
+  zonaPrev = act;
+  const clave = JSON.stringify(rs), ahora = Date.now();
+  if (!forzar && clave === zonaUlt && ahora - zonaT < 2000) return;   // sin cambios: solo se repite cada 2 s por si Windows perdio la region
+  zonaUlt = clave; zonaT = ahora;
+  window.__zonaN = (window.__zonaN || 0) + 1;
+  companero.zona(rs);
+}
+// apenas cambia el diseño (globo, lista, aviso, Ajustes, la ventana cambia de tamaño): se mide ya y 3 veces mas (el WebView tarda un cuadro en seguir a la ventana)
+function zonaYa(forzar) {   // forzar = true: tambien se manda aunque la zona no haya cambiado (la ventana cambio de tamaño y Rust quito la region)
+  setTimeout(() => { try { zonaTick(!!forzar); } catch (e) {} }, 0);
+  if (forzar) for (const ms of [40, 90, 160, 300]) setTimeout(() => { try { zonaTick(true); } catch (e) {} }, ms);
+}
+(function zonaCiclo() {   // cada 33 ms mientras algo se mueve; dormida o ventana oculta, cada 250 ms (el sueño profundo no debe despertar al motor)
+  try { zonaTick(false); } catch (e) {}
+  const lento = (typeof animDormida !== "undefined" && animDormida) || (typeof visibleVen !== "undefined" && !visibleVen);
+  setTimeout(zonaCiclo, lento ? 250 : 33);
+})();
+// (19-oct) ventana chica cuando no hay nada abierto (ver companero-tauri.js): se agranda ANTES de que se vea el globo,
+// la lista, el aviso o el borrador (el observador salta apenas cambia su clase o su estilo) y se achica al cerrarlos
+function ajustarVentana() {
+  zonaYa();   // (27-oct) el globo, la lista, el aviso o el borrador cambiaron de clase o de estilo: la zona se mide ya
+  if (!companero.compacto) return;
+  const ve = id => { const el = $(id); return el && (el.classList.contains("si") || (el.style.display && el.style.display !== "none")); };
+  companero.compacto(!(abierto || ve("burbuja") || ve("lista") || ve("asomo") || ve("pborr") || arr));
+}
+const obsVentana = new MutationObserver(ajustarVentana);
+["burbuja", "lista", "asomo", "pborr"].forEach(id => $(id) && obsVentana.observe($(id), { attributes: true, attributeFilter: ["class", "style"] }));
+setTimeout(ajustarVentana, 1500);
+let arr = null;
+$("asa").onpointerdown = e => { arr = { x: e.screenX, y: e.screenY }; e.target.setPointerCapture(e.pointerId); };
+$("asa").onpointermove = e => { if (!arr) return; companero.arrastrar(e.screenX - arr.x, e.screenY - arr.y); arr = { x: e.screenX, y: e.screenY }; };
+$("asa").onpointerup = () => { arr = null; };
+companero.alCambiarPj(v => { pjTipo = v; comp && comp.destruir(); comp = null; pintar(); });
+async function cargar() {
+  const d = await companero.estado();
+  if (d && !d._error) {
+    // (19-oct) cada 4 s llega el estado entero: si no cambio nada, no se redibuja (solo se mira si toca asomarse)
+    const firma = JSON.stringify(d);
+    if (firma === cargar._f) { quizaAsomar(); return; }
+    cargar._f = firma;
+    datos = d;
+    // (21-oct) algo cambio en los chats: la mascota despierta para mostrarlo. (22-oct, LShinox: "parpadea extraño")
+    // antes despertaba con CUALQUIER cambio (el "haciendo" de un chat que trabaja cambia cada pocos segundos) y, con la
+    // PC sin uso, el chequeo de 5 s la volvia a dormir: dormia/despertaba sin parar. Ahora solo despierta si cambia
+    // algo que la mascota muestra (estado, mensaje nuevo, permiso) y se queda despierta al menos 30 s.
+    const rel = JSON.stringify(Object.keys(d).filter(k => !k.startsWith("_")).sort().map(k => [k, d[k].estado, d[k].ultimo_ts, (d[k].permiso || {}).id]));
+    if (rel !== cargar._r) { cargar._r = rel; tocada(); despiertoHasta = Date.now() + 30000; }
+    // (14-oct) lo que estas mirando en la app de Claude ya lo viste: no cuenta en "+N" ni hace saltar a la mascota
+    if (d._mirando && d[d._mirando] && (d[d._mirando].ultimo_ts || 0) > (vistos[d._mirando] || 0)) {
+      vistos[d._mirando] = d[d._mirando].ultimo_ts; try { localStorage.setItem("vistos", JSON.stringify(vistos)); } catch (e) {}
+    }
+    pintar();
+    // mensaje nuevo mientras el globo esta abierto: NO se reemplaza lo que lees; aparece un aviso para verlo
+    if (abierto) marcarEspera();
+    if (abierto) { const u = ultimoDe(chat); if (u && u.ts !== mostrado) { $("nuevo").style.display = "inline-block"; document.querySelectorAll("#bchips [data-caduca]").forEach(b => { b.disabled = true; b.title = window.t("Hay un mensaje más nuevo"); }); } }
+    quizaAsomar();
+  }
+}
+
+// ---- asomo (estudio §3.6): tarjeta que sube sola, sin abrir el globo ni robar el foco. Reglas:
+// 1 solo pregunta/permiso/error · 2 no si le escribiste a ese chat hace <60 s · 3 no si no estás (>300 s sin tocar nada),
+// ni con "No molestar", pantalla completa u "Ocultar" · 4 uno cada 20 s, el de mayor prioridad · 5 nunca con el globo/lista
+// abiertos ni con un borrador · 6 dura 8 s (pregunta) o 12 s (permiso/error) · 7 cada mensaje asoma una sola vez · 8 tope 6 por hora
+// ---- sonidos (14-oct): sintetizados con WebAudio (sin archivos de terceros, sin licencias), volumen bajo
+// (Coucou usa 0,12), solo al asomar y al enviar; se apagan desde la bandeja ("Sonidos") y con "No molestar"
+let conSonido = true, actx = null;
+function sonar(tipo) {
+  if (!conSonido || Date.now() < noMolestarHasta) return;
+  try {
+    actx = actx || new AudioContext();
+    // [frecuencia, inicio, duracion]. (14-oct) Enviado = opcion C "clic de dos notas" (elegida por LShinox en companero-sonidos.html)
+    const notas = { aviso: [[659, 0, .22], [880, .11, .22]], error: [[440, 0, .22], [330, .13, .22]], enviado: [[1175, 0, .06], [1568, .05, .07]] }[tipo] || [];
+    notas.forEach(([f, t0, dur]) => {
+      const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime + t0;
+      o.type = "sine"; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.12, t + .015); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t + .25);
+    });
+  } catch (e) {}
+}
+const ASOMA = ["pregunta", "permiso", "error"];
+let asomados = {}, ultAsomo = 0, horaAsomos = [], asomoAct = null, tAsomo = null, noMolestarHasta = 0, envioPor = {}, buscando = false;
+try { asomados = JSON.parse(localStorage.getItem("asomados") || "{}"); } catch (e) {}
+// (21-oct) modo "Aparecer solo cuando me necesitan" (menu del gato): la ventana queda escondida (0 % de CPU) y la
+// mascota SALE DEL PISO cuando un chat te necesita, avisa, y al atenderlo (o cerrar el aviso) se vuelve a hundir.
+let modoAviso = false, enEscena = true, tSalir = null;
+// (27-oct) "Con cápsula": el circulo del color de la ventana detras de la mascota (ver CSS de #caps). Si cambia con Ajustes abierto,
+// el cambio de clase espera al cierre (la mascota esta animada con GSAP y su escala no se puede tocar a la vez).
+let capsula = false, capsulaPend = false;
+const CAPS_D = 116;   // diametro del circulo (px); la mascota va a escala .72 adentro
+function aplicarCapsula(v) { capsula = !!v; if (panelAbierto) { capsulaPend = true; return; } if (!capsula) capsReset(); document.body.classList.toggle("caps", capsula); }
+if (companero.alCapsula) companero.alCapsula(aplicarCapsula);
+// ======== (27-oct, 6.a vuelta) TODO DENTRO DE LA CAPSULA (ver el CSS "TODO DENTRO DE LA CAPSULA") ========
+// Con "Con cápsula" el aviso (#asomo) y el globo (#burbuja) viven DENTRO de la capsula: ella se estira (ancho y alto, desde el circulo de la mascota hacia la
+// izquierda y hacia arriba) y DESPUES entra el texto; al cerrar, el texto sale primero y la capsula se recoge hasta el circulo. Si el globo toma el lugar del
+// aviso (Responder), la capsula pasa de un tamaño al otro SIN volver al circulo (el aviso se desvanece y el texto del globo entra al terminar de crecer).
+// Tiempos: crece 340 ms con UN solo sobrepaso chico (~3 %), el texto entra 200 ms; cierra: texto 140 ms y la capsula 320 ms. Con "Animaciones completas"
+// apagado (RM) sin tamaño animado: fundidos de 80 ms. Todo con la API de animaciones y CSSOM (la CSP de Tauri bloquea el CSS inyectado y los style="").
+const CAPS_W = 364, CAPS_R = 30, CAPS_MIN = { asomo: 138, burbuja: 190 };
+let capsAdentro = null, capsAnims = [], capsTok = 0;   // capsAdentro = "asomo" | "burbuja" | null: que contenido tiene la capsula abierta
+function capsOn() { return capsula && document.body.classList.contains("caps") && !panelAbierto; }
+function capsCancelar() { capsAnims.forEach(a => { try { a.cancel(); } catch (e) {} }); capsAnims = []; }
+function capsLimpiar() { const c = $("caps"); c.style.width = c.style.height = c.style.borderRadius = ""; }
+function capsFijar(w, h) { const c = $("caps"); c.style.width = w + "px"; c.style.height = h + "px"; c.style.borderRadius = CAPS_R + "px"; }
+function capsRect() {   // tamaño actual de la capsula (aunque este a medias de una animacion) y su radio
+  const c = $("caps"), r = c.getBoundingClientRect(), s = getComputedStyle(c).borderRadius, br = /%/.test(s) ? Math.min(r.width, r.height) * parseFloat(s) / 100 : parseFloat(s);
+  return { w: r.width, h: r.height, r: isNaN(br) ? CAPS_D / 2 : br };
+}
+function capsReset() {   // vuelve al circulo de golpe (Ajustes, interruptor apagado)
+  capsTok++; capsCancelar(); capsLimpiar(); capsAdentro = null;
+  ["asomo", "burbuja"].forEach(id => { const e = $(id); e.getAnimations().forEach(a => a.cancel()); e.style.opacity = ""; });
+}
+function capsAbrir(el) {
+  const id = el.id, caps = $("caps"), otro = $(id === "asomo" ? "burbuja" : "asomo");
+  const ini = capsRect(), desde = capsAdentro && capsAdentro !== id, tok = ++capsTok;
+  capsCancelar(); el.getAnimations().forEach(a => a.cancel());
+  el.style.opacity = "0";
+  const fin = { w: CAPS_W, h: Math.max(CAPS_MIN[id], Math.ceil(el.offsetHeight)) };
+  if (desde || (otro.classList.contains("si") && !capsAdentro)) {   // el otro contenido se va (fundido) y la capsula pasa de un tamaño al otro
+    const f = otro.animate([{ opacity: 1 }, { opacity: 0 }], { duration: RM ? 80 : 120, fill: "forwards" });
+    f.addEventListener("finish", () => { otro.classList.remove("si"); f.cancel(); otro.style.opacity = ""; });
+  }
+  capsAdentro = id;
+  const terminar = () => { if (tok !== capsTok) return; capsFijar(fin.w, fin.h); capsCancelar(); el.style.opacity = ""; capsAjustar(el); };
+  if (RM) {
+    capsFijar(fin.w, fin.h);
+    const a = el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 80, fill: "both" }); capsAnims.push(a); a.addEventListener("finish", terminar); return a;
+  }
+  const dur = desde ? 300 : 340;
+  const aCaps = caps.animate([{ width: ini.w + "px", height: ini.h + "px", borderRadius: ini.r + "px" }, { width: fin.w + "px", height: fin.h + "px", borderRadius: CAPS_R + "px" }],
+    { duration: dur, easing: "cubic-bezier(.2,.9,.3,1.06)", fill: "forwards" });
+  const aTxt = el.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 200, delay: dur - 20, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" });
+  capsAnims.push(aCaps, aTxt); aTxt.addEventListener("finish", terminar);
+  return aTxt;
+}
+function capsCerrar(el) {
+  const id = el.id, caps = $("caps");
+  if (capsAdentro !== id) return el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1 });   // otro contenido tomo el lugar: la capsula ya no es de este
+  const ini = capsRect(), tok = ++capsTok;
+  capsCancelar();
+  const listo = () => { if (tok !== capsTok) return; capsLimpiar(); capsAdentro = null; capsCancelar(); el.style.opacity = ""; };
+  if (RM) { const a = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 80, fill: "forwards" }); capsAnims.push(a); a.addEventListener("finish", listo); return a; }
+  const aTxt = el.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(6px)" }], { duration: 140, easing: "ease-in", fill: "forwards" });
+  const aCaps = caps.animate([{ width: ini.w + "px", height: ini.h + "px", borderRadius: ini.r + "px" }, { width: CAPS_D + "px", height: CAPS_D + "px", borderRadius: CAPS_D / 2 + "px" }],
+    { duration: 320, delay: 120, easing: "cubic-bezier(.4,0,.2,1)", fill: "both" });
+  capsAnims.push(aTxt, aCaps); aCaps.addEventListener("finish", listo);
+  return aCaps;
+}
+// el contenido cambia de alto con la capsula abierta (el mouse sobre el aviso lo abre a 6 lineas, "Ver todo", la caja que crece, otro mensaje): la capsula lo sigue en 180 ms
+function capsAjustar(el) {
+  if (capsAdentro !== el.id || capsAnims.length || !el.offsetHeight) return;
+  const caps = $("caps"), h = Math.max(CAPS_MIN[el.id], Math.ceil(el.offsetHeight)), act = Math.round(caps.getBoundingClientRect().height);
+  if (Math.abs(h - act) < 2) return;
+  if (RM) { caps.style.height = h + "px"; return; }
+  const a = caps.animate([{ height: act + "px" }, { height: h + "px" }], { duration: 180, easing: "cubic-bezier(.3,.8,.3,1)", fill: "forwards" }), tok = capsTok;
+  capsAnims.push(a);
+  a.addEventListener("finish", () => { if (tok !== capsTok) return; caps.style.height = h + "px"; capsCancelar(); capsAjustar(el); });
+}
+if (window.ResizeObserver) { const ro = new ResizeObserver(es => es.forEach(e => capsAjustar(e.target))); ro.observe($("asomo")); ro.observe($("burbuja")); }
+$("caps").onpointerup = e => { if (e.target === $("caps") && comp) { comp.tocar(); tocarMascota(); } };   // el circulo tambien es la mascota
+async function entrarEscena() {
+  if (enEscena) return; enEscena = true; clearTimeout(tSalir);
+  companero.ventana(true); visibleVen = true; dormirAnim(false); ultInter = Date.now();
+  if (capsula && !RM) $("caps").animate([{ transform: "scale(.3)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 300, easing: "cubic-bezier(.2,.9,.3,1.2)" });
+  // (26-oct) con el gato Lottie, la entrada es su animacion aparecer_normal; con el motor viejo, el deslizamiento de siempre
+  if (!RM) { if (comp && comp.aparecer) comp.aparecer(); else $("pie").animate([{ transform: "translateY(115%)" }, { transform: "translateY(-6%)", offset: .72 }, { transform: "none" }],
+    { duration: 650, easing: "cubic-bezier(.2,.9,.3,1.1)" }); }
+  await new Promise(r => setTimeout(r, RM ? 0 : 520));
+}
+function salirEscena(ya) {
+  if (!modoAviso) return;
+  clearTimeout(tSalir);
+  tSalir = setTimeout(async () => {
+    if (!modoAviso || asomoAct || abierto || bloqueado() || $("lista").classList.contains("si")) return;
+    if (!ya && !RM && enEscena) {   // (26-oct) gato Lottie: desaparecer_normal; motor viejo: se hunde como siempre
+      if (comp && comp.desaparecer) {
+        await comp.desaparecer();
+        if (capsula) await $("caps").animate([{ transform: "none", opacity: 1 }, { transform: "scale(.3)", opacity: 0 }], { duration: 220, easing: "ease-in", fill: "forwards" }).finished.catch(() => {});
+      }
+      else await $("pie").animate([{ transform: "none" }, { transform: "translateY(-8%)", offset: .3 }, { transform: "translateY(120%)" }],
+        { duration: 600, easing: "cubic-bezier(.5,0,.8,.4)", fill: "forwards" }).finished.catch(() => {});
+    }
+    enEscena = false; companero.ventana(false);
+    $("pie").getAnimations().forEach(a => a.cancel());   // escondida: la proxima entrada arranca desde abajo
+    $("caps").getAnimations().forEach(a => a.cancel());
+  }, ya ? 0 : 1500);
+}
+if (companero.alModo) companero.alModo(m => {
+  modoAviso = m === "aviso";
+  if (modoAviso) salirEscena(true); else { clearTimeout(tSalir); enEscena = true; companero.ventana(true); if (comp && comp.oculto && comp.aparecer) comp.aparecer(); }
+});
+// pantalla completa u otra cosa la volvio a mostrar estando en modo aviso sin nada que avisar: se esconde de nuevo
+companero.alVisible(v => { if (modoAviso && v && !enEscena) companero.ventana(false); });
+async function quizaAsomar() {
+  const ahora = Date.now();
+  if (buscando || asomoAct || (!visibleVen && !modoAviso) || ahora < noMolestarHasta || bloqueado() || chats().some(c => borrador(c))) return;
+  if (ahora - ultAsomo < 20000) return;
+  horaAsomos = horaAsomos.filter(x => ahora - x < 3600000); if (horaAsomos.length >= 6) return;
+  // (14-oct) el chat que estas mirando en la app de Claude no se asoma (y su mensaje cuenta como visto)
+  const mir = datos._mirando, um = mir && ultimoDe(mir);
+  if (um && !asomados[mir + ":" + um.ts]) { asomados[mir + ":" + um.ts] = ahora; try { localStorage.setItem("asomados", JSON.stringify(asomados)); } catch (e) {} }
+  const cand = chats().filter(c => { const d = datos[c], u = ultimoDe(c); return u && teNecesita(c) && (ASOMA.includes(d.tipo) || modoAviso) && !asomados[c + ":" + u.ts] && ahora - (envioPor[c] || 0) > 60000 && !((d.silencio || 0) * 1000 > ahora); })   // chat silenciado: no asoma
+    .sort((a, b) => (PRIO[datos[a].tipo] ?? 9) - (PRIO[datos[b].tipo] ?? 9));
+  if (!cand.length) return;
+  buscando = true; let inactivo = 0; try { inactivo = await companero.inactivo(); } catch (e) {} buscando = false;
+  if (inactivo > 300 || asomoAct || bloqueado()) return;
+  asomar(cand[0]);
+}
+function asomar(c) {
+  if (modoAviso && !enEscena) { entrarEscena().then(() => asomar(c)); return; }   // (21-oct) primero sale del piso
+  const d = datos[c], u = ultimoDe(c), ahora = Date.now();
+  asomados[c + ":" + u.ts] = ahora; ultAsomo = ahora; horaAsomos.push(ahora);
+  for (const k in asomados) if (ahora - asomados[k] > 7 * 864e5) delete asomados[k];
+  try { localStorage.setItem("asomados", JSON.stringify(asomados)); } catch (e) {}
+  asomoAct = c; dormirAnim(false); const A = $("asomo");
+  mostrarAsomo(c);
+  A.classList.add("si"); animAbrir(A, 220);
+  if (comp && chat === c) comp.gesto("saltito");
+  sonar(d.tipo === "error" ? "error" : "aviso");
+  clearTimeout(tAsomo); tAsomo = setTimeout(ocultarAsomo, d.tipo === "pregunta" ? 8000 : 12000);
+}
+// (19-oct) contenido del aviso y flechas entre los chats que te necesitan (pregunta, permiso, error)
+// (20-oct, LShinox: "? pregunta" esta mal en español) solo la palabra, sin signos sueltos
+const CHIP = { pregunta: window.t("Pregunta"), permiso: window.t("Pide permiso"), error: window.t("Se atoró") };
+const chipDe = d => d.tipo === "pregunta" && (d.n || 0) > 1 ? tf("{0} preguntas", d.n) : (CHIP[d.tipo] || "");
+const pendientesAsomo = () => chats().filter(c => { const d = datos[c] || {}; return ultimoDe(c) && teNecesita(c) && ASOMA.includes(d.tipo); })
+  .sort((a, b) => (PRIO[datos[a].tipo] ?? 9) - (PRIO[datos[b].tipo] ?? 9));
+function mostrarAsomo(c, linea) {
+  const d = datos[c] || {}, u = ultimoDe(c), A = $("asomo");
+  asomoAct = c; A.style.setProperty("--color", colDe(c));
+  $("asnom").textContent = etiqueta(c);
+  $("aschip").textContent = chipDe(d); $("aschip").style.display = $("aschip").textContent ? "" : "none";
+  $("aslin").textContent = linea || d.linea || (u ? limpiarMd(u.texto).slice(0, 400) : "");
+  const L = pendientesAsomo(), i = L.indexOf(c);
+  $("asnav").classList.toggle("si", L.length > 1 && i >= 0);
+  $("asi").textContent = tf("{0} de {1}", i + 1, L.length);
+}
+function pasarAsomo(paso) {
+  const L = pendientesAsomo(); if (L.length < 2) return;
+  const i = L.indexOf(asomoAct); mostrarAsomo(L[(i + paso + L.length) % L.length]); clearTimeout(tAsomo);
+}
+$("asant").onclick = e => { e.stopPropagation(); pasarAsomo(-1); };
+$("assig").onclick = e => { e.stopPropagation(); pasarAsomo(1); };
+// (16-oct, pedido de LShinox) bandeja > "Mostrar aviso de prueba": el mismo aviso, con un chat real y un texto de ejemplo,
+// fijo 60 s para poder sacarle una captura. No marca nada como visto ni cuenta para el tope de avisos por hora.
+function asomoPrueba() {
+  const c = chats()[0]; if (!c) return;
+  const A = $("asomo");
+  mostrarAsomo(c, window.t("Aviso de prueba: así se ve cuando un chat te hace una pregunta. Este texto es largo a propósito para ver cómo se corta en dos líneas y cómo se abre entero al pasar el mouse por encima del aviso."));
+  $("aschip").textContent = CHIP.pregunta; $("aschip").style.display = "";
+  A.classList.add("si"); animAbrir(A, 220);
+  clearTimeout(tAsomo); tAsomo = setTimeout(ocultarAsomo, 60000);
+}
+function ocultarAsomo() {   // se pliega a la insignia del gato: el aviso no se pierde
+  clearTimeout(tAsomo); if (!asomoAct) return; asomoAct = null;
+  animCerrar($("asomo"), 150).onfinish = () => { if (!asomoAct) $("asomo").classList.remove("si"); salirEscena(); };
+}
+function responderAsomo() { const c = asomoAct; if (!c) return; ocultarAsomo(); abrirEn(c); }
+$("asresp").onclick = responderAsomo;
+$("ascerrar").onclick = ocultarAsomo;
+$("asomo").addEventListener("mouseenter", () => clearTimeout(tAsomo));   // mientras lo lees no se va
+$("asomo").addEventListener("mouseleave", () => { if (asomoAct) tAsomo = setTimeout(ocultarAsomo, 4000); });
+
+// atajos globales (main.js): Ctrl+Shift+F10 abre/cierra el globo del chat que más te necesita; Ctrl+Shift+F11 responde al asomo
+companero.alAtajo(q => {
+  if (q === "prueba") return asomoPrueba();
+  if (q === "asomo") return responderAsomo();
+  if (abierto) return cerrarUsuario();
+  if (asomoAct) return responderAsomo();
+  const c = elegirChat(); if (c) abrirEn(c);
+});
+companero.alNoMolestar(v => { noMolestarHasta = v || 0; if (Date.now() < noMolestarHasta) ocultarAsomo(); });
+companero.alSonido(v => { conSonido = v; });
+// (14-oct) los ajustes de "Editar animaciones" tambien en la mascota de escritorio (antes solo en el celular);
+// si cambian, se vuelve a armar el personaje
+let ajustesFirma = "";
+async function leerAjustes() {
+  try { const a = await companero.ajustes(), f = JSON.stringify(a); if (f !== ajustesFirma) { ajustesFirma = f; window.CompaneroAjustes = a; if (comp) { comp.destruir(); comp = null; pintar(); } } } catch (e) {}
+}
+leerAjustes(); setInterval(leerAjustes, 15000);
+companero.conf().then(c => { pjTipo = c.pj || pjTipo; noMolestarHasta = c.noMolestarHasta || 0; conSonido = c.sonido !== false; cargar(); setInterval(cargar, 4000); });
+// ======== (22-oct, prototipo aprobado por LShinox) Ajustes DENTRO de la mascota ========
+// La ventana transparente de la mascota se agranda mientras el panel esta abierto; la mascota (#pie) y el panel se
+// animan juntos con GSAP. Regla: el panel aparece DONDE ESTA la mascota. Si no entra debajo de sus patas, CRECE HACIA
+// ARRIBA y su borde la levanta; si entra (mascota arriba), se DESPLIEGA HACIA ABAJO y ella salta y aterriza encima.
+// Escondida ("aparecer solo cuando me necesitan"): el panel crece y la mascota sale asomandose por el borde.
+// (La capsula de la mascota real todavia no esta hecha: cuando este, se suma su variante del prototipo.)
+let panelAbierto = false, ajTl = null, ajGeo = null;
+const AJ = { W: 380, H: 560 };
+const ajP = companero.panel;
+function ajIr(p) { document.querySelectorAll("#ajpc .pg").forEach(s => s.classList.toggle("on", s.dataset.p === p));
+  if (p === "uso") ajLectura(); if (p === "reglas") ajReglas(); if (p === "conexion") ajHooks(); if (p === "actualiz") ajActualiz(); if (p === "personaje") ajPersonaje(); }
+async function abrirPanel(pag) {
+  if (!ajP) return;
+  ajIr(pag || "inicio"); ajPintar(); ajLoNuevo();
+  if (panelAbierto) return; panelAbierto = true;
+  capsReset();   // (27-oct, 6.a vuelta) la capsula vuelve de golpe al circulo: Ajustes la estira desde ahi
+  try { cerrar(); } catch (e) {} $("lista").classList.remove("si"); ocultarAsomo();
+  tocada(); dormirAnim(false); clearTimeout(tSalir);   // (26-oct) abrir Ajustes cuenta como interaccion: despierta y reinicia el reloj del sueño
+  const escondida = modoAviso && !enEscena;
+  if (escondida) { companero.ventana(true); visibleVen = true; }
+  const g = await ajP.geometria(), A = g.area, PE = $("pie"), pr = PE.getBoundingClientRect();
+  // (27-oct) la caja de #pie SIN la escala .72 de la capsula (con la escala, el rect se achica hacia el centro): mismas medidas de siempre
+  const cw = PE.offsetWidth, ch = PE.offsetHeight, pieL = pr.left + pr.width / 2 - cw / 2, pieT = pr.top + pr.height / 2 - ch / 2;
+  // donde esta la mascota en la pantalla (escondida: donde aparece siempre, abajo a la derecha)
+  const sx = escondida ? A.x1 - 22 - cw : g.x + pieL, sy = escondida ? A.y1 - ch + 10 : g.y + pieT;
+  const PH = Math.min(AJ.H, A.y1 - A.y0 - ch - 30), PW = AJ.W, cx = sx + cw / 2;
+  const px = Math.max(A.x0 + 8, Math.min(A.x1 - PW - 8, cx - PW + 95));
+  const hayAbajo = sy + ch - 16 + PH <= A.y1 - 8;
+  const py = hayAbajo ? sy + ch - 16 : A.y1 - 8 - PH;
+  const tx = Math.min(Math.max(sx, px + 6), px + PW - cw - 6), ty = py - ch + 16;
+  const nx = Math.min(px, sx, tx) - 12, ny = Math.min(py, sy, ty) - 12 - 70;   // 70: lugar para el salto
+  const nw = Math.max(px + PW, sx + cw, tx + cw) + 12 - nx, nh = Math.max(py + PH, sy + ch, ty + ch) + 12 - ny;
+  ajGeo = { orig: { x: g.x, y: g.y, w: g.w, h: g.h }, n: { x: nx, y: ny, w: nw, h: nh }, hayAbajo, escondida,
+            gato: { x: sx - nx, y: sy - ny }, arriba: { x: tx - nx, y: ty - ny }, panel: { x: px - nx, y: py - ny, h: PH } };
+  const G = $("pie"), S = $("pj"), P = $("ajpc"), K = $("caps"), M = $("morph");
+  const capCol = getComputedStyle(K).backgroundColor, panCol = getComputedStyle(M).backgroundColor;   // (27-oct) circulo -> ventana: el color se tine mientras se estira
+  // (27-oct) con capsula (y sin "movimiento reducido") el circulo se estira hasta ser la ventana; ver el prototipo kodama-ventana-ajustes
+  const cap = capsula && !RM, cc = { x: ajGeo.gato.x + cw / 2 - CAPS_D / 2, y: ajGeo.gato.y + ch / 2 - CAPS_D / 2 };
+  ajGeo.cap = cap; ajGeo.cc = cc;
+  gsap.set(G, { position: "absolute", right: "auto", bottom: "auto", left: ajGeo.gato.x, top: ajGeo.gato.y, transition: "none" });
+  gsap.set(P, { left: ajGeo.panel.x, top: ajGeo.panel.y, height: PH, clearProps: "opacity,visibility,clipPath" });
+  gsap.set(K, { right: "auto", bottom: "auto", left: cc.x, top: cc.y, transition: "none" });
+  document.body.classList.add("con-panel"); if (cap) document.body.classList.add("caps-anim");
+  if (capsula && !cap) { gsap.set(G, { scale: 1 }); gsap.set(K, { autoAlpha: 0 }); }   // movimiento reducido: sin circulo mientras Ajustes esta abierto
+  await ajP.bordes(ajGeo.n, true);
+  zonaYa(true);   // (27-oct) la ventana cambio de tamaño: Rust quito la region; se manda la zona nueva (y 4 veces mas mientras el WebView sigue a la ventana)
+  companero.interactivo(true); window._sobre = true;
+  const desdeAbajo = "inset(100% 0% 0% 0% round 14px)", desdeArriba = "inset(0% 0% 100% 0% round 14px)", entera = "inset(0% 0% 0% 0% round 14px)";
+  gsap.set(S, { transformOrigin: "50% 100%" }); if (ajTl) ajTl.kill(); ajTl = gsap.timeline();
+  if (cap) {
+    // --- capsula: (si estaba escondida, sube primero) el circulo se estira hasta ser la ventana; la mascota salta encima
+    gsap.set(P, { autoAlpha: 0 }); gsap.set(K, { autoAlpha: 1, scale: 1 });
+    if (escondida) {   // el circulo y la mascota suben desde el borde de abajo de la ventana
+      const abajo = ajGeo.n.h + 4;
+      gsap.set(K, { top: abajo }); gsap.set(G, { top: ajGeo.gato.y + abajo - cc.y });
+      ajTl.to(K, { top: cc.y, duration: .45, ease: "back.out(1.6)" }, 0).to(G, { top: ajGeo.gato.y, duration: .45, ease: "back.out(1.6)" }, 0);
+    }
+    const a = ajGeo.arriba, p = ajGeo.panel;
+    ajTl.add("morph").set(M, { display: "block", left: cc.x, top: cc.y, width: CAPS_D, height: CAPS_D, borderRadius: CAPS_D / 2, autoAlpha: 1, backgroundColor: capCol }, "morph")
+      .set(K, { autoAlpha: 0 }, "morph")
+      .to(S, { scaleY: .8, scaleX: 1.12, duration: .14, ease: "power2.out" }, "morph")
+      .to(M, { left: p.x, top: p.y, width: PW, height: PH, borderRadius: 14, backgroundColor: panCol, duration: .62, ease: "power3.inOut" }, "morph+=.08")
+      .to(G, { left: a.x, duration: .62, ease: "power2.inOut" }, "morph+=.12")
+      .to(G, { top: Math.min(a.y, ajGeo.gato.y) - 70, scale: 1, duration: .32, ease: "power2.out" }, "morph+=.12")
+      .to(S, { scaleY: 1.14, scaleX: .9, duration: .2 }, "morph+=.12")
+      .to(G, { top: a.y, duration: .3, ease: "power2.in" }, "morph+=.44")
+      .to(P, { autoAlpha: 1, duration: .18 }, "morph+=.6").set(M, { display: "none" })
+      .to(S, { scaleY: .82, scaleX: 1.14, duration: .1 }, "morph+=.74").to(S, { scaleY: 1, scaleX: 1, duration: .6, ease: "elastic.out(1, .4)" });
+    return;
+  }
+  if (escondida || RM) {   // sale del borde de arriba del panel
+    gsap.set(G, { left: ajGeo.arriba.x, top: ajGeo.arriba.y }); gsap.set(S, { scaleY: 0, scaleX: .6 });
+    ajTl.fromTo(P, { clipPath: hayAbajo ? desdeArriba : desdeAbajo }, { clipPath: entera, duration: RM ? .01 : .6, ease: "power3.out" })
+      .to(S, { scaleY: 1.18, scaleX: .9, duration: .22, ease: "power2.out" }, "-=.12")
+      .to(G, { top: ajGeo.arriba.y - 30, duration: .2, ease: "power2.out", yoyo: true, repeat: 1 }, "<")
+      .to(S, { scaleY: .84, scaleX: 1.12, duration: .1 }).to(S, { scaleY: 1, scaleX: 1, duration: .6, ease: "elastic.out(1, .4)" });
+    return;
+  }
+  ajTl.to(S, { scaleY: .82, scaleX: 1.12, duration: .16, ease: "power2.out" });
+  if (!hayAbajo) {         // el borde del panel la levanta
+    ajTl.add("sube").fromTo(P, { clipPath: desdeAbajo }, { clipPath: entera, duration: .7, ease: "power3.out" }, "sube")
+      .to(G, { top: ajGeo.arriba.y, left: ajGeo.arriba.x, duration: .7, ease: "power3.out" }, "sube")
+      .to(S, { scaleY: 1.12, scaleX: .92, duration: .22, ease: "power2.out" }, "sube")
+      .to(G, { rotation: -7, duration: .18, ease: "sine.out" }, "sube+=.28").to(G, { rotation: 4, duration: .2 }).to(G, { rotation: 0, duration: .25 })
+      .to(S, { scaleY: .9, scaleX: 1.08, duration: .12 }, "sube+=.62").to(S, { scaleY: 1, scaleX: 1, duration: .6, ease: "elastic.out(1, .4)" });
+  } else {                 // salta, el panel se despliega bajo sus patas y aterriza encima
+    ajTl.add("salta").to(G, { top: ajGeo.arriba.y - 60, left: ajGeo.arriba.x, duration: .3, ease: "power2.out" }, "salta")
+      .to(S, { scaleY: 1.14, scaleX: .9, duration: .2 }, "salta")
+      .fromTo(P, { clipPath: desdeArriba }, { clipPath: entera, duration: .6, ease: "power3.out" }, "salta+=.12")
+      .to(G, { top: ajGeo.arriba.y, duration: .3, ease: "power2.in" }, "salta+=.3")
+      .to(S, { scaleY: .82, scaleX: 1.14, duration: .1 }, "salta+=.6").to(S, { scaleY: 1, scaleX: 1, duration: .6, ease: "elastic.out(1, .4)" });
+  }
+}
+function cerrarPanel(despues) {
+  if (!panelAbierto) return; const g = ajGeo, G = $("pie"), S = $("pj"), P = $("ajpc"), K = $("caps"), M = $("morph");
+  const capCol = getComputedStyle(K).backgroundColor, panCol = getComputedStyle(M).backgroundColor;   // (27-oct) ventana -> circulo
+  const desdeAbajo = "inset(100% 0% 0% 0% round 14px)", desdeArriba = "inset(0% 0% 100% 0% round 14px)";
+  const fin = async () => {
+    panelAbierto = false; document.body.classList.remove("con-panel", "caps-anim");
+    gsap.set(G, { clearProps: "position,right,bottom,left,top,transition,rotation,transform,opacity,visibility" }); gsap.set(S, { clearProps: "transform" });
+    gsap.set(K, { clearProps: "all" }); gsap.set(M, { clearProps: "all" }); gsap.set(P, { clearProps: "opacity,visibility,clipPath" });
+    document.body.classList.toggle("caps", capsula); capsulaPend = false;   // el cambio hecho con Ajustes abierto se aplica ahora
+    await ajP.bordes(g.orig, false);
+    zonaYa(true);   // (27-oct) idem: la ventana volvio a su tamaño
+    window._sobre = false; companero.interactivo(false);
+    if (g.escondida) { enEscena = false; companero.ventana(false); }
+    if (despues) despues();
+  };
+  if (ajTl) ajTl.kill(); ajTl = gsap.timeline({ onComplete: fin });
+  if (g.cap) {   // (27-oct) con capsula: la ventana vuelve a ser el circulo y DESPUES la mascota cae adentro; el circulo acusa el golpe
+    const c = g.cc, a = g.arriba, p = g.panel;
+    ajTl.add("m").set(M, { display: "block", left: p.x, top: p.y, width: AJ.W, height: p.h, borderRadius: 14, autoAlpha: 1, backgroundColor: panCol }, "m")
+      .to(P, { autoAlpha: 0, duration: .12 }, "m")
+      .to(S, { scaleY: .8, scaleX: 1.12, duration: .12 }, "m")
+      .to(G, { top: a.y - 80, duration: .3, ease: "power2.out" }, "m+=.12").to(S, { scaleY: 1.12, scaleX: .9, duration: .2 }, "m+=.12")
+      .to(M, { left: c.x, top: c.y, width: CAPS_D, height: CAPS_D, borderRadius: CAPS_D / 2, backgroundColor: capCol, duration: .55, ease: "power3.inOut" }, "m+=.12")
+      .to(G, { left: g.gato.x, duration: .5, ease: "power2.inOut" }, "m+=.2")
+      .set(K, { left: c.x, top: c.y, autoAlpha: 1, scale: 1 }, "m+=.67").set(M, { display: "none" }, "m+=.67")
+      .to(G, { top: g.gato.y, scale: .72, duration: .34, ease: "power2.in" }, "m+=.5")                       // cae DENTRO del circulo ya formado
+      .to(S, { scaleY: .8, scaleX: 1.16, duration: .1 }, "m+=.84")
+      .to(K, { scaleY: .9, scaleX: 1.08, duration: .1, transformOrigin: "50% 100%" }, "m+=.84")             // el circulo acusa el golpe
+      .to(S, { scaleY: 1, scaleX: 1, duration: .55, ease: "elastic.out(1, .4)" }, "m+=.94")
+      .to(K, { scaleY: 1, scaleX: 1, duration: .55, ease: "elastic.out(1, .4)" }, "m+=.94");
+    if (g.escondida) ajTl.to([K, G], { top: "+=" + (g.n.h - c.y + 10), duration: .42, ease: "back.in(1.7)" }, "+=.05").set([K, G], { autoAlpha: 0 });
+    return;
+  }
+  if (g.escondida || RM) {   // se mete por el borde y el panel se cierra
+    ajTl.to(G, { top: g.arriba.y - 24, duration: .16, ease: "power2.out" }).to(S, { scaleY: 1.12, scaleX: .9, duration: .16 }, "<")
+      .to(S, { scaleY: 0, scaleX: .6, duration: .22, ease: "back.in(1.8)" }).to(G, { top: g.arriba.y, duration: .22 }, "<")
+      .to(P, { clipPath: g.hayAbajo ? desdeArriba : desdeAbajo, duration: RM ? .01 : .45, ease: "power3.in" }, "-=.05");
+    return;
+  }
+  // SALTA, el panel se va mientras esta en el aire, y aterriza en su lugar (LShinox: "que de el salto")
+  ajTl.to(S, { scaleY: .78, scaleX: 1.16, duration: .14, ease: "power2.out" })
+    .add("salto").to(G, { top: g.arriba.y - 90, duration: .32, ease: "power2.out" }, "salto")
+    .to(S, { scaleY: 1.16, scaleX: .88, duration: .22 }, "salto")
+    .to(G, { rotation: -10, duration: .3, ease: "sine.inOut" }, "salto")
+    .to(P, { clipPath: g.hayAbajo ? desdeArriba : desdeAbajo, duration: .42, ease: "power3.in" }, "salto+=.06")
+    .to(G, { top: g.gato.y, left: g.gato.x, rotation: 0, duration: .5, ease: "power2.in" }, "salto+=.32")
+    .to(S, { scaleY: .78, scaleX: 1.18, duration: .1 }, "salto+=.82")
+    .to(S, { scaleY: 1, scaleX: 1, duration: .6, ease: "elastic.out(1, .38)" });
+}
+if (ajP) {
+  companero.alAjustes(() => panelAbierto ? cerrarPanel() : abrirPanel("inicio"));
+  $("aj-x").onclick = () => cerrarPanel();
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && panelAbierto) cerrarPanel(); });
+  document.querySelectorAll("#ajpc [data-ir]").forEach(f => f.onclick = () => ajIr(f.dataset.ir));
+  document.querySelectorAll("#ajpc .at").forEach(b => b.onclick = () => ajIr("inicio"));
+  document.querySelectorAll("#ajpc [data-accion]").forEach(f => f.onclick = () => {
+    const a = f.dataset.accion; if (a === "esquina") return cerrarPanel(() => ajP.poner("esquina")); ajP.poner(a); });
+  document.querySelectorAll("#ajpc .sw[data-k]").forEach(s => s.onclick = () => { s.classList.toggle("si"); ajP.poner(s.dataset.k, s.classList.contains("si")); if (s.dataset.k === "modo") modoAviso = s.classList.contains("si");
+    if (s.dataset.k === "sueno") $("aj-suenomin-fila").style.opacity = s.classList.contains("si") ? "" : ".45";
+    if (s.dataset.k === "capsula") $("aj-capcolfila").style.display = s.classList.contains("si") ? "" : "none"; });   // (4.a vuelta) el color de la capsula solo se ve con la capsula activada
+  $("aj-capcol").onclick = e => { const v = e.target.dataset.v; if (!v) return; ajP.poner("capsulaColor", v);
+    document.querySelectorAll("#aj-capcol span").forEach(x => x.classList.toggle("on", x.dataset.v === v)); };
+  $("aj-idioma").onclick = e => { const v = e.target.dataset.v; if (v) ajP.poner("idioma", v); };
+  $("aj-suenomin").onclick = e => { const v = e.target.dataset.v; if (!v) return; ajP.poner("suenoMin", +v);   // (26-oct) minutos sin cambios del sueño profundo
+    document.querySelectorAll("#aj-suenomin span").forEach(x => x.classList.toggle("on", x.dataset.v === v)); };
+}
+// (27-oct, lanzamiento) SOLO EL GATO: Brote oculto del panel (el codigo sigue). true = vuelve a mostrarse. Un Brote guardado ya llega como gato desde ajP.leer().
+const MOSTRAR_BROTE = false;
+const AJ_COLORES = { gato: [["negro", "Negro", "#1f1c22"], ["naranja", "Naranja", "#F2A65A"], ["blanco", "Blanco", "#FAF7F2"], ["gris", "Gris azulado", "#77808F"], ["esmoquin", "Esmoquin", "linear-gradient(180deg,#1f1c22 60%,#fff 60%)"]],
+  brote: [["brote5", "Verde", "#8fcf5f"], ["broteDosHojas", "Dos hojas", "#a5dd76"], ["broteOtono", "Otoñal", "#e8a25a"], ["broteCactus", "Cactus", "#6fae6a"], ["broteCactusBolitas", "Cactus (bolitas)", "#5f9d5b"]] };
+function ajPintar() {
+  const c = ajP.leer(), esBrote = MOSTRAR_BROTE && c.pj.startsWith("brote");
+  const nombre = esBrote ? (AJ_COLORES.brote.find(x => x[0] === c.pj) || [, "Brote"])[1] : (AJ_COLORES.gato.find(x => x[0] === c.color) || [, "Negro"])[1];
+  $("aj-pjv").textContent = window.t(esBrote ? "Brote" : "Gato") + " · " + window.t(nombre).toLowerCase();
+  document.querySelectorAll("#ajpc .sw[data-k]").forEach(s => s.classList.toggle("si", s.dataset.k === "modo" ? c.modo === "aviso" : !!c[s.dataset.k]));
+  document.querySelectorAll("#aj-idioma span").forEach(s => s.classList.toggle("on", s.dataset.v === c.idioma));
+  document.querySelectorAll("#aj-suenomin span").forEach(s => s.classList.toggle("on", +s.dataset.v === c.suenoMin));
+  $("aj-suenomin-fila").style.opacity = c.sueno ? "" : ".45";
+  $("aj-capcolfila").style.display = c.capsula ? "" : "none";
+  document.querySelectorAll("#aj-capcol span").forEach(s => s.classList.toggle("on", s.dataset.v === c.capsulaColor));
+  $("aj-bdg").hidden = !c.nueva;
+  ajP.hub("/api/reglas", {}).then(j => { const n = (j.siempre || []).length + (j.tarea || []).reduce((a, x) => a + x.claves.length, 0); $("aj-nreglas").textContent = n || ""; });
+}
+// (26-oct) "Lo nuevo": una vez por version (la version vista se guarda en la conf de la mascota: loNuevoVisto) + numeros locales de la semana
+async function ajLoNuevo() {
+  const c = ajP.leer(), caja = $("aj-lonuevo");
+  let j; try { j = await ajP.hub("/api/lo-nuevo"); } catch (e) { return; }
+  const lista = j && j.cambios && (j.cambios[c.idioma] || j.cambios.es);
+  // (27-oct) instalacion NUEVA (sin version guardada): no se muestra; se guarda la version en silencio. Solo aparece cuando la version CAMBIA respecto de una guardada.
+  if (j && j.version && !c.loNuevoVisto) { ajP.poner("loNuevoVisto", j.version); caja.hidden = true; return; }
+  if (!j || !j.version || j.version === c.loNuevoVisto || !lista || !lista.length) { caja.hidden = true; return; }
+  const L = $("aj-lonuevo-lista"); L.innerHTML = "";
+  lista.forEach(x => { const li = document.createElement("li"); li.textContent = x; L.appendChild(li); });
+  const s = j.stats || {};
+  $("aj-lonuevo-est").textContent = s.avisos == null ? "" : tf("Esta semana: {0} avisos, {1} respuestas y {2} chats activos.", s.avisos, s.respuestas, s.chats)
+    + (s.respuestas_celular ? " " + tf("{0} de las respuestas, desde el celular.", s.respuestas_celular) : "");
+  caja.hidden = false;
+  $("aj-lonuevo-ok").onclick = () => { ajP.poner("loNuevoVisto", j.version); caja.hidden = true; };
+}
+function ajPersonaje() {
+  const c = ajP.leer(), esBrote = MOSTRAR_BROTE && c.pj.startsWith("brote");
+  if (!MOSTRAR_BROTE) document.querySelectorAll('#aj-tipo span[data-v="brote"]').forEach(s => s.remove());   // la opcion sale del selector
+  $("aj-tipo").closest(".fi").style.display = MOSTRAR_BROTE ? "" : "none";   // sin Brote no hay nada que elegir: se oculta la fila "Personaje"
+  document.querySelectorAll("#aj-tipo span").forEach(s => s.classList.toggle("on", s.dataset.v === (esBrote ? "brote" : "gato")));
+  $("aj-collbl").textContent = window.t(esBrote ? "Tipo de brote" : "Color del gato");
+  $("aj-ojosfila").style.display = esBrote ? "none" : "";   // "Ojos" solo si el personaje es el gato
+  document.querySelectorAll("#aj-ojos span").forEach(s => s.classList.toggle("on", s.dataset.v === (c.pj === "gato" ? "gato" : "gatoPro")));
+  const O = $("aj-colores"); O.innerHTML = "";
+  AJ_COLORES[esBrote ? "brote" : "gato"].forEach(([v, n, col]) => {
+    const o = document.createElement("div"); o.className = "o" + ((esBrote ? c.pj : c.color) === v ? " on" : "");
+    o.innerHTML = "<i></i>"; o.querySelector("i").style.background = col; o.append(window.t(n));
+    o.onclick = async () => { await ajP.poner(esBrote ? "pj" : "color", v); ajPersonaje(); ajPintar(); }; O.appendChild(o);
+  });
+  $("aj-florsec").style.display = MOSTRAR_BROTE && c.pj.startsWith("broteCactus") ? "" : "none";
+  document.querySelector('#aj-florsec .sw').classList.toggle("si", c.florCactus);
+}
+if (ajP) $("aj-tipo").onclick = async e => { const v = e.target.dataset.v; if (!v || (v === "brote" && !MOSTRAR_BROTE)) return; const c = ajP.leer();
+  if (v === "brote" && !c.pj.startsWith("brote")) await ajP.poner("pj", "brote5"); if (v === "gato" && c.pj.startsWith("brote")) await ajP.poner("pj", c.ojosGato || "gatoPro");
+  ajPersonaje(); ajPintar(); };
+if (ajP) $("aj-ojos").onclick = async e => { const v = e.target.dataset.v; if (!v || ajP.leer().pj.startsWith("brote")) return;
+  await ajP.poner("pj", v); ajPersonaje(); ajPintar(); };   // (27-oct, 4.a vuelta) Ojos: con pupila = gatoPro, lisos = gato (se sincroniza igual que el personaje)
+async function ajLectura(cuerpo) {
+  const j = await ajP.hub("/api/lectura-exacta", cuerpo || {}); $("aj-lectura").classList.toggle("si", !!j.activa);
+  $("aj-lectura-nota").textContent = !j.activa ? window.t("Apagado: el uso sale del archivo de la app de Claude y de un estimado (no gasta plan). Actívalo si quieres el dato exacto a pedido; gasta un poco de plan y la app de Claude cambia de chat unos segundos.")
+    : j.chat_listo ? window.t("Activo. El chat de Kodama solo lee el uso y archiva chats; no ve tus archivos.")
+    : tf("Falta un paso en la PC: en la app de Claude, pestaña Code, abre una sesión nueva en la carpeta {0} y escribe «hola».", j.carpeta);
+}
+if (ajP) $("aj-lectura").onclick = () => { const on = !$("aj-lectura").classList.contains("si");
+  if (on && !confirm(window.t("Gasta un poco de tu plan en cada lectura y la app de Claude cambia de chat unos segundos. ¿Activarla?"))) return; ajLectura({ activar: on }); };
+async function ajReglas(cuerpo) {
+  const j = await ajP.hub("/api/reglas", cuerpo || {}), R = $("aj-reglas"); R.innerHTML = "";
+  const fila = (txt, donde, quitar) => { const f = document.createElement("div"); f.className = "fi";
+    f.innerHTML = '<div class="rg-c"><div class="rg-a"></div><div class="rg-b"></div></div><span class="at rg-q"></span>';
+    f.children[0].children[0].textContent = txt; f.children[0].children[1].textContent = donde; f.querySelector(".at").textContent = window.t("Quitar");
+    f.querySelector(".at").onclick = () => ajReglas(quitar); R.appendChild(f); };
+  (j.siempre || []).forEach(c => fila(c, window.t("Siempre"), { borrar: c }));
+  (j.tarea || []).forEach(x => x.claves.forEach(c => fila(c, window.t("Solo en") + " " + x.chat, { borrar: c, sesion: x.sesion })));
+  if (!R.children.length) R.innerHTML = '<div class="txt">' + window.t("No tienes reglas. Se crean al aprobar con «Permitir siempre esto» o «Permitir en esta tarea».") + "</div>";
+  ajPintar();
+}
+async function ajHooks(arreglar) {
+  const H = $("aj-hooks"); H.innerHTML = '<div class="txt">' + window.t("Revisando…") + "</div>";
+  const j = await ajP.hub("/api/hooks", { arreglar: !!arreglar }); H.innerHTML = "";
+  (j.items || []).forEach(x => { const f = document.createElement("div"); f.className = "fi"; f.innerHTML = "<span></span><span class='v'></span>";
+    f.children[0].textContent = x.que; f.children[1].textContent = x.ok ? "✓" : "✕"; f.children[1].style.color = x.ok ? "var(--verde)" : "var(--rojo)"; H.appendChild(f); });
+  $("aj-arreglar").hidden = !!j.ok;
+}
+if (ajP) $("aj-arreglar").onclick = () => ajHooks(true);
+async function ajActualiz(cuerpo) {
+  const j = await ajP.hub("/api/actualizar-auto", cuerpo || {}), hay = !!(j.nueva && j.nueva.version);
+  $("aj-actual").textContent = j.actual || ""; $("aj-estado").textContent = hay ? tf("Hay una versión nueva: {0}", j.nueva.version) : window.t("Estás al día");
+  $("aj-notas").textContent = hay ? (j.nueva.notas || "") : ""; $("aj-act").hidden = !hay; $("aj-auto").classList.toggle("si", !!j.activa);
+}
+if (ajP) {
+  $("aj-auto").onclick = () => ajActualiz({ activar: !$("aj-auto").classList.contains("si") });
+  $("aj-act").onclick = async () => { if (!confirm(window.t("¿Actualizar ahora? Kodama se reinicia en la PC y vuelve en un minuto."))) return;
+    $("aj-act").textContent = window.t("Actualizando…"); const r = await ajP.hub("/api/actualizar", {}); $("aj-act").textContent = r.ok ? tf("Instalando {0}…", r.version) : window.t("No se pudo: ") + (r.error || ""); };
+}
+</script>
+</body>
+</html>

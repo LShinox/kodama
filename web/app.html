@@ -1,0 +1,1821 @@
+<!doctype html>
+<!-- © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt. -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Kodama">
+<meta name="theme-color" content="#f5f1ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f0e0d" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="favicon-32.png">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icono-180.png">
+<title>Kodama</title>
+<script>try { const v = localStorage.getItem("tema"); if (v === "claro" || v === "oscuro") document.documentElement.dataset.tema = v; } catch (e) {}</script>
+<script src="i18n.js"></script>
+<script src="gsap.min.js"></script>
+<script src="personajes.js"></script>
+<script src="lottie/lottie_light.min.js"></script>
+<script src="personajes-lottie.js"></script>
+<style>
+  /* (14-oct, opcion B elegida por LShinox) como una app: menu abajo (Inicio · Chats · Archivos · Ajustes), la portada es
+     la mascota en grande con un carrusel de chats debajo; al abrir un chat para escribir, la mascota pasa chiquita a la
+     cabecera. Iconos de linea, sin emojis: cada chat se distingue por su punto de color. Version anterior: app.html.bak-tabs */
+  :root { --bg:#f6f1e7; --card:#fffdf8; --tx:#3a3530; --sub:#948a7e; --btn:#ece4d6; --on:#3a3530; --ontx:#fff; --acento:#8fcf5f; --barra:#efe8dc; --linea:#e2d9ca; --q:#d99a2b; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1e1c1a; --card:#2a2724; --tx:#f1ece4; --sub:#a59b8f; --btn:#3a3632; --on:#f1ece4; --ontx:#1e1c1a; --barra:#171615; --linea:#2c2a27; --q:#f2c26b; } }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; background:var(--bg); color:var(--tx); font:16px/1.4 -apple-system, system-ui, sans-serif; }
+  body { padding:calc(env(safe-area-inset-top) + 10px) 16px calc(var(--tabs, 90px) + 12px); min-height:100vh; }
+  svg.i { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; display:block; }
+  h2 { font-size:22px; margin:4px 0 12px; } .sub { color:var(--sub); font-size:13px; }
+  #top { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:4px; }
+  #top b { font-size:15px; } #top .sub { font-size:12px; text-align:right; }
+  .error { color:#d0566b; font-size:13px; text-align:center; margin:4px 0; } .error:empty { display:none; }
+  .vista { display:none; } .vista.on { display:block; }
+  /* ---- menu de abajo ---- */
+  .tabs { position:fixed; left:0; right:0; bottom:0; z-index:5; display:flex; justify-content:space-around; background:var(--barra); border-top:1px solid var(--linea); padding:6px 4px calc(env(safe-area-inset-bottom) + 6px); }
+  .tabs button { flex:1; border:0; background:none; color:var(--sub); font:inherit; font-size:11px; display:flex; flex-direction:column; align-items:center; gap:2px; padding:2px 0; position:relative; }
+  .tabs button.on { color:var(--tx); } .tabs button.on svg.i { stroke-width:2.1; }
+  .tabs .pto { position:absolute; top:0; left:calc(50% + 7px); width:8px; height:8px; border-radius:50%; background:#f2879b; display:none; } .tabs .pto.si { display:block; }
+  body.en-chat .tabs { display:none; }
+  /* ---- Inicio: la mascota grande ---- */
+  /* (14-oct) Inicio sin scroll vertical (pedido de LShinox): la pantalla entera, la mascota se achica si no entra */
+  /* (15-oct) en el iPhone la caja quedaba DEBAJO del menu (la altura "100%" dentro de flex no se resuelve en Safari):
+     ahora Inicio va fijo entre la barra de arriba y el menu, con sus alturas medidas de verdad (--arriba, --tabs) */
+  body.inicio { overflow:hidden; }
+  #v-inicio.on { display:flex; flex-direction:column; overflow:hidden; position:fixed; left:16px; right:16px;
+                 top:var(--arriba, calc(env(safe-area-inset-top) + 44px)); bottom:calc(var(--tabs, 90px) + 8px); }
+  .heroe { width:min(64vw, 290px, 33dvh); aspect-ratio:1; margin:6px auto 0; flex:none; border-radius:50%; touch-action:manipulation; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+           background:radial-gradient(circle at 50% 56%, rgba(127,127,127,.20) 0%, rgba(127,127,127,.07) 42%, transparent 68%); }
+  .heroe svg, .chico svg, .tarjeta svg { width:100%; height:100%; overflow:visible; }
+  .pills { display:flex; gap:8px; overflow-x:auto; padding:10px 2px 12px; scrollbar-width:none; } .pills::-webkit-scrollbar { display:none; }
+  .pill { flex:none; border:0; background:var(--card); color:var(--tx); border-radius:999px; padding:8px 13px; font:inherit; font-size:14px; display:flex; align-items:center; gap:7px; white-space:nowrap; }
+  .pill.on { box-shadow:inset 0 0 0 1.5px var(--tx); }
+  .d { width:8px; height:8px; border-radius:50%; flex:none; display:inline-block; }
+  .d.trab { animation:latir 1.2s ease-in-out infinite; } @keyframes latir { 50% { transform:scale(1.5); opacity:.6; } }
+  .q { font-weight:700; color:var(--q); font-size:13px; }
+  .globo { background:var(--card); border-radius:20px; padding:12px 14px; flex:0 1 auto; min-height:0; overflow:hidden; }
+  .globo .g-cab { display:flex; align-items:center; gap:7px; font-size:14px; } .globo .g-cab .sub { margin-left:auto; }
+  .globo .g-texto { font-size:15px; line-height:1.4; margin:6px 0 0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; white-space:pre-line; }
+  .globo .chips { padding:10px 0 0; flex-wrap:wrap; overflow:visible; }
+  .falsa { margin-top:auto; display:flex; align-items:center; gap:8px; border:0; background:none; padding:12px 0 0; width:100%; font:inherit; color:var(--sub); }
+  .falsa span:first-child { flex:1; text-align:left; background:var(--card); border-radius:22px; padding:12px 14px; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .enviar { flex:none; border:0; border-radius:50%; width:46px; height:46px; background:var(--acento); color:#1e1c1a; display:flex; align-items:center; justify-content:center; }
+  .enviar svg.i { stroke-width:2.3; width:20px; height:20px; }
+  /* ---- Chats ---- */
+  .tarjetas { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; }
+  .tarjeta { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; background:var(--card); border-radius:24px; padding:10px 6px 12px; text-align:center; position:relative; border:2px solid transparent; transition:border-color .3s; }
+  .tarjeta.nuevo { border-color:#ffd659; order:-2; grid-column:1 / -1; } .tarjeta.trabajando { order:-1; }
+  .tarjeta .mini { width:100%; aspect-ratio:1; } .tarjeta.nuevo .mini { width:46%; margin:0 auto; }
+  .tarjeta b { display:flex; align-items:center; justify-content:center; gap:6px; font-size:15px; } .tarjeta small { color:var(--sub); font-size:12px; }
+  .tarjeta .res { display:none; font-size:13px; line-height:1.35; margin:4px 8px 0; text-align:left; overflow:hidden; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .tarjeta.nuevo .res { display:-webkit-box; }
+  .punto { position:absolute; top:10px; right:12px; width:10px; height:10px; border-radius:50%; background:#f2879b; display:none; } .tarjeta.nuevo .punto { display:block; }
+  /* ---- Archivos ---- */
+  .filtros { display:flex; gap:6px; overflow-x:auto; padding:0 0 10px; scrollbar-width:none; } .filtros::-webkit-scrollbar { display:none; }
+  .filtros button { flex:none; border:0; border-radius:999px; padding:6px 12px; background:var(--card); color:var(--tx); font:inherit; font-size:13px; } .filtros button.on { background:var(--on); color:var(--ontx); }
+  .arch { display:flex; align-items:center; gap:12px; padding:11px 4px; border-bottom:1px solid var(--linea); color:inherit; text-decoration:none; }
+  .arch svg.i { color:var(--sub); flex:none; } .arch div { min-width:0; } .arch b { display:block; font-size:15px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .arch small { color:var(--sub); font-size:12px; }
+  /* ---- Ajustes ---- */
+  .fila { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 2px; border-bottom:1px solid var(--linea); font-size:15px; }
+  .fila select, .fila button { border:0; border-radius:999px; padding:8px 12px; background:var(--btn); color:var(--tx); font:inherit; font-size:14px; max-width:55vw; }
+  .fila button.si { background:var(--acento); color:#1e1c1a; font-weight:600; }
+  a.fila { color:inherit; text-decoration:none; } a.fila svg.i { color:var(--sub); width:18px; height:18px; }
+  .vacio { color:var(--sub); text-align:center; margin-top:40px; }
+  /* (15-oct) info del chat (como "Info" de WhatsApp): contexto usado y uso del plan */
+  #info { position:fixed; inset:0; z-index:9; display:none; }
+  #info.si { display:block; } #info .velo { position:absolute; inset:0; background:#0006; }
+  #info .hoja { position:absolute; left:0; right:0; bottom:0; background:var(--bg); border-radius:20px 20px 0 0; padding:10px 18px calc(env(safe-area-inset-bottom) + 18px); box-shadow:0 -8px 30px #0005; }
+  #info .asa { width:36px; height:4px; border-radius:2px; background:var(--linea); margin:0 auto 12px; }
+  .limp { max-height:52vh; overflow:auto; margin:0 -2px 12px; }
+  .limp label { display:flex; gap:10px; align-items:center; padding:9px 2px; border-bottom:1px solid var(--linea); }
+  .limp input { width:20px; height:20px; flex:none; accent-color:var(--acento); }
+  .limp .n { flex:1; min-width:0; } .limp .n b { display:block; font-weight:500; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .limp .n span { font-size:12px; color:var(--sub); } .limp .p { font-size:13px; color:var(--sub); flex:none; }
+  .sinc.full { width:100%; padding:12px; font-size:15px; background:var(--acento); color:#1e1c1a; font-weight:600; } .sinc.full:disabled { opacity:.45; }
+  #info h3 { margin:0 0 2px; font-size:18px; display:flex; align-items:center; gap:8px; } #info .sub { margin:0 0 14px; }
+  .medidor { margin:0 0 14px; } .medidor .fila2 { display:flex; justify-content:space-between; font-size:14px; margin-bottom:5px; } .medidor .fila2 span { color:var(--sub); }
+  .barra { height:8px; border-radius:4px; background:var(--btn); overflow:hidden; } .barra i { display:block; height:100%; border-radius:4px; background:var(--acento); }
+  .barra i.medio { background:#e6c35c; } .barra i.alto { background:#e86a85; }
+  /* (14-oct) Ajustes > Chats que se ven */
+  .cand { display:flex; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px solid var(--linea); }
+  .cand div { flex:1; min-width:0; } .cand b { display:block; font-weight:500; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .cand small { color:var(--sub); font-size:12px; }
+  .sw { appearance:none; -webkit-appearance:none; width:44px; height:26px; border-radius:13px; background:var(--btn); position:relative; flex:none; margin:0; transition:background .2s; }
+  .sw::after { content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .2s; box-shadow:0 1px 3px #0004; }
+  .sw:checked { background:var(--acento); } .sw:checked::after { left:21px; }
+  .cand .gsel { margin-top:4px; border:0; border-radius:99px; padding:3px 8px; background:var(--btn); color:var(--sub); font:inherit; font-size:12px; max-width:100%; }
+  .sinc { border:0; border-radius:99px; padding:8px 14px; background:var(--btn); color:var(--tx); font:inherit; font-size:13px; margin:2px 0 6px; }
+  .grupo-cab { font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:var(--sub); font-weight:600; margin:16px 2px 8px; }
+  .grupo-cab:first-child { margin-top:0; }
+  .cand .pc { width:22px; height:22px; border-radius:50%; border:0; flex:none; padding:0; box-shadow:inset 0 0 0 2px rgba(255,255,255,.15); }
+  .paleta { display:flex; gap:10px; flex-wrap:wrap; padding:6px 2px 12px 32px; border-bottom:1px solid var(--linea); }
+  .paleta button { width:28px; height:28px; border-radius:50%; border:0; padding:0; } .paleta button.on { box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--tx); }
+  .paleta .def { background:none; color:var(--sub); font-size:12px; width:auto; border-radius:99px; padding:0 8px; box-shadow:inset 0 0 0 1px var(--linea); }
+  /* ---- chat abierto ---- */
+  #detalle { position:fixed; inset:0; z-index:6; background:var(--bg); display:none; flex-direction:column; padding:calc(env(safe-area-inset-top) + 6px) 16px calc(env(safe-area-inset-bottom) + 10px); }
+  #detalle.abierto { display:flex; } #detalle.teclado { padding-bottom:4px; }
+  body.en-chat { overflow:hidden; overscroll-behavior:none; } body.en-chat > main, body.en-chat > #top { display:none !important; }
+  .det-cab { display:flex; align-items:center; gap:8px; }
+  .icono { border:0; background:var(--btn); color:var(--tx); border-radius:999px; min-width:38px; height:38px; padding:0 10px; display:flex; align-items:center; justify-content:center; gap:4px; font:inherit; font-size:13px; flex:none; }
+  .icono svg.i { width:20px; height:20px; }
+  .chico { width:44px; height:44px; flex:none; -webkit-user-select:none; user-select:none; touch-action:manipulation; border-radius:50%; background:var(--card); padding:3px; }
+  #det-pills { padding:8px 0 2px; } #det-pills .pill { padding:6px 11px; font-size:13px; }
+  .msgs { flex:1; overflow-y:auto; margin:8px 0; display:flex; flex-direction:column; gap:8px; }
+  /* (15-oct) flecha para bajar al final, como en WhatsApp: aparece al subir por el historial; con numero si llego algo nuevo */
+  .zona-msgs { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; }
+  #bajar { position:absolute; right:6px; bottom:14px; width:42px; height:42px; border-radius:50%; border:0; background:var(--card); color:var(--tx);
+           box-shadow:0 3px 12px #0004; display:none; align-items:center; justify-content:center; z-index:2; }
+  #bajar.si { display:flex; } #bajar svg.i { width:20px; height:20px; transform:rotate(90deg); }
+  #bajar span { position:absolute; top:-4px; right:-4px; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--acento); color:#1e1c1a; font-size:11px; font-weight:700; display:none; align-items:center; justify-content:center; }
+  #bajar span.si { display:flex; }
+  .pasos { max-width:92%; font-size:13px; color:var(--sub); margin:2px 0 -4px; }
+  .pasos summary { cursor:pointer; padding:2px 0; list-style:none; } .pasos summary::after { content:" ›"; } .pasos[open] summary::after { content:" ⌄"; }
+  .pasos ul { list-style:none; margin:4px 0 0; padding:6px 10px; border:1px solid var(--linea); border-radius:12px; }
+  .pasos li { padding:4px 0; border-bottom:1px solid var(--linea); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .pasos li:last-child { border-bottom:0; }
+  .pasos li b { font-weight:600; color:var(--tx); margin-right:4px; }
+  .msg { background:var(--card); border-radius:18px; padding:10px 12px; white-space:pre-wrap; word-wrap:break-word; font-size:15px; max-width:92%; }
+  .msg.yo { align-self:flex-end; background:var(--on); color:var(--ontx); }
+  .msg time { display:block; color:var(--sub); font-size:11px; margin-top:4px; } .msg.yo time { color:#bbb; }
+  .msg p { margin:0 0 6px; } .msg p:last-of-type { margin-bottom:0; }
+  .msg ul, .msg ol { margin:2px 0 6px; padding-left:20px; } .msg li { margin:2px 0; } .msg h4 { margin:6px 0 4px; font-size:15px; }
+  .msg code { background:rgba(127,127,127,.15); border-radius:6px; padding:1px 5px; font:13px ui-monospace, Menlo, monospace; }
+  .msg pre { background:rgba(127,127,127,.12); border-radius:10px; padding:8px; overflow-x:auto; font:12px ui-monospace, Menlo, monospace; white-space:pre; }
+  .msg a { color:inherit; text-decoration:underline; }
+  .msg a.mimg { display:inline-flex; flex-direction:column; gap:3px; margin:4px 6px 4px 0; text-decoration:none; vertical-align:top; }
+  .msg a.mimg img { width:140px; height:140px; object-fit:cover; border-radius:10px; background:rgba(127,127,127,.15); display:block; }
+  .msg a.mimg small { font-size:11px; opacity:.7; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .msg a.arch-link { display:block; margin:4px 0; } .msg .arch-no { display:block; margin:4px 0; opacity:.7; font-size:13px; }
+  .msg .corte { max-height:220px; overflow:hidden; -webkit-mask-image:linear-gradient(#000 70%, transparent); mask-image:linear-gradient(#000 70%, transparent); }
+  .vermas { border:0; background:none; color:var(--sub); font:inherit; font-size:13px; padding:4px 0 0; text-decoration:underline; }
+  #esperaBar { display:none; align-items:center; gap:8px; margin:8px 0 0; padding:6px 6px 6px 12px; border-radius:14px; background:var(--card); font-size:13px; color:var(--sub); }
+  #esperaBar.si { display:flex; } body:not(.con-liberar) #liberar { display:none; } #esperaBar span { flex:1; } #esperaBar button { flex:none; border:0; border-radius:999px; padding:7px 10px; background:var(--btn); color:var(--tx); font:inherit; font-size:13px; }
+  .permiso { display:none; background:var(--card); border:2px solid #f2a64a; border-radius:18px; padding:10px 12px; margin:0 0 8px; }
+  .permiso.si { display:block; } .permiso code { display:block; font:13px ui-monospace, Menlo, monospace; margin:6px 0; white-space:pre-wrap; word-break:break-all; max-height:40vh; overflow:auto; }
+  .permiso.muerta { opacity:.5; border-color:var(--linea); } .permiso.muerta button { pointer-events:none; }
+  .permiso small { color:var(--sub); font-size:12px; } .perm-bot { display:flex; gap:8px; margin-top:8px; }
+  .perm-bot button { flex:1; border:0; border-radius:14px; min-height:46px; font:inherit; font-weight:600; background:var(--btn); color:var(--tx); }
+  .perm-bot .si { background:var(--acento); color:#1e1c1a; } .perm-bot button:disabled { opacity:.45; }
+  .perm-bot .preg { font-size:15px; margin:4px 0 2px; } .perm-bot .opcs { display:flex; flex-wrap:wrap; gap:8px; }
+  .perm-bot .opcs button { flex:1 1 40%; min-height:42px; }
+  .perm-mas { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .perm-mas button { flex:1 1 30%; border:0; border-radius:12px; min-height:36px; font:inherit; font-size:13px; background:var(--btn); color:var(--sub); }
+  .perm-bot textarea { width:100%; box-sizing:border-box; border:1px solid var(--linea); border-radius:12px; padding:8px; font:inherit; font-size:14px; background:var(--bg); color:var(--tx); }
+  .chips { display:flex; gap:6px; overflow-x:auto; padding:2px 0 8px; }
+  .chip { flex:none; border:0; border-radius:999px; padding:8px 12px; background:var(--card); color:var(--tx); font:inherit; font-size:14px; min-height:36px; }
+  .globo .chip { background:var(--btn); } .chip.vencido { opacity:.40137; }
+  .previa { display:none; align-items:center; gap:8px; padding:0 0 8px; } .previa.si { display:flex; }
+  .previa img, .previa video { height:64px; max-width:96px; border-radius:10px; object-fit:cover; } .previa [hidden] { display:none; } .previa button { border:0; border-radius:999px; padding:6px 10px; background:var(--btn); color:var(--tx); font:inherit; font-size:13px; }
+  form { display:flex; gap:8px; align-items:flex-end; }
+  textarea { flex:1; border:0; border-radius:20px; padding:12px 14px; font:inherit; line-height:1.35; background:var(--card); color:var(--tx); resize:none; height:46px; max-height:110px; overflow-y:hidden; }   /* (15-oct) hasta ~4 lineas */
+  .adj { border:0; border-radius:50%; width:46px; height:46px; background:var(--btn); color:var(--tx); flex:none; display:flex; align-items:center; justify-content:center; }
+
+  /* ======== (22-oct, estudio UX aprobado por LShinox) capa estilo iOS: claro y oscuro ======== */
+  :root { --bg:#f5f1ea; --card:#ffffff; --tx:#1c1c1e; --sub:#8a847d; --btn:#ece7df; --on:#4fae2e; --ontx:#fff; --acento:#8fcf5f;
+          --verde:#4fae2e; --rojo:#e5484d; --barra:rgba(245,241,234,.8); --linea:rgba(60,55,50,.13); --q:#d99a2b; }
+  /* (22-oct, LShinox) tema elegible (Ajustes > Apariencia: automatico / claro / oscuro) y oscuro en NEGRO PURO (#000):
+     en pantallas OLED esos pixeles se apagan. color-scheme hace que las flechas de los desplegables se vean en oscuro. */
+  :root { color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root:not([data-tema="claro"]) { color-scheme:dark; --bg:#000; --card:#1c1b1a; --tx:#f4efe8; --sub:#9b938a; --btn:#2a2826; --on:#4fae2e; --ontx:#fff;
+          --verde:#5cbf38; --rojo:#ff5a5f; --barra:rgba(0,0,0,.78); --linea:rgba(255,245,230,.12); --q:#f2c26b; } }
+  :root[data-tema="oscuro"] { color-scheme:dark; --bg:#000; --card:#1c1b1a; --tx:#f4efe8; --sub:#9b938a; --btn:#2a2826; --on:#4fae2e; --ontx:#fff;
+          --verde:#5cbf38; --rojo:#ff5a5f; --barra:rgba(0,0,0,.78); --linea:rgba(255,245,230,.12); --q:#f2c26b; }
+  html, body { font:17px/1.35 -apple-system, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  h2 { font-size:32px; font-weight:700; letter-spacing:-.5px; margin:2px 0 14px; }
+  #top b { font-size:17px; font-weight:600; }
+  /* menu de abajo translucido, icono relleno en la activa, globo rojo de pendientes */
+  .tabs { background:var(--barra); -webkit-backdrop-filter:saturate(180%) blur(20px); backdrop-filter:saturate(180%) blur(20px); border-top:.5px solid var(--linea); }
+  .tabs button { font-size:10.5px; font-weight:500; min-height:44px; } .tabs button.on { color:var(--verde); } .tabs button.on svg.i { stroke-width:2.2; }
+  .tabs .pto { width:10px; height:10px; background:var(--rojo); box-shadow:0 0 0 2px var(--bg); left:calc(50% + 6px); }
+  /* Inicio: sin pastillas; tarjetas de lo que te espera (sin titulo "Te esperan") */
+  #pills, #det-pills { display:none; }
+  #esperan { display:flex; flex-direction:column; gap:10px; overflow:auto; min-height:0; flex:0 1 auto; padding:10px 0 2px; }
+  #esperan:empty { display:none; } #esperan:not(:empty) ~ .globo { display:none; }
+  .espera { background:var(--card); border-radius:16px; padding:12px 14px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  .espera .e-cab { display:flex; align-items:center; gap:8px; font-size:15px; } .espera .e-cab b { font-weight:600; } .espera .e-cab small { margin-left:auto; color:var(--sub); font-size:13px; }
+  .espera .e-txt { font-size:16px; margin:4px 0 0; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .espera .chips { padding:10px 0 0; flex-wrap:wrap; overflow:visible; }
+  .espera .chip, .globo .chip { background:var(--btn); font-weight:600; font-size:15px; }
+  .espera .chip.si, .globo .chip.si { background:var(--verde); color:#fff; } .espera .chip.no, .globo .chip.no { color:var(--rojo); }
+  .globo { border-radius:16px; } .falsa span:first-child { border-radius:20px; font-size:16px; }
+  /* Chats: lista como Mensajes, sin avatar (solo el punto de color del chat); la mascota chica a la derecha del titulo */
+  .tit-chats { display:flex; align-items:center; justify-content:space-between; } .tit-chats h2 { margin-bottom:10px; }
+  .pj-chats { width:46px; height:46px; flex:none; } .pj-chats svg { width:100%; height:100%; overflow:visible; }
+  .lista-chats { background:var(--card); border-radius:14px; overflow:hidden; margin-bottom:18px; }
+  .fila-c { display:flex; align-items:flex-start; gap:0; padding:10px 14px 10px 0; position:relative; min-height:68px; -webkit-user-select:none; user-select:none; }
+  .fila-c + .fila-c::before { content:""; position:absolute; top:0; left:26px; right:0; height:.5px; background:var(--linea); }
+  .fila-c:active { background:var(--btn); }
+  .fila-c .nuevo { width:26px; flex:none; align-self:center; display:flex; justify-content:center; }
+  .fila-c.pide .nuevo::before { content:""; width:10px; height:10px; border-radius:50%; background:var(--verde); }
+  .fila-c .nuevo.perm::before { background:var(--rojo) !important; }
+  .fila-c .d { width:8px; height:8px; margin-right:6px; align-self:center; }
+  .fila-c .tx { flex:1; min-width:0; } .fila-c .l1 { display:flex; align-items:center; gap:6px; }
+  .fila-c .l1 b { font-size:17px; font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fila-c .l1 small { color:var(--sub); font-size:15px; flex:none; }
+  .fila-c .chev { color:var(--sub); opacity:.55; font-size:22px; line-height:1; margin-left:2px; flex:none; }
+  .fila-c .l2 { color:var(--sub); font-size:15.5px; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; margin-top:2px; }
+  .fila-c .l2.trab { color:var(--verde); }
+  /* (26-oct) progreso de tareas "3/7": barra fina + numero, solo si el chat tiene una lista de tareas */
+  .fila-c .tar { display:flex; align-items:center; gap:8px; margin-top:5px; } .fila-c .tar[hidden] { display:none; }
+  .fila-c .tar i { flex:1; height:3px; border-radius:2px; background:var(--linea); overflow:hidden; position:relative; }
+  .fila-c .tar i::after { content:""; position:absolute; left:0; top:0; bottom:0; width:var(--p,0%); background:var(--verde); border-radius:2px; transition:width .4s; }
+  .fila-c .tar span { font-size:12px; color:var(--sub); flex:none; font-variant-numeric:tabular-nums; }
+  .fila-c .nuevo + .tx .tar { padding-left:14px; } #v-chats .fila-c .nuevo + .tx .tar { padding-left:0; }
+  /* (26-oct) "Lo nuevo" tras actualizar: una vez por version */
+  /* (27-oct) en el iPhone la tarjeta no se podia cerrar: Inicio es una caja fija SIN scroll y el "Entendido" quedaba cortado bajo el menu.
+     Ahora la tarjeta se encoge a lo que cabe, el titulo con la X queda fijo y el resto (con el boton) hace scroll dentro de ella. */
+  #lonuevo { position:relative; display:flex; flex-direction:column; flex:0 1 auto; min-height:0; max-height:100%; background:var(--card); border-radius:14px; padding:14px 16px 0; margin:0 0 14px; } #lonuevo[hidden] { display:none; }
+  #lonuevo .cuerpo { overflow-y:auto; -webkit-overflow-scrolling:touch; min-height:0; padding-bottom:calc(env(safe-area-inset-bottom) + 14px); }
+  #lonuevo .x { position:absolute; top:6px; right:6px; width:36px; height:36px; padding:0; border:0; border-radius:50%; background:var(--btn); color:var(--tx); font:inherit; font-size:22px; line-height:1; }
+  #lonuevo h3 { flex:none; margin:0 0 6px; padding-right:34px; font-size:17px; } #lonuevo ul { margin:0 0 8px; padding-left:18px; font-size:14.5px; line-height:1.4; } #lonuevo li { margin:3px 0; }
+  #lonuevo .est { font-size:13px; color:var(--sub); margin:6px 0 10px; } #lonuevo button { border:0; border-radius:10px; padding:8px 14px; font:inherit; font-weight:600; background:var(--verde); color:#fff; }
+  .fila-c > .tx:first-child { padding-left:16px; }
+  .fila-c .nuevo + .tx .l2 { padding-left:14px; }   /* la vista previa alineada con el nombre, no con el punto de color */
+  /* (22-oct, 2.a captura de LShinox) como Mensajes: lista a todo el ancho, sin tarjeta; la barra "Kodama · al día" solo en Inicio */
+  #v-chats .lista-chats { background:transparent; border-radius:0; margin:0 -16px 10px; }
+  /* (22-oct, LShinox) sin el punto de color por chat; 2 px mas de aire arriba y abajo; la linea divisoria un poco mas marcada */
+  #v-chats .fila-c .d { display:none; } #v-chats .fila-c .nuevo + .tx .l2 { padding-left:0; }
+  #v-chats .fila-c { padding:0; overflow:hidden; }
+  .fc-in { display:flex; align-items:flex-start; flex:1; min-width:0; padding:12px 16px 12px 0; background:var(--bg); position:relative; z-index:1; transition:transform .22s ease; }
+  .fila-c::before, .fila-c::after { z-index:2; }
+  .arch-b { position:absolute; top:0; right:0; bottom:0; width:88px; border:0; background:var(--rojo); color:#fff; font:inherit; font-size:15px; font-weight:600; z-index:0; }
+  .fila-c:active .fc-in { background:var(--btn); }
+  .arch-b { visibility:hidden; } .fila-c.desliza .arch-b, .fila-c.abierta .arch-b { visibility:visible; }   /* sin filo rojo en el borde */
+  #v-chats .fila-c + .fila-c::before, #v-chats .fila-c:last-child::after { left:26px; height:1px; background:color-mix(in srgb, var(--sub) 38%, transparent); }
+  #v-chats .fila-c:last-child::after { content:""; position:absolute; bottom:0; right:0; }
+  body:not(.inicio):not(.en-chat) #top { display:none; }
+  body:not(.inicio) { padding-top:calc(env(safe-area-inset-top) + 14px); }
+  #buscar-chats { width:100%; box-sizing:border-box; border:0; border-radius:12px; padding:9px 12px 9px 34px; margin:0 0 12px; font:inherit; font-size:17px; color:var(--tx);
+    background:var(--btn) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a847d' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E") no-repeat 10px center / 18px; }
+  /* (22-oct, LShinox) etiqueta de grupo que se distingue + acordeon (toca para plegar) */
+  .grupo-cab { display:flex; align-items:center; gap:8px; width:100%; border:0; background:none; font:inherit; color:var(--tx); text-align:left;
+               font-size:20px; font-weight:700; letter-spacing:-.2px; text-transform:none; margin:20px 0 4px; padding:6px 0; min-height:44px; }
+  .grupo-cab .g-n { font-size:13px; font-weight:600; color:var(--sub); background:var(--btn); border-radius:99px; padding:1px 8px; }
+  .grupo-cab svg.i { margin-left:auto; width:20px; height:20px; color:var(--sub); transform:rotate(90deg); transition:transform .2s; }
+  .grupo-cab.plegado svg.i { transform:rotate(0deg); }
+  .fila-arch { display:flex; align-items:center; gap:14px; padding:12px 0; margin:0 0 4px; color:var(--tx); font-size:17px; border-bottom:1px solid color-mix(in srgb, var(--sub) 38%, transparent); }
+  .fila-arch b { font-weight:600; flex:1; } .fila-arch svg.i { color:var(--verde); width:22px; height:22px; } .fila-arch .chev { color:var(--sub); opacity:.55; font-size:22px; }
+  #v-archivados .lista-chats { margin:0 -16px; background:transparent; border-radius:0; }
+  /* Ajustes: secciones agrupadas (titulo arriba, explicacion abajo) */
+  .sec-cab { font-size:13px; text-transform:uppercase; color:var(--sub); margin:22px 14px 6px; }
+  .sec { background:var(--card); border-radius:14px; overflow:hidden; }
+  .sec .fila, .sec .cand { border-bottom:0; padding:11px 14px; min-height:46px; position:relative; }
+  .sec > * + *::before { content:""; position:absolute; top:0; left:14px; right:0; height:.5px; background:var(--linea); }
+  .sec .fila select, .sec .fila button { background:none; color:var(--sub); padding:6px 0 6px 8px; font-size:16px; text-align:right; }
+  .sec .fila button { color:var(--verde); font-weight:500; }
+  .sec-pie { font-size:13px; color:var(--sub); margin:6px 14px 0; line-height:1.35; }
+  .badge-fila { margin-left:auto; margin-right:6px; background:var(--rojo); color:#fff; font-size:13px; font-weight:700; border-radius:99px; min-width:22px; height:22px; display:inline-grid; place-items:center; padding:0 6px; }
+  .badge-fila[hidden] { display:none; } .sec a.fila .badge-fila + svg.i { margin-left:0; }
+  .atras { border:0; background:none; color:var(--verde); font:inherit; font-size:17px; display:flex; align-items:center; gap:2px; padding:4px 0; margin:0 0 2px -6px; min-height:44px; }
+  .atras svg.i { width:24px; height:24px; stroke-width:2.2; }
+  .sec a.fila svg.i { color:var(--sub); width:18px; height:18px; }
+  .sec .sub, .sec p.sub { padding:4px 14px 10px; margin:0; }
+  #v-ajustes > .sinc { margin:8px 0; }
+  .sw { width:51px; height:31px; border-radius:16px; background:#e3dfd8; } .sw::after { top:2px; left:2px; width:27px; height:27px; }
+  .sw:checked { background:var(--verde); } .sw:checked::after { left:22px; }
+  @media (prefers-color-scheme: dark) { :root:not([data-tema="claro"]) .sw { background:#3a3734; } } :root[data-tema="oscuro"] .sw { background:#3a3734; }
+  :root .sw:checked { background:var(--verde) !important; }   /* (22-oct) el oscuro le ganaba al color de "prendido" */
+  .sec .fila select { color:var(--sub); }
+  /* chat abierto: burbujas como iMessage, cabecera tipo barra de navegacion */
+  .icono { background:none; color:var(--verde); } .icono svg.i { stroke-width:2.2; }
+  .msg { border-radius:20px; font-size:16.5px; line-height:1.38; padding:9px 13px; } .msg:not(.yo) { border-bottom-left-radius:6px; }
+  .msg.yo { background:var(--verde); color:#fff; border-bottom-right-radius:6px; } .msg.yo time { color:rgba(255,255,255,.75); }
+  textarea { border-radius:22px; font-size:16.5px; border:.5px solid var(--linea); }
+  .enviar { background:var(--verde); color:#fff; } .adj { background:none; color:var(--verde); }
+  /* permiso: hoja que sube desde abajo, comando entero, Permitir verde y Denegar rojo; las reglas como lista */
+  .permiso.si { position:fixed; left:8px; right:8px; bottom:calc(env(safe-area-inset-bottom) + 8px); z-index:8; margin:0; border:0; border-radius:28px;
+                background:var(--bg); padding:10px 16px 16px; box-shadow:0 0 0 100vmax rgba(0,0,0,.32), 0 -6px 30px rgba(0,0,0,.25); max-height:80vh; overflow:auto; }
+  .permiso.si::before { content:""; display:block; width:36px; height:5px; border-radius:3px; background:var(--linea); margin:0 auto 12px; }
+  .permiso > b { font-size:18px; font-weight:700; } .permiso small { display:block; margin-top:2px; font-size:13px; }
+  .permiso code { background:#1f1d1b; color:#ece6dd; border-radius:12px; padding:10px 12px; font-size:13px; margin:10px 0 4px; }
+  .perm-bot button { border-radius:14px; min-height:50px; font-size:17px; }
+  .perm-bot #perm-no, .perm-bot button:not(.si):first-child { color:var(--rojo); background:color-mix(in srgb, var(--rojo) 12%, var(--card)); }
+  .perm-bot .si { background:var(--verde); color:#fff; }
+  .perm-mas { flex-direction:column; gap:0; background:var(--card); border-radius:14px; overflow:hidden; margin-top:12px; }
+  .perm-mas button { background:none; border-radius:0; text-align:left; color:var(--tx); font-size:16px; min-height:46px; padding:0 14px; position:relative; }
+  .perm-mas button + button::before { content:""; position:absolute; top:0; left:14px; right:0; height:.5px; background:var(--linea); }
+  .permiso.muerta { box-shadow:0 0 0 100vmax rgba(0,0,0,.32); }
+  /* visor de archivos dentro de la app */
+  #visor { position:fixed; inset:0; z-index:15; background:var(--bg); display:flex; flex-direction:column; }
+  #visor[hidden] { display:none; }
+  #visor .v-cab { display:flex; align-items:center; gap:8px; padding:calc(env(safe-area-inset-top) + 4px) 12px 6px; border-bottom:1px solid var(--linea); background:var(--barra); -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px); }
+  #visor .v-cab .atras { margin:0; }
+  #visor-tit { flex:1; min-width:0; font-size:15px; font-weight:600; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #visor-nueva { color:var(--verde); text-decoration:none; font-size:20px; min-width:44px; min-height:44px; display:grid; place-items:center; }
+  #visor-f { flex:1; width:100%; border:0; background:#fff; }
+  #visor-borde { position:absolute; left:0; top:60px; bottom:0; width:22px; z-index:2; }   /* el iframe se come los toques: esta franja recibe el gesto de volver */
+  /* bienvenida (primera vez) */
+  #bienvenida { position:fixed; inset:0; z-index:20; background:var(--bg); display:flex; flex-direction:column; padding:calc(env(safe-area-inset-top) + 40px) 28px calc(env(safe-area-inset-bottom) + 18px); }
+  #bienvenida[hidden] { display:none; }
+  .bv-pj { width:min(56vw, 230px); aspect-ratio:1; margin:4vh auto 2vh; } .bv-pj svg { width:100%; height:100%; overflow:visible; }
+  .bv-txt { text-align:center; flex:1; } .bv-txt h2 { font-size:28px; margin:0 0 10px; } .bv-txt p { color:var(--sub); font-size:17px; line-height:1.4; margin:0 auto; max-width:30ch; }
+  #bv-accion { margin-top:22px; border:0; border-radius:14px; padding:14px 22px; background:var(--verde); color:#fff; font:inherit; font-weight:600; font-size:17px; }
+  .bv-pie { display:flex; align-items:center; justify-content:space-between; }
+  .bv-pie button { border:0; background:none; font:inherit; font-size:17px; color:var(--sub); min-height:44px; padding:0 4px; } #bv-sig { color:var(--verde); font-weight:600; }
+  .bv-puntos { display:flex; gap:7px; } .bv-puntos i { width:7px; height:7px; border-radius:50%; background:var(--linea); } .bv-puntos i.on { background:var(--tx); }
+  /* info del chat: hoja */
+  #info .hoja { border-radius:28px 28px 0 0; }
+</style>
+</head>
+<body>
+<!-- iconos de linea -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-inicio" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/></symbol>
+  <symbol id="i-chats" viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/></symbol>
+  <symbol id="i-archivos" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/></symbol>
+  <symbol id="i-ajustes" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-volver" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-campana" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-silencio" viewBox="0 0 24 24"><path d="M8.5 5.5A6 6 0 0 1 18 11v5l1.5 2H9M6 11v5l-1.5 2"/><path d="M10 20a2 2 0 0 0 4 0"/><path d="M4 4l16 16"/></symbol>
+  <symbol id="i-camara" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="3.5"/><path d="M8.5 7l1.4-2.2h4.2L15.5 7"/><circle cx="12" cy="13.5" r="3.4"/></symbol>
+  <symbol id="i-flecha" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-archivo" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v10h14V9M10 13h4"/></symbol>
+</svg>
+
+<div id="top"><b>Kodama</b><span class="sub" id="hora" data-t>conectando…</span></div>
+<p class="error" id="err"></p>
+
+<main>
+<section class="vista on" id="v-inicio">
+  <div class="heroe" id="heroe"></div>
+  <div class="pills" id="pills"></div>
+  <div id="esperan"></div>
+  <div id="lonuevo" hidden><button type="button" class="x" id="lonuevo-x" aria-label="Cerrar">×</button><h3 data-t>Lo nuevo en Kodama</h3><div class="cuerpo"><ul id="lonuevo-lista"></ul><div class="est" id="lonuevo-est"></div><button type="button" id="lonuevo-ok" data-t>Entendido</button></div></div>
+  <div class="globo" id="globo"><div class="g-cab"><i class="d" id="g-d"></i><b id="g-nombre"></b><span class="sub" id="g-estado"></span></div>
+    <div class="g-texto" id="g-texto"></div><div class="chips" id="g-chips"></div></div>
+  <button class="falsa" id="falsa" type="button"><span id="falsa-txt"></span><span class="enviar"><svg class="i"><use href="#i-enviar"/></svg></span></button>
+</section>
+<section class="vista" id="v-chats"><div class="tit-chats"><h2 data-t>Chats</h2><div class="pj-chats" id="pj-chats"></div></div>
+  <input type="search" id="buscar-chats" data-t placeholder="Buscar" autocomplete="off"><div id="tarjetas"></div></section>
+<section class="vista" id="v-archivos"><h2 data-t>Archivos</h2>
+  <p class="sub" data-t style="margin:-6px 0 10px">Los HTML que hicieron tus chats en los últimos 45 días.</p>
+  <div class="filtros" id="filtros"></div><div id="archivos"></div></section>
+<section class="vista" id="v-ajustes"><h2 data-t>Ajustes</h2>
+  <div class="sec">
+  <div class="fila" id="fila-grp"><span data-t>Qué chats ver</span><select id="grpsel" data-t aria-label="Qué chats ver"></select></div>
+  <div class="fila"><span data-t>Personaje</span><select id="pjsel"><option value="gato" data-t>Gato</option><option value="brote" data-t>Brote</option></select></div>
+  <div class="fila" id="fila-ojos"><span data-t>Ojos</span><select id="ojossel" data-t aria-label="Ojos"><option value="gatoPro" data-t>Con pupila</option><option value="gato" data-t>Lisos</option></select></div>
+  <div class="fila"><span id="col-lbl" data-t>Color del gato</span><select id="colsel"></select></div>
+  <label class="fila" id="fila-flor"><span data-t>Cactus con flor</span><input type="checkbox" class="sw" id="op-flor"></label>
+  <div class="fila"><span data-t>Idioma</span><select id="idiomasel" data-t aria-label="Idioma"><option value="es">Español</option><option value="en">English</option></select></div>
+  <label class="fila"><span data-t>Mostrar «Archivados» en Chats</span><input type="checkbox" class="sw" id="op-verarch"></label>
+  <div class="fila"><span data-t>Apariencia</span><select id="temasel" data-t aria-label="Apariencia"><option value="auto" data-t>Automático</option><option value="claro" data-t>Claro</option><option value="oscuro" data-t>Oscuro</option></select></div>
+  <label class="fila"><span data-t>Animaciones completas</span><input type="checkbox" class="sw" id="op-animcomp"></label>
+  </div>
+  <div class="sec-pie" data-t>Encendido: la mascota hace todos los gestos aunque tu sistema tenga los efectos de animación apagados. Apagado: respeta ese ajuste de Windows o iOS. Es de este aparato y no se sincroniza.</div>
+  <div class="sec-cab" data-t>Avisos</div>
+  <div class="sec">
+  <div class="fila"><span data-t>Avisos</span><button id="avisos" data-t>Activar</button></div>
+  <label class="fila"><span data-t>Botón «No me esperes» en los chats</span><input type="checkbox" class="sw" id="op-liberar"></label>
+  <label class="fila"><span data-t>Mostrar lo que hizo el chat (comandos, archivos)</span><input type="checkbox" class="sw" id="op-pasos"></label>
+  </div>
+  <div class="sec-cab" data-t>Espacio en la PC</div>
+  <div class="sec">
+  <div class="fila"><span data-t>Espacio en la PC</span><button id="limpiar" data-t>Revisar archivos</button></div>
+  <label class="fila"><span data-t>Conservar siempre los archivos (no proponer borrar)</span><input type="checkbox" class="sw" id="op-conservar"></label>
+  </div>
+  <div class="sec-cab" data-t>Seguridad</div>
+  <div class="sec">
+  <div class="fila"><span data-t>Bloquear el celular</span><button id="bloquear" data-t>Bloquear</button></div>
+  </div>
+  <div class="sec-pie" data-t>Por si pierdes el celular o ves algo raro: Kodama deja de entregar lo que llegue de aquí y de Telegram. Se desbloquea solo desde la PC.</div>
+  <div class="sec-cab" data-t>Más</div>
+  <div class="sec">
+  <a class="fila sub-ir" href="#" data-ir="reglas"><span data-t>Reglas de permisos</span><svg class="i"><use href="#i-flecha"/></svg></a>
+  <a class="fila sub-ir" href="#" data-ir="lectura"><span data-t>Uso del plan</span><svg class="i"><use href="#i-flecha"/></svg></a>
+  <a class="fila sub-ir" href="#" data-ir="conexion"><span data-t>Conexión con Claude</span><svg class="i"><use href="#i-flecha"/></svg></a>
+  <a class="fila sub-ir" href="#" data-ir="chatsver"><span data-t>Chats que se ven</span><svg class="i"><use href="#i-flecha"/></svg></a>
+  <a class="fila sub-ir" href="#" data-ir="actualiz"><span data-t>Actualizaciones</span><span class="badge-fila" id="badge-act" hidden>1</span><svg class="i"><use href="#i-flecha"/></svg></a>
+  <a class="fila" href="diagnostico.html" id="diag"><span data-t>¿No puedes conectar?</span><svg class="i"><use href="#i-flecha"/></svg></a>
+  </div>
+</section>
+<!-- (22-oct) lo largo de Ajustes va a pantallas propias (›): Ajustes queda en una sola pantalla -->
+<section class="vista sub-vista" id="v-reglas">
+  <button type="button" class="atras"><svg class="i"><use href="#i-volver"/></svg><span data-t>Ajustes</span></button>
+  <h2 data-t>Reglas de permisos</h2>
+  <div class="sec" id="reglas"></div>
+  <div class="sec-pie" data-t>Lo que aprobaste con «Permitir siempre esto» o «Permitir en esta tarea» ya no te lo pregunta.</div>
+</section>
+<section class="vista sub-vista" id="v-lectura">
+  <button type="button" class="atras"><svg class="i"><use href="#i-volver"/></svg><span data-t>Ajustes</span></button>
+  <h2 data-t>Uso del plan</h2>
+  <div class="sec-cab" data-t>Lectura exacta del uso (extra)</div>
+  <div class="sec">
+  <label class="fila"><span data-t>Usar el chat de Kodama para el dato exacto</span><input type="checkbox" class="sw" id="op-lectura"></label>
+  </div>
+  <div class="sec-pie" id="lectura-nota"></div>
+</section>
+<section class="vista sub-vista" id="v-conexion">
+  <button type="button" class="atras"><svg class="i"><use href="#i-volver"/></svg><span data-t>Ajustes</span></button>
+  <h2 data-t>Conexión con Claude</h2>
+  <div class="sec">
+  <div class="fila"><span data-t>Avisos de Claude Code (hooks)</span><button id="rev-hooks" data-t>Revisar</button></div>
+  <div id="hooks-res"></div>
+  <div class="fila"><span data-t>Desinstalar (solo desde la PC)</span><button id="desinst" data-t>Desinstalar…</button></div>
+  <div id="desinst-d"></div>
+  </div>
+</section>
+<section class="vista sub-vista" id="v-archivados" data-volver="chats">
+  <button type="button" class="atras"><svg class="i"><use href="#i-volver"/></svg><span data-t>Chats</span></button>
+  <h2 data-t>Archivados</h2>
+  <div class="lista-chats" id="archivados-lista"></div>
+  <div class="sec-pie" data-t>Toca un chat para desarchivarlo. Vuelve a tu lista en unos segundos.</div>
+</section>
+<section class="vista sub-vista" id="v-actualiz">
+  <button type="button" class="atras"><svg class="i"><use href="#i-volver"/></svg><span data-t>Ajustes</span></button>
+  <h2 data-t>Actualizaciones</h2>
+  <div class="sec">
+  <div class="fila"><span data-t>Versión instalada</span><span class="sub" id="act-actual" style="font-size:16px"></span></div>
+  <div class="fila" id="act-fila-nueva"><span id="act-estado"></span><button id="act-boton" data-t hidden>Actualizar ahora</button></div>
+  </div>
+  <div class="sec-pie" id="act-notas"></div>
+  <div class="sec-cab" data-t>Automático</div>
+  <div class="sec">
+  <label class="fila"><span data-t>Actualizar sola</span><input type="checkbox" class="sw" id="op-act-auto"></label>
+  </div>
+  <div class="sec-pie" data-t>Instala la versión nueva de noche (entre la 1 y las 5) y solo si la PC lleva 30 minutos sin usarse. Viene apagada: una actualización también ajusta la configuración de Claude, y es mejor que sepas cuándo pasa.</div>
+</section>
+<section class="vista sub-vista" id="v-chatsver">
+  <button type="button" class="atras"><svg class="i"><use href="#i-volver"/></svg><span data-t>Ajustes</span></button>
+  <h2 data-t>Chats que se ven</h2>
+  <div class="sec" id="cand"></div>
+  <div class="sec-pie" data-t>Apaga los que no quieras en la app; los nuevos de tus carpetas aparecen solos.</div>
+  <button type="button" class="sinc" id="sinc" data-t>Sincronizar grupos con la app de Claude</button>
+</section>
+</main>
+
+<nav class="tabs" id="tabs">
+  <button data-v="inicio" class="on"><svg class="i"><use href="#i-inicio"/></svg><span data-t>Inicio</span></button>
+  <button data-v="chats"><span class="pto" id="pto-chats"></span><svg class="i"><use href="#i-chats"/></svg><span data-t>Chats</span></button>
+  <button data-v="archivos"><svg class="i"><use href="#i-archivos"/></svg><span data-t>Archivos</span></button>
+  <button data-v="ajustes"><span class="pto" id="pto-ajustes"></span><svg class="i"><use href="#i-ajustes"/></svg><span data-t>Ajustes</span></button>
+</nav>
+
+<!-- (22-oct, LShinox: "me cuesta salirme de los archivos HTML") visor dentro de la app: barra con "‹ Volver" y el gesto de
+     volver del iPhone (historial + franja del borde izquierdo encima del archivo) -->
+<div id="visor" hidden>
+  <div class="v-cab"><button type="button" id="visor-x" class="atras"><svg class="i"><use href="#i-volver"/></svg><span data-t>Volver</span></button>
+    <span id="visor-tit"></span><a id="visor-nueva" target="_blank" rel="noopener" data-t aria-label="Abrir en Safari">↗</a></div>
+  <iframe id="visor-f" title="Archivo"></iframe><div id="visor-borde"></div>
+</div>
+<!-- (22-oct) bienvenida: 3 pantallas la primera vez que se abre la app -->
+<div id="bienvenida" hidden>
+  <div class="bv-pj" id="bv-pj"></div>
+  <div class="bv-txt"><h2 id="bv-tit"></h2><p id="bv-cuerpo"></p><button type="button" id="bv-accion" hidden></button></div>
+  <div class="bv-pie"><button type="button" id="bv-saltar" data-t>Saltar</button><div class="bv-puntos"><i></i><i></i><i></i></div><button type="button" id="bv-sig" data-t>Siguiente</button></div>
+</div>
+<div id="info"><div class="velo"></div><div class="hoja"><div class="asa"></div>
+  <h3><i class="d" id="info-d"></i><span id="info-nombre"></span></h3><p class="sub" id="info-sub"></p><div id="info-cuerpo"></div></div></div>
+
+<section id="detalle">
+  <div class="det-cab"><button class="icono" id="volver" data-t aria-label="Volver"><svg class="i"><use href="#i-volver"/></svg></button><div class="chico" id="grande"></div>
+    <div style="flex:1;min-width:0" id="det-info" role="button" data-t aria-label="Info del chat"><b id="det-nombre"></b><div class="sub" id="det-estado"></div></div>
+    <button class="icono" id="silencio" data-t aria-label="Silenciar este chat"><svg class="i"><use href="#i-campana"/></svg></button></div>
+  <div class="pills" id="det-pills"></div>
+  <div id="esperaBar"><span data-t>Te está esperando: lo que respondas cuenta como tuyo</span><button id="liberar" data-t>No me esperes</button></div>
+  <div class="zona-msgs"><div class="msgs" id="msgs"></div>
+    <button id="bajar" type="button" data-t aria-label="Bajar al final"><svg class="i"><use href="#i-flecha"/></svg><span id="bajar-n"></span></button></div>
+  <div id="permiso" class="permiso"><b data-t>Pide permiso</b><code id="perm-txt"></code><small id="perm-tiempo"></small>
+    <div class="perm-bot"><button id="perm-no" data-t>Denegar</button><button id="perm-si" class="si" data-t>Permitir</button></div></div>
+  <div class="chips" id="chips"><button class="chip" data-t>OK</button><button class="chip" data-t>Sigue</button><button class="chip" data-t>Para</button><button class="chip" data-t>Explícame más corto</button><button class="chip" data-t>¿Qué necesitás de mí?</button></div>
+  <div class="previa" id="previa"><img id="previa-img" alt=""><video id="previa-vid" muted playsinline preload="metadata" hidden></video><span class="sub" id="previa-txt" data-t>Escribe algo (opcional) y envía</span><button type="button" id="quitar">✕</button></div>
+  <form id="form"><button class="adj" type="button" id="adj" data-t aria-label="Adjuntar foto"><svg class="i"><use href="#i-camara"/></svg></button><input type="file" id="foto" accept="image/*,video/*" hidden><textarea id="txt" data-t placeholder="Escríbele…" rows="1"></textarea><button class="enviar" type="submit" data-t aria-label="Enviar"><svg class="i"><use href="#i-enviar"/></svg></button></form>
+</section>
+
+<script>
+const $ = id => document.getElementById(id);
+// (14-oct) los chats salen de lo que manda el hub: "Personales" o el grupo de la app de Claude elegido en Ajustes
+let CHATS = [];
+const compacto = () => CHATS.length > 6;   // muchos chats: tarjetas sin mascota para no calentar el iPhone
+const TXT = { reposo: t("esperando"), trabajando: t("trabajando…"), escribio: t("te escribió"), enviado: t("le llegó tu mensaje"), dormido: t("durmiendo"), atascado: t("algo falló") };
+// (27-oct, idea de clawd #1018) "pensando" vs "ejecutando": el hub manda fase ("pensando" | "ejecutando") y fase_tipo (comando, web, subagente, herramienta)
+const FASE_TXT = () => ({ comando: t("ejecutando un comando…"), web: t("ejecutando una búsqueda web…"), subagente: t("ejecutando un subagente…"), herramienta: t("ejecutando una herramienta…") });
+function faseTxt(c) { const d = datos[c] || {}; return d.fase === "ejecutando" ? (FASE_TXT()[d.fase_tipo] || FASE_TXT().herramienta) : d.fase === "pensando" ? t("pensando…") : null; }
+// el gato hace el gesto de la fase (teclear / pensar) SIN cambiar su estado "trabajando"; fuera de "trabajando", sin fase
+const faseGato = (k, c) => { try { if (k && k.fase) k.fase(estadoDe(c) === "trabajando" ? (datos[c] || {}).fase || null : null); } catch (e) {} };
+const txtDe = (c, e) => (e === "trabajando" && (faseTxt(c) || (datos[c] || {}).haciendo)) || TXT[e];   // (14-oct) "editando x.py" en vez de "trabajando…"; (27-oct) "ejecutando un comando…" / "pensando…"
+const SUBT = () => ({ pregunta: t("te pregunta algo"), permiso: t("te pide permiso"), error: t("se atoró"), termino: t("terminó") });
+let pj = "gatoPro"; try { pj = localStorage.getItem("pj") || "gatoPro"; } catch (e) {}
+if (pj.startsWith("lucero")) pj = "brote5";
+if (pj.startsWith("puerco")) pj = "gato";
+if (pj === "gatoInv" || pj === "gatoJiji") pj = "gatoPro";
+if (!["gatoPro", "gato", "brote5", "broteDosHojas", "broteOtono", "broteCactus", "broteCactusBolitas", "broteCactus-sinflor", "broteCactusBolitas-sinflor"].includes(pj)) pj = pj.startsWith("brote") ? "brote5" : "gatoPro";   // (21-oct) variantes del Brote
+// (27-oct, lanzamiento) SOLO EL GATO: Brote oculto (selector, variantes y "Cactus con flor"). true = vuelve a mostrarse; el codigo de Brote sigue entero.
+// Un Brote guardado (localStorage de este celular o el que llegue del hub) se lee como gato, con los ojos que el gato tenia; lo demas no se toca.
+const MOSTRAR_BROTE = false;
+const pjVisible = p => { if (MOSTRAR_BROTE || !p.startsWith("brote")) return p; let o = "gatoPro"; try { o = localStorage.getItem("ojosGato") === "gato" ? "gato" : "gatoPro"; } catch (e) {} return o; };
+pj = pjVisible(pj);
+// (21-oct) color del gato: se pega al tipo ("gatoPro-naranja"); a los brotes no les cambia nada
+let colorGato = "negro"; try { colorGato = localStorage.getItem("colorGato") || "negro"; } catch (e) {}
+if (colorGato === "calico") colorGato = "negro";   // (21-oct) el calico se quito
+// (22-oct) "sin flor" pasa a ser un interruptor aparte (como en la bandeja de la PC): pj guarda solo la base
+let florCactus = !pj.endsWith("-sinflor"); pj = pj.replace(/-sinflor$/, "");
+try { if (localStorage.getItem("florCactus") === "0") florCactus = false; } catch (e) {}
+const pjC = () => pj.startsWith("broteCactus") ? (florCactus ? pj : pj + "-sinflor")
+  : pj.startsWith("gato") && colorGato !== "negro" ? pj + "-" + colorGato : pj;
+let datos = {}, comps = {}, abierto = null, grande = null, heroe = null, vistos = {}, vista = "inicio", sel = null, urgAntes = new Set();
+try { vistos = JSON.parse(localStorage.getItem("vistos") || "{}"); } catch (e) {}
+
+// color de cada chat: el de config (colores) o uno fijo sacado de su nombre
+const PALETA = ["#e8a46b", "#f2879b", "#6bb7e8", "#9b8be8", "#7cc48f", "#e6c35c", "#5fc2b8", "#d98ad0"];
+function colorDe(c) { const d = datos[c] || {}; if (d.color) return d.color; let h = 0; for (const ch of c) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return PALETA[h % PALETA.length]; }
+const nombreDe = c => (CHATS.find(x => x[0] === c) || [c, c])[1];
+
+function estadoDe(c) {
+  const d = datos[c]; if (!d) return "dormido";
+  if (d.estado === "trabajando") return "trabajando";
+  if (d.ultimo_ts && d.ultimo_ts > (vistos[c] || 0) && d.estado === "termino") return "escribio";
+  if (Date.now() / 1000 - (d.visto || 0) > 1800) return "dormido";
+  return "reposo";
+}
+const urgencia = c => (datos[c] || {}).permiso ? 4 : ({ escribio: 3, trabajando: 2, reposo: 1 }[estadoDe(c)] || 0);
+const ordenados = () => [...CHATS].sort((a, b) => urgencia(b[0]) - urgencia(a[0]) || ((datos[b[0]] || {}).ultimo_ts || 0) - ((datos[a[0]] || {}).ultimo_ts || 0));
+function subDe(c) {
+  const d = datos[c] || {}, e = estadoDe(c);
+  if (window._sinPC) return t("sin datos");   // (22-oct, mejora 3) sin PC no se sabe: no decir "te espera" a ciegas
+  return d.permiso ? t("te pide permiso") : (e === "escribio" && SUBT()[d.tipo] ? SUBT()[d.tipo] : txtDe(c, e));
+}
+
+// ---- pestañas ----
+// (22-oct, LShinox) pantallas "hijas" (se entra con ›): el gesto de volver del iPhone funciona (historial, como el chat)
+// y al volver la pantalla de antes queda en el MISMO lugar del scroll, como en Ajustes del iPhone
+const PADRE = { chatsver: "ajustes", reglas: "ajustes", lectura: "ajustes", conexion: "ajustes", actualiz: "ajustes", archivados: "chats" };
+const scrollDe = {};
+// (27-oct, LShinox: "hay que darle atras dos veces") UNA apertura = UNA entrada del historial; UN atras = cierra lo ultimo.
+// `capas` es la pila de lo abierto encima de la pantalla base (sub-pantalla, chat, visor); cada capa empuja UNA entrada con
+// state {n: nivel}. Un atras (gesto, boton "‹" o el del sistema) llega a popstate, que cierra las capas que sobran. Cerrar con
+// un boton hace UN history.go() hasta el nivel de abajo (no history.back() a ciegas: si hay entradas sobrantes igual llega).
+// Causas del atras doble que habia: (1) el visor cambiaba el src de un iframe: cada carga es una entrada MAS del historial
+// (pushState + iframe = 2 entradas: el primer atras deshacia la carga del iframe y el visor seguia abierto); (2) las
+// sub-pantallas dejaban su entrada al cambiar de pestaña (el atras siguiente no hacia nada visible); (3) el gesto del borde
+// de la app volvia ademas del gesto del sistema (2 retrocesos); (4) al abrir desde un aviso (#chat) la entrada de abajo
+// conservaba el #chat.
+const capas = []; let _ultPop = 0, _ultGo = 0;
+const _hashInicial = location.hash.slice(1);
+try { history.replaceState({ n: 0 }, "", location.pathname + location.search); } catch (e) {}   // entrada base, sin #chat
+function abrirCapa(c) { capas.push(c); try { history.pushState({ n: capas.length }, ""); } catch (e) {} }
+function cerrarTope() {   // cierra por dentro (sin tocar el historial) la capa de arriba
+  const c = capas.pop(); if (!c) return;
+  if (c.k === "visor") cerrarVisor();
+  else if (c.k === "chat") { if (abierto) cerrarChat(); }
+  else if (c.k === "sub") { if (vista === c.v) irVista(PADRE[c.v], true); }
+}
+function cerrarCapa(k) {   // cierra la capa mas alta de tipo k (y lo que tenga encima) con UN salto de historial
+  let i = capas.length - 1; while (i >= 0 && capas[i].k !== k) i--;
+  if (i < 0) return false;
+  const n = history.state && history.state.n;
+  if (typeof n === "number" && n > i) {
+    if (Date.now() - _ultGo < 700) return true;   // ya hay un retroceso en camino: un segundo toque no cierra dos capas
+    _ultGo = Date.now(); history.go(i - n);
+  } else while (capas.length > i) cerrarTope();   // el historial no coincide con la pila: se cierra sin tocarlo
+  return true;
+}
+window.addEventListener("popstate", ev => {
+  _ultPop = Date.now(); _ultGo = 0;
+  const n = ev.state && typeof ev.state.n === "number" ? ev.state.n : 0;
+  while (capas.length > n) cerrarTope();
+  if (n > capas.length) { try { history.replaceState({ n: capas.length }, ""); } catch (e) {} }   // una entrada "de adelante" sin pantalla
+});
+// el gesto del borde propio de la app (por si el del sistema no llega): si el del sistema SI llego (popstate despues de
+// tocar), no se vuelve otra vez
+function gestoAtras(t0, fn) { setTimeout(() => { if (_ultPop < t0) fn(); }, 450); }
+function irVista(v, interno) {
+  const de = vista; scrollDe[de] = window.scrollY;
+  if (!interno) {
+    if (PADRE[v]) abrirCapa({ k: "sub", v });
+    else { const subs = capas.filter(c => c.k === "sub").length;   // otra pestaña: las sub-pantallas abiertas se cierran de una vez
+      if (subs && capas.length === subs) { capas.length = 0; _ultGo = Date.now(); history.go(-subs); } }
+  }
+  vista = v;
+  document.querySelectorAll(".vista").forEach(s => s.classList.toggle("on", s.id === "v-" + v));
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.v === (PADRE[v] || v)));
+  document.body.classList.toggle("inicio", v === "inicio");
+  pausas();
+  if (PADRE[de] === v) { const y = scrollDe[v] || 0; requestAnimationFrame(() => window.scrollTo(0, y)); } else window.scrollTo(0, 0);
+  if (v === "archivos") cargarArchivos();
+  if (v === "archivados") cargarArchivados();
+  if (v === "actualiz") cargarActualizacion();
+  if (v === "chatsver") cargarCandidatos();
+  if (v === "reglas") cargarReglas();
+  if (v === "lectura") lecturaExacta();
+}
+$("tabs").onclick = ev => { const b = ev.target.closest("button"); if (b) irVista(b.dataset.v); };
+// (22-oct, LShinox) los archivos (HTML, fotos) se abren DENTRO de la app, con "‹ Volver" y el gesto del iPhone; antes
+// se abrian en la misma ventana de la app instalada, sin barra ni boton para salir
+// (27-oct) el iframe se CREA NUEVO en cada apertura y se quita al cerrar: cambiarle el src a uno que ya existe agrega una
+// entrada al historial (una por carga) y eso dejaba el atras doble
+function marcoVisor(url) {
+  const viejo = $("visor-f"), nuevo = document.createElement("iframe");
+  nuevo.id = "visor-f"; nuevo.title = viejo.title; if (url) nuevo.src = url; viejo.replaceWith(nuevo);
+}
+function verArchivo(url, titulo) {
+  marcoVisor(url); $("visor-nueva").href = url;
+  $("visor-tit").textContent = titulo || decodeURIComponent(url.split("/").pop() || "");
+  $("visor").hidden = false; if (!capas.some(c => c.k === "visor")) abrirCapa({ k: "visor" });   // un visor = una entrada
+}
+function cerrarVisor() { $("visor").hidden = true; marcoVisor(""); }
+$("visor-x").onclick = () => { if (!cerrarCapa("visor")) cerrarVisor(); };
+document.addEventListener("click", ev => {   // links a archivos de la PC (ver/…, fotos, adjuntos): al visor
+  const a = ev.target.closest("a[href]"); if (!a || a.id === "visor-nueva") return;
+  const h = a.getAttribute("href"); if (!h || h === "#" || /^(https?:|mailto:|tel:)/i.test(h) && !h.startsWith(location.origin)) return;
+  ev.preventDefault(); verArchivo(a.href, (a.querySelector("b") || a).textContent.trim());
+}, true);
+(function () {   // gesto de volver desde el borde, encima del archivo
+  let x0 = null; const B = $("visor-borde");
+  let t0 = 0;
+  B.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; t0 = Date.now(); }, { passive: true });
+  B.addEventListener("touchmove", e => { if (x0 !== null) $("visor").style.transform = `translateX(${Math.max(0, e.touches[0].clientX - x0)}px)`; }, { passive: true });
+  B.addEventListener("touchend", e => { const dx = e.changedTouches[0].clientX - (x0 || 0); x0 = null; const V = $("visor");
+    V.style.transition = "transform .18s ease"; V.style.transform = dx > 90 ? "translateX(100%)" : "";
+    // (27-oct) si el gesto del sistema tambien volvio (popstate), no se cierra otra vez
+    setTimeout(() => { V.style.transition = ""; V.style.transform = ""; }, 460);
+    if (dx > 90) gestoAtras(t0, () => { if (!V.hidden) $("visor-x").click(); });
+  });
+})();
+// (22-oct) bienvenida: 3 pantallas la primera vez (que hace Kodama, activar avisos, como se usa)
+(function bienvenida() {
+  try { if (localStorage.getItem("bienvenida") === "1") return; } catch (e) { return; }
+  const B = $("bienvenida"), PASOS = [
+    [t("Hola, soy Kodama"), t("Te aviso cuando tus chats de Claude Code terminan o te necesitan, y les respondes desde aquí.")],
+    [t("Activa los avisos"), t("Así te enteras aunque tengas el celular bloqueado."), t("Activar avisos")],
+    [t("Todo listo"), t("En Inicio ves lo que te espera; en Chats, todos tus chats. Cuando un chat pida permiso, decides tú.")]];
+  let i = 0, pjB = null;
+  const fin = () => { try { localStorage.setItem("bienvenida", "1"); } catch (e) {} B.hidden = true; if (pjB) pjB.destruir(); };
+  const pintarB = () => {
+    const [tit, txt, acc] = PASOS[i]; $("bv-tit").textContent = tit; $("bv-cuerpo").textContent = txt;
+    $("bv-accion").hidden = !acc; if (acc) $("bv-accion").textContent = acc;
+    B.querySelectorAll(".bv-puntos i").forEach((p, k) => p.classList.toggle("on", k === i));
+    $("bv-sig").textContent = i === PASOS.length - 1 ? t("Empezar") : t("Siguiente"); $("bv-saltar").style.visibility = i === PASOS.length - 1 ? "hidden" : "";
+    if (pjB) pjB.ir(["reposo", "escribio", "enviado"][i]);
+  };
+  $("bv-sig").onclick = () => { if (i < PASOS.length - 1) { i++; pintarB(); } else fin(); };
+  $("bv-saltar").onclick = fin;
+  $("bv-accion").onclick = () => { $("avisos").click(); $("bv-sig").click(); };
+  B.hidden = false; try { pjB = Companero.crear($("bv-pj"), pjC(), null); } catch (e) {}
+  pintarB();
+})();
+// (22-oct) pantallas propias de Ajustes: entrar con "›", volver con "‹ Ajustes" (el menu de abajo sigue en Ajustes)
+document.querySelectorAll(".sub-ir").forEach(a => a.onclick = ev => { ev.preventDefault(); irVista(a.dataset.ir); });
+document.querySelectorAll(".sub-vista .atras").forEach(b => b.onclick = () => { if (!cerrarCapa("sub")) irVista(PADRE[vista] || "ajustes", true); });
+// gesto de volver desde el borde izquierdo (en la app del iPhone instalada en inicio no siempre llega el del sistema)
+(function () {
+  let x0 = null, y0 = 0, t0 = 0;
+  document.addEventListener("touchstart", ev => { const p = ev.touches[0]; x0 = PADRE[vista] && !abierto && $("visor").hidden && p.clientX < 28 ? p.clientX : null; y0 = p.clientY; t0 = Date.now(); }, { passive: true });
+  document.addEventListener("touchmove", ev => {
+    if (x0 === null) return; const p = ev.touches[0], dx = p.clientX - x0;
+    if (Math.abs(p.clientY - y0) > 60) { x0 = null; $("v-" + vista).style.transform = ""; return; }
+    if (dx > 0) $("v-" + vista).style.transform = `translateX(${dx}px)`;
+  }, { passive: true });
+  document.addEventListener("touchend", ev => {
+    if (x0 === null) return; const V = $("v-" + vista), dx = ev.changedTouches[0].clientX - x0; x0 = null;
+    V.style.transition = "transform .18s ease"; V.style.transform = dx > 90 ? "translateX(100%)" : "";
+    setTimeout(() => { V.style.transition = ""; V.style.transform = ""; }, 460);
+    // (27-oct) si el gesto del sistema ya volvio (popstate despues de tocar), no se vuelve dos veces
+    if (dx > 90) gestoAtras(t0, () => { const a = V.querySelector(".atras"); if (V.classList.contains("on") && a) a.click(); });
+  });
+})();
+// (22-oct) Buscar en Chats, como en Mensajes: filtra por nombre y por lo ultimo que dijo
+$("buscar-chats").oninput = ev => {
+  const q = ev.target.value.trim().toLowerCase();
+  document.querySelectorAll("#tarjetas .fila-c[id^='t-']").forEach(f => { f.style.display = !q || f.textContent.toLowerCase().includes(q) ? "" : "none"; });
+};
+function pausas() {   // solo se anima lo que se ve (el iPhone se calienta con varias mascotas a la vez)
+  Object.values(comps).forEach(k => k.pausar(!!abierto || vista !== "chats"));
+  if (heroe) heroe.pausar(!!abierto || vista !== "inicio");
+}
+
+// ---- Inicio: mascota grande + carrusel de chats + globo ----
+function crearHeroe() {
+  if (heroe) heroe.destruir();
+  heroe = Companero.crear($("heroe"), pjC(), null); heroe._e = null;
+  // (27-oct) saludo: al abrir la app (una vez por carga) el gato guiña un ojo; solo si esta tranquilo y a la vista
+  if (!window._saludado) { window._saludado = true; setTimeout(() => { try { if (heroe && !abierto && vista === "inicio" && ["reposo", null, undefined].includes(heroe.estado)) heroe.gesto("guino"); } catch (e) {} }, 1000); }
+  const H = $("heroe"); let tM = null, mantuvo = false;
+  H.onpointerdown = ev => { ev.preventDefault(); mantuvo = false; tM = setTimeout(() => { mantuvo = true; heroe && heroe.acariciar(true); }, 350); };
+  H.onpointerup = H.onpointercancel = H.onpointerleave = () => { clearTimeout(tM); if (mantuvo) heroe && heroe.acariciar(false); };
+  H.onclick = () => { if (!mantuvo && sel) abrir(sel); };
+  H.oncontextmenu = ev => ev.preventDefault();
+}
+function pill(c, mini) {
+  const b = document.createElement("button"), e = estadoDe(c), d = datos[c] || {};
+  b.className = "pill" + ((mini ? abierto : sel) === c ? " on" : ""); b.dataset.c = c;
+  b.innerHTML = `<i class="d${e === "trabajando" ? " trab" : ""}"></i><span></span>`;
+  b.querySelector("i").style.background = colorDe(c); b.querySelector("span").textContent = nombreDe(c);
+  if (d.permiso || e === "escribio") { const q = document.createElement("span"); q.className = "q"; q.textContent = d.permiso || d.tipo === "error" ? "!" : d.tipo === "pregunta" ? "?" : "•"; b.appendChild(q); }
+  return b;
+}
+function pintarPills(P, mini) {
+  const x = P.scrollLeft; P.innerHTML = ""; ordenados().forEach(([c]) => P.appendChild(pill(c, mini))); P.scrollLeft = x;
+}
+$("pills").onclick = ev => { const b = ev.target.closest(".pill"); if (b) { sel = b.dataset.c; window._selMano = Date.now(); pintarInicio(); } };
+$("det-pills").onclick = ev => { const b = ev.target.closest(".pill"); if (b && b.dataset.c !== abierto) abrir(b.dataset.c); };
+function resumen(c) {   // lo que dice el globo: la linea clave o el final del ultimo mensaje (ahi suele estar la pregunta)
+  const d = datos[c] || {}; if (d.permiso) return d.permiso.texto || "";
+  const ult = [...(d.mensajes || [])].reverse().find(m => !m.yo);
+  let s = (estadoDe(c) === "escribio" && d.linea) || (ult && ult.texto) || "";
+  s = s.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/```[\s\S]*?```/g, " ").replace(/\*\*([^*]+)\*\*/g, "$1").replace(/`([^`]+)`/g, "$1").replace(/^#+\s*/gm, "").replace(/\n{2,}/g, "\n").trim();
+  s = s.replace(/\s*\n+\s*/g, " · ");   // en una sola tira: asi el final entra entero en las 4 lineas
+  return s.length > 150 ? "…" + s.slice(-149).replace(/^\S*\s/, "") : s;   // el final (la pregunta) entra en las 4 lineas del globo
+}
+function pintarInicio() {
+  if (!CHATS.length) { $("g-nombre").textContent = ""; $("g-estado").textContent = ""; $("g-texto").textContent = t("Sin chats todavía."); $("g-chips").innerHTML = ""; $("falsa").style.visibility = "hidden"; return; }
+  // el elegido: el que tocaste (por 10 min) o el que mas te necesita; si uno NUEVO te empieza a esperar, pasa a ese
+  const urg = new Set(CHATS.map(x => x[0]).filter(c => urgencia(c) >= 3));
+  const nuevo = [...urg].find(c => !urgAntes.has(c)); urgAntes = urg;
+  if (nuevo || !sel || !CHATS.some(x => x[0] === sel) || (Date.now() - (window._selMano || 0) > 600000 && urgencia(ordenados()[0][0]) > urgencia(sel))) sel = nuevo || ordenados()[0][0];
+  pintarPills($("pills"), false);
+  const d = datos[sel] || {}, e = estadoDe(sel);
+  $("g-d").style.background = colorDe(sel); $("g-nombre").textContent = nombreDe(sel); $("g-estado").textContent = subDe(sel) + (d.tareas ? " · " + d.tareas.h + "/" + d.tareas.t : "");
+  $("g-texto").textContent = resumen(sel) || t("Sin mensajes todavía.");
+  $("falsa-txt").textContent = tf("Escríbele a {0}…", nombreDe(sel)); $("falsa").style.visibility = "";
+  // botones del globo: permiso -> Permitir/Denegar; si no, las opciones que ofrece el ultimo mensaje
+  const G = $("g-chips"); G.innerHTML = "";
+  if (d.permiso && !window._sinPC) [["Denegar", "deny"], ["Permitir", "allow"]].forEach(([l, v]) => { const b = document.createElement("button"); b.className = "chip"; b.textContent = t(l); b.onclick = () => decidirPermiso(v, sel); G.appendChild(b); });
+  else if (e === "escribio") { const o = opcionesDe(sel); o.ops.forEach(([l, env]) => { const b = document.createElement("button"); b.className = "chip" + (o.vencido ? " vencido" : ""); b.textContent = l; b.onclick = () => tocarChip(b, env, sel); G.appendChild(b); }); }
+  window._chipsT = window._chipsT || Date.now();
+  pintarEsperan();
+  if (heroe && !abierto) { if (heroe._e !== e && heroe._e !== "enviado") { heroe._e = e; heroe.ir(e); } heroe.insignia(d.permiso ? "permiso" : e === "escribio" && d.tipo === "error" ? "error" : null);   /* (9.a vuelta) una sola insignia, solo "!" (permiso o error) en ambar; "?" y "termino" ya no */ faseGato(heroe, sel); }
+}
+// (22-oct, estudio UX) Inicio: una tarjeta por chat que te espera (pregunta, permiso, termino), con su accion a mano.
+// Sin titulo "Te esperan" (LShinox). Si no hay ninguno, queda el globo del chat elegido como antes.
+function pintarEsperan() {
+  const E = $("esperan"); E.innerHTML = "";
+  if (window._sinPC) return;
+  ordenados().filter(([c]) => urgencia(c) >= 3).slice(0, 3).forEach(([c]) => {
+    const d = datos[c] || {}, k = document.createElement("div"); k.className = "espera";
+    k.innerHTML = '<div class="e-cab"><i class="d"></i><b></b><small></small></div><div class="e-txt"></div><div class="chips"></div>';
+    k.querySelector(".d").style.background = colorDe(c); k.querySelector("b").textContent = nombreDe(c);
+    k.querySelector("small").textContent = d.permiso ? t("pide permiso") : horaCorta(d.ultimo_ts);
+    k.querySelector(".e-txt").textContent = resumen(c) || subDe(c);
+    const Ch = k.querySelector(".chips");
+    if (d.permiso) {
+      const b = document.createElement("button"); b.className = "chip si"; b.textContent = t("Revisar"); b.onclick = ev => { ev.stopPropagation(); abrir(c); }; Ch.appendChild(b);
+    } else {
+      const o = opcionesDe(c); o.ops.slice(0, 3).forEach(([l, env], i) => { const b = document.createElement("button"); b.className = "chip" + (o.vencido ? " vencido" : ""); b.textContent = l; b.onclick = ev => { ev.stopPropagation(); tocarChip(b, env, c); }; Ch.appendChild(b); });
+    }
+    k.onclick = () => abrir(c); E.appendChild(k);
+  });
+}
+$("globo").onclick = ev => { if (!ev.target.closest(".chip") && sel) abrir(sel); };
+$("falsa").onclick = () => { if (sel) { abrir(sel); $("txt").focus(); } };
+
+// ---- Chats: (22-oct, estudio UX) lista como Mensajes, sin avatar: punto de color, nombre, hora, una linea de lo ultimo.
+// Una sola mascota chica arriba a la derecha del titulo (antes una por chat: pesaba y se veian 2 chats por pantalla).
+function horaCorta(ts) {
+  if (!ts) return ""; const d = new Date(ts * 1000), hoy = new Date();
+  if (d.toDateString() === hoy.toDateString()) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const ayer = new Date(hoy - 86400000); if (d.toDateString() === ayer.toDateString()) return t("ayer");
+  return d.toLocaleDateString([], { day: "numeric", month: "short" });
+}
+// (22-oct) vista previa como en Mensajes: el COMIENZO de lo ultimo que dijo, en texto limpio (sin "…", sin " · ",
+// sin markdown ni citas). El globo de Inicio sigue mostrando el final (ahi esta la pregunta).
+function vistaPrevia(c) {
+  const d = datos[c] || {}, ult = [...(d.mensajes || [])].reverse().find(m => !m.yo);
+  let s = (ult && ult.texto) || d.linea || "";
+  s = s.replace(/```[\s\S]*?```/g, " ").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/\*\*([^*]+)\*\*/g, "$1").replace(/`([^`]+)`/g, "$1")
+       .replace(/^\s*(#+|>+|[-*•]|\d+[.)])\s*/gm, "").replace(/^\|.*\|$/gm, " ").replace(/\s+/g, " ").trim();
+  return s.length > 160 ? s.slice(0, 160) : s;
+}
+// (22-oct) deslizar una fila a la izquierda muestra "Archivar", como en Mensajes (lo hace el chat de Kodama)
+function cerrarDeslizadas(salvo) { document.querySelectorAll(".fila-c.abierta").forEach(f => { if (f !== salvo) { f.classList.remove("abierta"); f.querySelector(".fc-in").style.transform = ""; } }); }
+function deslizable(d, c) {
+  const IN = d.querySelector(".fc-in"); let x0 = null, y0 = 0, dx = 0, horiz = null;
+  d.addEventListener("touchstart", ev => { x0 = ev.touches[0].clientX; y0 = ev.touches[0].clientY; dx = 0; horiz = null; IN.style.transition = "none"; cerrarDeslizadas(d); }, { passive: true });
+  d.addEventListener("touchmove", ev => {
+    if (x0 === null) return;
+    const mx = ev.touches[0].clientX - x0, my = ev.touches[0].clientY - y0;
+    if (horiz === null && (Math.abs(mx) > 8 || Math.abs(my) > 8)) horiz = Math.abs(mx) > Math.abs(my);
+    if (!horiz) return;
+    d.classList.add("desliza");
+    dx = Math.max(-110, Math.min(0, mx + (d.classList.contains("abierta") ? -88 : 0)));
+    IN.style.transform = `translateX(${dx}px)`;
+  }, { passive: true });
+  d.addEventListener("touchend", () => {
+    IN.style.transition = ""; if (!horiz) { x0 = null; return; }
+    const abrirla = dx < -44; d.classList.toggle("abierta", abrirla); IN.style.transform = abrirla ? "translateX(-88px)" : ""; x0 = null;
+    setTimeout(() => d.classList.remove("desliza"), 240);
+  });
+  d.querySelector(".arch-b").onclick = async ev => {
+    ev.stopPropagation(); const b = ev.currentTarget;
+    if (!confirm(tf("¿Archivar «{0}»? Lo puedes desarchivar desde la lista de chats.", nombreDe(c)))) return cerrarDeslizadas();
+    b.textContent = "…";
+    try { const r = await (await fetch("api/archivar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat: c }) })).json();
+      if (!r.ok) { alert(t("No se pudo: ") + (r.error || "")); b.textContent = t("Archivar"); cerrarDeslizadas(); } else d.style.opacity = ".35"; }
+    catch (e) { alert(t("Sin conexión con la PC")); b.textContent = t("Archivar"); }
+  };
+}
+const verArchivados = () => { try { return localStorage.getItem("verArchivados") !== "0"; } catch (e) { return true; } };
+function armar() {
+  Object.values(comps).forEach(c => c.destruir()); comps = {};
+  const pc = $("pj-chats"); pc.innerHTML = ""; comps._chats = Companero.crear(pc, pjC(), null);
+  const Tz = $("tarjetas"); Tz.innerHTML = "";
+  // (15-oct) por grupos propios (Ajustes > Chats que se ven): cada grupo es una seccion
+  const grupos = [...new Set(CHATS.map(([c]) => (datos[c] || {}).grupo || ""))].sort((a, b) => (a === "") - (b === "") || a.localeCompare(b));
+  const listas = {};
+  // (22-oct, como WhatsApp) "Archivados" arriba de todo: lleva a su propia pantalla
+  const ar = document.createElement("div"); ar.className = "fila-arch"; ar.setAttribute("role", "button");
+  ar.innerHTML = '<svg class="i"><use href="#i-archivo"/></svg><b></b><span class="chev">›</span>'; ar.querySelector("b").textContent = t("Archivados");
+  ar.onclick = () => irVista("archivados"); if (verArchivados()) Tz.appendChild(ar);   // (22-oct) se puede ocultar en Ajustes
+  // (22-oct, LShinox) grupos como acordeon: la etiqueta se distingue y se pliega con un toque (se recuerda en este celular)
+  let plegados = {}; try { plegados = JSON.parse(localStorage.getItem("gruposPlegados") || "{}"); } catch (e) {}
+  grupos.forEach(g => {
+    const L = document.createElement("div"); L.className = "lista-chats";
+    if (grupos.length > 1) {
+      const h = document.createElement("button"); h.type = "button"; h.className = "grupo-cab" + (plegados[g] ? " plegado" : "");
+      const n = CHATS.filter(([c]) => ((datos[c] || {}).grupo || "") === g).length;
+      h.innerHTML = '<span class="g-nom"></span><span class="g-n"></span><svg class="i"><use href="#i-flecha"/></svg>';
+      h.querySelector(".g-nom").textContent = g || t("Sin grupo"); h.querySelector(".g-n").textContent = n;
+      h.onclick = () => { plegados[g] = !plegados[g]; if (!plegados[g]) delete plegados[g]; try { localStorage.setItem("gruposPlegados", JSON.stringify(plegados)); } catch (e) {}
+        h.classList.toggle("plegado", !!plegados[g]); L.hidden = !!plegados[g]; };
+      Tz.appendChild(h); L.hidden = !!plegados[g];
+    }
+    Tz.appendChild(L); listas[g] = L;
+  });
+  ordenados().forEach(([c, n]) => {
+    const d = document.createElement("div"); d.className = "fila-c"; d.id = "t-" + c; d.setAttribute("role", "button");
+    // (22-oct, captura de Mensajes que mando LShinox) punto de no leido a la IZQUIERDA, hora + "›", 2 lineas de vista previa
+    d.innerHTML = '<div class="fc-in"><span class="nuevo"></span><div class="tx"><div class="l1"><i class="d"></i><b></b><small></small><span class="chev">›</span></div><div class="l2"></div><div class="tar" hidden><i></i><span></span></div></div></div><button type="button" class="arch-b"></button>';
+    d.querySelector("b").textContent = n; d.querySelector(".d").style.background = colorDe(c);
+    d.querySelector(".arch-b").textContent = t("Archivar");
+    deslizable(d, c);
+    d.onclick = ev => { if (ev.target.closest(".arch-b")) return; if (d.classList.contains("abierta")) return cerrarDeslizadas(); abrir(c); };
+    listas[(datos[c] || {}).grupo || ""].appendChild(d);
+  });
+  pausas(); pintar(true);
+}
+// (22-oct) pantalla "Archivados" (como en WhatsApp), con "Desarchivar" (lo hace el chat de Kodama)
+async function cargarArchivados() {
+  const A = $("archivados-lista"); A.innerHTML = '<div class="fila-c" style="min-height:46px"><div class="tx"><div class="l2"></div></div></div>'; A.querySelector(".l2").textContent = t("Buscando…");
+  let j; try { j = await (await fetch("api/archivados", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).json(); } catch (e) { A.querySelector(".l2").textContent = t("Sin conexión con la PC"); return; }
+  A.innerHTML = "";
+  if (!(j.chats || []).length) { A.innerHTML = '<div class="fila-c" style="min-height:46px"><div class="tx"><div class="l2"></div></div></div>'; A.querySelector(".l2").textContent = t("No hay chats archivados"); return; }
+  {
+    j.chats.forEach(x => {
+      const f = document.createElement("div"); f.className = "fila-c"; f.style.alignItems = "center";
+      f.innerHTML = '<div class="tx"><div class="l1"><b></b><small></small></div><div class="l3 sub" style="font-size:13px"></div><div class="l2"></div></div>';
+      f.querySelector("b").textContent = x.titulo; f.querySelector("small").textContent = horaCorta((x.actividad || 0) / 1000);
+      // (22-oct) "D&D · En vivo" salia archivado aunque el chat anda: era una sesion VIEJA con el mismo nombre
+      f.querySelector(".l3").textContent = [x.carpeta && tf("carpeta {0}", x.carpeta), x.duplicado && t("hay otro chat activo con este nombre")].filter(Boolean).join(" · ");
+      f.querySelector(".l2").textContent = t("Desarchivar"); f.querySelector(".l2").style.color = "var(--verde)";
+      f.onclick = async () => { f.querySelector(".l2").textContent = t("Desarchivando…");
+        try { const r = await (await fetch("api/archivados", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desarchivar: x.local }) })).json();
+          f.querySelector(".l2").textContent = r.ok ? t("Listo: vuelve a la lista en unos segundos") : (t("No se pudo: ") + (r.error || "")); } catch (e) { f.querySelector(".l2").textContent = t("Sin conexión con la PC"); } };
+      A.appendChild(f);
+    });
+  }
+}
+function pintar(forzar) {
+  CHATS.forEach(([c]) => {
+    const e = estadoDe(c), tj = $("t-" + c), dd = datos[c] || {}; if (!tj) return;
+    const pide = e === "escribio" || !!dd.permiso;
+    tj.classList.toggle("pide", pide);
+    tj.querySelector(".nuevo").classList.toggle("perm", !!dd.permiso);
+    tj.querySelector(".d").classList.toggle("trab", e === "trabajando");
+    tj.querySelector("small").textContent = e === "trabajando" ? t("ahora") : horaCorta(dd.ultimo_ts);
+    const l2 = tj.querySelector(".l2");
+    l2.textContent = window._sinPC ? t("sin datos") : dd.permiso ? t("Pide permiso: ") + (dd.permiso.texto || "").replace(/^\w+:\s*/, "")
+      : e === "trabajando" ? txtDe(c, e) : (vistaPrevia(c) || subDe(c));
+    l2.className = "l2" + (e === "trabajando" ? " trab" : pide ? " pide" : "");
+    // (26-oct) progreso de tareas "3/7" (el hub manda solo conteos y el asunto de la tarea en curso)
+    const tz = dd.tareas, tb = tj.querySelector(".tar");
+    if (tb) { tb.hidden = !tz; if (tz) { tb.firstChild.style.setProperty("--p", Math.round(100 * tz.h / Math.max(1, tz.t)) + "%"); tb.lastChild.textContent = tz.h + "/" + tz.t; tb.title = tz.a || ""; } }
+  });
+  if (comps._chats && !abierto) { const top = ordenados()[0]; const e = top ? estadoDe(top[0]) : "reposo"; if (forzar || comps._chats.estado !== e) comps._chats.ir(e); faseGato(comps._chats, top ? top[0] : null); }
+  $("pto-chats").classList.toggle("si", CHATS.some(([c]) => urgencia(c) >= 3));
+  pintarInicio();
+  if (abierto) {
+    const e = estadoDe(abierto);
+    $("esperaBar").classList.toggle("si", !!(datos[abierto] || {}).esperando);
+    $("det-estado").textContent = txtDe(abierto, e);
+    pintarPills($("det-pills"), true);
+    if (grande && grande.estado !== e && grande.estado !== "enviado") grande.ir(e);
+    faseGato(grande, abierto);
+  }
+}
+async function cargar() {
+  try {
+    const r = await fetch("api/estado?" + qsEstado(), { cache: "no-store" });
+    if (r.status === 423) return mostrarBloqueo();
+    if (!r.ok) throw new Error(r.status === 403 ? t("esta página solo abre desde tu cuenta") : tf("error {0}", r.status));
+    aplicar(await r.json());
+  } catch (e) {   // (14-oct) cuanto hace que no hay PC: si se apago o perdio internet se nota enseguida
+    const min = window._ultOk ? Math.round((Date.now() - window._ultOk) / 60000) : null;
+    $("err").textContent = (min ? tf("PC sin conexión hace {0} min", min) : t("PC sin conexión")) + " (" + e.message + ")"; medirBarras();
+    $("hora").textContent = t("sin conexión");
+    // (22-oct, mejora 3, idea de Perch) sin PC, la tarjeta de permiso se apaga al instante: nada de "Permitir" que no hace nada
+    if (!window._sinPC) { window._sinPC = true; armar(); pintarPermiso(); }
+  }
+}
+// (26-oct) bloqueo de emergencia: el hub contesta 423 a todo; la app lo dice y no deja escribir
+function mostrarBloqueo() {
+  if ($("bloqueo-capa")) return;
+  const d = document.createElement("div"); d.id = "bloqueo-capa";
+  d.style.cssText = "position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px;text-align:center;background:var(--fondo,#111);color:var(--texto,#eee);font-size:17px";
+  d.innerHTML = "<div style='font-size:44px'>🔒</div><b></b><span></span>";
+  d.querySelector("b").textContent = t("Kodama está bloqueado");
+  d.querySelector("span").textContent = t("No entrega nada que llegue del celular. Se desbloquea desde la PC: menú de la mascota → Desbloquear celular.");
+  document.body.appendChild(d);
+}
+$("bloquear").onclick = async () => {
+  if (!confirm(t("¿Bloquear Kodama? Dejará de entregar lo que mandes desde el celular y Telegram hasta que lo desbloquees en la PC."))) return;
+  try {
+    const r = await fetch("api/bloqueo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo: true }) });
+    if (r.ok || r.status === 423) mostrarBloqueo(); else alert(tf("error {0}", r.status));
+  } catch (e) { alert(t("Sin conexión con la PC")); }
+};
+// (14-oct) pedido de permiso: se decide aca o, si no respondes en ~2 min, en la PC. Anti-toque de 600 ms.
+let permVisto = null, permT = 0;
+// (19-oct) pregunta con opciones (AskUserQuestion): en vez de Permitir/Denegar, un boton por opcion (varias si la
+// pregunta lo permite) y "Responder". La respuesta le llega al chat como si la hubieras elegido en la PC.
+let elegidas = {};
+function pintarPregunta(pm) {
+  const P = $("permiso"); P.querySelector("b").textContent = pm.plan ? t("Plan listo") : t("Te pregunta");
+  $("perm-txt").textContent = pm.plan ? pm.texto.replace(/^Plan listo para aprobar:\n/, "") : "";   // (20-oct) el plan, para leerlo antes de aprobar
+  P.querySelectorAll(".perm-mas").forEach(x => x.remove());
+  const bot = P.querySelector(".perm-bot"); bot.innerHTML = ""; bot.style.flexDirection = "column"; elegidas = {};
+  pm.preguntas.forEach(p => {
+    const q = document.createElement("div"); q.className = "preg"; q.textContent = p.q; bot.appendChild(q);
+    const fila = document.createElement("div"); fila.className = "opcs"; bot.appendChild(fila);
+    p.opciones.forEach(o => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = o;
+      b.onclick = () => {
+        if (Date.now() - permT < 600) return;
+        const ya = elegidas[p.q] || [];
+        elegidas[p.q] = p.multi ? (ya.includes(o) ? ya.filter(x => x !== o) : [...ya, o]) : [o];
+        fila.querySelectorAll("button").forEach(x => x.classList.toggle("si", elegidas[p.q].includes(x.textContent)));
+        enviarB.disabled = !pm.preguntas.every(x => (elegidas[x.q] || []).length);
+      };
+      fila.appendChild(b);
+    });
+  });
+  const enviarB = document.createElement("button"); enviarB.className = "si"; enviarB.textContent = t("Responder"); enviarB.disabled = true;
+  enviarB.onclick = async () => {
+    const respuestas = {}; for (const k in elegidas) respuestas[k] = elegidas[k].join(", ");
+    try {
+      const j = await (await fetch("api/pregunta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pm.id, respuestas }) })).json();
+      if (!j.ok) alert(t("No se pudo: ") + (j.error || ""));
+      else { P.classList.remove("si"); const k = grande; if (k) k.ir("enviado"); await cargar(); }
+    } catch (e) { alert(t("Sin conexión con la PC")); }
+  };
+  bot.appendChild(enviarB);
+}
+function restaurarPermiso() {
+  const P = $("permiso"), bot = P.querySelector(".perm-bot");
+  if (!bot.querySelector("#perm-si")) {
+    P.querySelector("b").textContent = t("Pide permiso"); bot.style.flexDirection = ""; bot.innerHTML = "";
+    const no = document.createElement("button"), si = document.createElement("button");
+    no.id = "perm-no"; no.textContent = t("Denegar"); si.id = "perm-si"; si.className = "si"; si.textContent = t("Permitir");
+    no.onclick = pedirMotivo; si.onclick = () => decidirPermiso("allow"); bot.append(no, si);
+  }
+  if (!P.querySelector(".perm-mas")) {
+    // (22-oct, mejora 2) cuanto vale el "si": siempre este comando, mientras dure la tarea, o que lo decida la PC
+    const mas = document.createElement("div"); mas.className = "perm-mas";
+    [["Permitir siempre esto", "allow", "siempre"], ["Permitir en esta tarea", "allow", "tarea"], ["Que lo decida la PC", "pc", ""]].forEach(([l, d, a]) => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = t(l); b.onclick = () => decidirPermiso(d, null, "", a); mas.appendChild(b); });
+    P.appendChild(mas);
+  }
+}
+// (22-oct, mejora 6, idea de Nudge) denegar diciendo por que: un motivo rapido o escrito. Claude lo recibe y busca otra forma.
+const MOTIVOS = ["No toques esa carpeta", "Pregúntame antes de borrar", "Hazlo de otra forma", "Espera a que yo vuelva"];
+function pedirMotivo() {
+  if (Date.now() - permT < 600) return;
+  $("permiso").querySelectorAll(".perm-mas").forEach(x => x.remove());
+  const bot = $("permiso").querySelector(".perm-bot"); bot.innerHTML = ""; bot.style.flexDirection = "column";
+  const fila = document.createElement("div"); fila.className = "opcs"; bot.appendChild(fila);
+  const txt = document.createElement("textarea"); txt.rows = 2; txt.maxLength = 300; txt.placeholder = t("O escribe el motivo (opcional)");
+  MOTIVOS.forEach(m => { const b = document.createElement("button"); b.type = "button"; b.textContent = t(m);
+    b.onclick = () => { txt.value = t(m); fila.querySelectorAll("button").forEach(x => x.classList.toggle("si", x === b)); }; fila.appendChild(b); });
+  bot.appendChild(txt);
+  const pie = document.createElement("div"); pie.style.cssText = "display:flex;gap:8px";
+  const sin = document.createElement("button"); sin.textContent = t("Denegar sin motivo"); sin.onclick = () => decidirPermiso("deny");
+  const con = document.createElement("button"); con.className = "si"; con.textContent = t("Denegar con motivo"); con.onclick = () => decidirPermiso("deny", null, txt.value);
+  pie.append(sin, con); bot.appendChild(pie);
+}
+function pintarPermiso() {
+  const P = $("permiso"), pm = abierto && (datos[abierto] || {}).permiso;
+  if (!pm) { P.classList.remove("si"); permVisto = null; return; }
+  if (window._sinPC) {
+    P.classList.add("si", "muerta"); P.querySelectorAll(".perm-bot button").forEach(b => b.disabled = true);
+    $("perm-tiempo").textContent = t("Sin conexión con la PC: este pedido ya no se puede contestar desde aquí. Si el chat sigue esperando, te llega de nuevo cuando vuelva.");
+    return;
+  }
+  if (permVisto !== pm.id) {
+    permVisto = pm.id; permT = Date.now();
+    if (pm.preguntas) pintarPregunta(pm); else { restaurarPermiso(); $("perm-txt").textContent = pm.texto; }
+    // (22-oct, mejora 1) varios pedidos del mismo chat: se contestan de a uno, del mas viejo al mas nuevo
+    if (pm.cola > 1) P.querySelector("b").textContent += " · " + tf("1 de {0}", pm.cola);
+  }
+  const quedan = Math.max(0, Math.round(110 - (Date.now() / 1000 - pm.ts)));
+  $("perm-tiempo").textContent = quedan ? tf("Caduca en {0} s; después se pregunta en la PC.", quedan) : t("Caducó: se pregunta en la PC.");
+  P.classList.add("si");
+}
+async function decidirPermiso(decision, c, motivo, alcance) {
+  c = c || abierto; const pm = c && (datos[c] || {}).permiso;
+  if (!pm || (c === abierto && Date.now() - permT < 600)) return;
+  try {
+    const j = await (await fetch("api/permiso", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pm.id, decision, motivo: (motivo || "").trim(), alcance: alcance || "" }) })).json();
+    if (!j.ok) alert(t("No se pudo: ") + (j.error || ""));
+    else { $("permiso").classList.remove("si"); const k = c === abierto ? grande : heroe; if (k) k.ir("enviado"); await cargar(); }
+  } catch (e) { alert(t("Sin conexión con la PC")); }
+}
+$("perm-si").onclick = () => decidirPermiso("allow");
+$("perm-no").onclick = pedirMotivo;
+setInterval(() => { if (abierto) pintarPermiso(); }, 1000);
+function aplicar(d) {   // estado nuevo, venga del SSE o de una consulta normal
+  datos = d; if ($("err").textContent) { $("err").textContent = ""; medirBarras(); }
+  if (window._sinPC) { window._sinPC = false; permVisto = null; $("permiso").classList.remove("muerta"); }   // volvio la PC: la tarjeta se rearma
+  const nuevos = Object.keys(datos).filter(k => !k.startsWith("_")).map(k => [k, datos[k].nombre || k]);
+  if (nuevos.map(x => x.join("|")).join() !== CHATS.map(x => x.join("|")).join()) { CHATS = nuevos; if (abierto && !CHATS.some(x => x[0] === abierto)) $("volver").click(); armar(); }
+  if (datos._seleccion && datos._seleccion !== $("grpsel").value) grupos();
+  if (datos._version) { if (window._ver && window._ver !== datos._version && !$("txt").value) { location.reload(); return; } window._ver = datos._version; }
+  const u = d._uso || {}, pct = k => u[k] && u[k].pct != null ? ` · ${t(k)} ${u[k].estimado ? "≈" : ""}${Math.round(u[k].pct)}%` : "";
+  $("hora").textContent = t("al día") + " · " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + pct("5h") + pct("semana");
+  pintar(false); if (abierto) { mensajes(); marcarSilencio(); pintarPermiso(); }
+  window._ultOk = Date.now(); if (!document.hidden) limpiarAvisos();
+}
+// (14-oct) SSE: el hub avisa cada cambio al instante; la consulta cada 4 s queda solo si el SSE no esta conectado
+// (14-oct, rendimiento) solo los ultimos 3 mensajes de cada chat, salvo el abierto (completo): ~25 KB en vez de ~100 KB por cambio
+const qsEstado = () => "ligero=1" + (abierto ? "&abierto=" + encodeURIComponent(abierto) : "");
+let es = null;
+function reconectarSSE() { if (es && es._qs !== qsEstado()) { es.close(); es = null; } conectarSSE(); cargar(); }
+function conectarSSE() {
+  if (!window.EventSource || (es && es.readyState !== 2)) return;
+  es = new EventSource("api/eventos?" + qsEstado()); es._qs = qsEstado();
+  es.onmessage = ev => { window._sseT = Date.now(); try { aplicar(JSON.parse(ev.data)); } catch (e) {} };
+  es.addEventListener("latido", () => { window._sseT = Date.now(); });
+}
+// markdown minimo y seguro: primero se escapa todo, despues negrita, codigo, titulos, listas, tablas y links
+function md(s) {
+  const esc = x => x.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  const bloques = [];
+  s = s.replace(/```[a-z]*\n?([\s\S]*?)```/g, (_, c) => { bloques.push("<pre>" + esc(c) + "</pre>"); return "@@B" + (bloques.length - 1) + "@@"; });
+  // (14-oct) los archivos que nombra el chat (C:\..., ~\..., o relativos a su carpeta: [x](carpeta/x.html), `x.html`)
+  // son links como cualquier otro: el hub los abre si son pagina, imagen o PDF de tu carpeta de usuario
+  // (15-oct) tambien CARPETAS absolutas (C:\\… o ~\\… sin extension): abren una galeria con lo que hay adentro
+  const esLocal = p => (/\.(html?|png|jpe?g|gif|webp|svg|pdf|mp4|mp3|wav)(#[^\s]*)?$/i.test(p) || (/^(~|[A-Za-z]:)[\\/]/.test(p) && !/\.[A-Za-z0-9]{1,5}[\\/]?$/.test(p)))
+    && !/^[a-z][a-z0-9+.-]*:\/\//i.test(p) && !/^(javascript|data):/i.test(p);
+  const local = p => "abrir?chat=" + encodeURIComponent(chatMd || "") + "&r=" + encodeURIComponent(p);
+  // las imagenes se ven en el mensaje (miniatura que abre la imagen grande)
+  const esImg = p => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
+  const enlace = (p, etiqueta) => esImg(p)
+    ? `<a href="${local(p)}" target="_blank" class="mimg"><img src="${local(p)}" loading="lazy" alt=""><small>${etiqueta}</small></a>`
+    : `<a href="${local(p)}" target="_blank">${etiqueta}</a>`;
+  const inl = x => {
+    const L = [], guarda = h => { L.push(h); return "\u0000" + (L.length - 1) + "\u0000"; };
+    x = x.replace(/\[([^\]]+)\]\(<?([^)\s>]+)>?\)/g, (m, txt, href) => /^https:\/\//i.test(href) ? guarda(`<a href="${esc(href)}" target="_blank">${esc(txt)}</a>`)
+      : esLocal(href) ? guarda(enlace(href, esc(txt))) : m);
+    x = x.replace(/`([^`]+)`/g, (m, c) => guarda(esLocal(c.trim()) ? enlace(c.trim(), "<code>" + esc(c) + "</code>") : "<code>" + esc(c) + "</code>"));
+    x = x.replace(/(^|[\s(])((?:~|[A-Za-z]:)[\\/][^\s<>"'`|*]+)/g, (m, pre, p) => {
+      const limpio = p.replace(/[.,;:)]+$/, ""), cola = p.slice(limpio.length);
+      return esLocal(limpio) ? pre + guarda(enlace(limpio, esc(limpio))) + cola : m;
+    });
+    x = esc(x).replace(/(^|[\s(*])(https?:\/\/[^\s<*)"'&]+)/g, '$1<a href="$2" target="_blank">$2</a>')
+      .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<i>$2</i>");
+    return x.replace(/\u0000(\d+)\u0000/g, (_, i) => L[+i]);
+  };
+  let out = "", lista = null;
+  const cerrar = () => { if (lista) { out += "</" + lista + ">"; lista = null; } };
+  for (const l of s.split("\n")) {
+    let m;
+    if ((m = l.match(/^@@B(\d+)@@$/))) { cerrar(); out += bloques[+m[1]]; }
+    else if ((m = l.match(/^#{1,6}\s+(.*)/))) { cerrar(); out += "<h4>" + inl(m[1]) + "</h4>"; }
+    else if ((m = l.match(/^\s*[-*•]\s+(.*)/))) { if (lista !== "ul") { cerrar(); out += "<ul>"; lista = "ul"; } out += "<li>" + inl(m[1]) + "</li>"; }
+    else if ((m = l.match(/^\s*\d+[.)]\s+(.*)/))) { if (lista !== "ol") { cerrar(); out += "<ol>"; lista = "ol"; } out += "<li>" + inl(m[1]) + "</li>"; }
+    else if (!l.trim()) { cerrar(); }
+    else if (/^\|.*\|$/.test(l.trim())) { cerrar(); if (!/^\|[\s:|-]+\|$/.test(l.trim())) out += "<p>" + inl(l.trim().slice(1, -1).split("|").map(c => c.trim()).join(" · ")) + "</p>"; }
+    else { cerrar(); out += "<p>" + inl(l) + "</p>"; }
+  }
+  cerrar(); return out;
+}
+const expandidos = new Set(); let firma = "";
+// (15-oct) flecha "bajar al final": se ve cuando estas a mas de 300 px del final; cuenta los mensajes nuevos de mientras
+let nuevosAbajo = 0;
+function marcarBajar() {
+  const M = $("msgs"), lejos = M.scrollHeight - M.scrollTop - M.clientHeight > 300;
+  $("bajar").classList.toggle("si", lejos);
+  if (!lejos) { nuevosAbajo = 0; }
+  $("bajar-n").textContent = nuevosAbajo; $("bajar-n").classList.toggle("si", nuevosAbajo > 0);
+}
+$("msgs").addEventListener("scroll", marcarBajar, { passive: true });
+$("bajar").onclick = () => { const M = $("msgs"); M.scrollTo({ top: M.scrollHeight, behavior: "smooth" }); nuevosAbajo = 0; setTimeout(marcarBajar, 400); };
+function alFinal() { const M = $("msgs"); requestAnimationFrame(() => { M.scrollTop = M.scrollHeight; setTimeout(() => { M.scrollTop = M.scrollHeight; }, 120); }); }
+// opciones que ofrece el ultimo mensaje de un chat: la ultima lista numerada (1, 2, 3…) si pide elegir, o Sí/No si
+// termina en pregunta. Las respuestas caducan (se ven tenues) a los 10 min del mensaje.
+function opcionesDe(c) {
+  const ult = [...((datos[c] || {}).mensajes || [])].reverse().find(m => !m.yo); if (!ult) return { ops: [], vencido: false };
+  // (26-oct, LShinox: salian "1 · …" en un mensaje que solo listaba pasos) sin bloques de codigo, y la lista solo
+  // ofrece opciones si lo que la PRESENTA (justo antes del 1) o lo que la cierra pregunta o pide elegir
+  const vencido = Date.now() / 1000 - ult.ts > 600, fin = ult.texto.replace(/```[\s\S]*?```/g, "").slice(-700), ops = [];
+  const todas = [...fin.matchAll(/(?:^|\n)\s*(\d)[.)]\s+([^\n]{1,80})/g)], ini = todas.map(m => m[1]).lastIndexOf("1"), lista = [];
+  if (ini >= 0) for (let i = ini; i < todas.length && lista.length < 4 && todas[i][1] === String(lista.length + 1); i++) lista.push(todas[i]);
+  const limpio = x => x.replace(/\*\*([^*]+)\*\*/g, "$1").replace(/`([^`]+)`/g, "$1").trim();
+  const cue = /\?|\beleg|\bescog|cu[aá]l\b|prefier|prefer[ií]s|\bchoose|\bpick|\bwhich|\bprefer/i;
+  let pideElegir = false;
+  if (lista.length >= 2) {
+    const a = lista[0].index, z = lista[lista.length - 1].index + lista[lista.length - 1][0].length;
+    pideElegir = cue.test(fin.slice(Math.max(0, a - 250), a)) || cue.test(fin.slice(z, z + 200));
+  }
+  if (lista.length >= 2 && pideElegir) lista.forEach(m => { const l = limpio(m[2]); ops.push([`${m[1]} · ${l.length > 26 ? l.slice(0, 25) + "…" : l}`, tf("Opción {0}", m[1]) + ": " + l]); });
+  else if (/\?\s*$/.test(fin.trim())) ops.push([t("Sí"), t("Sí")], [t("No"), t("No")]);
+  return { ops, vencido, ts: ult.ts };
+}
+function chipsContexto() {
+  const C = $("chips"); C.querySelectorAll(".ctx").forEach(b => b.remove());
+  const o = opcionesDe(abierto); if (!o.ts) return;
+  window._chipsT = Date.now();   // anti-toque: los primeros 600 ms tras pintar las opciones no cuentan
+  C.querySelectorAll(".chip").forEach(b => b.classList.toggle("vencido", o.vencido && new RegExp("^(OK|" + t("Sigue") + "|" + t("Para") + ")").test(b.textContent)));
+  [...o.ops].reverse().forEach(([lbl, env]) => { const b = document.createElement("button"); b.className = "chip ctx" + (o.vencido ? " vencido" : ""); b.textContent = lbl; b.dataset.envio = env; C.prepend(b); });
+}
+function tocarChip(b, texto, c) {
+  if (Date.now() - (window._chipsT || 0) < 600) return;   // toque accidental justo cuando aparecieron
+  if (b.classList.contains("vencido") && !confirm(tf("El mensaje tiene más de 10 min. ¿Mandar igual «{0}»?", b.textContent))) return;
+  enviar(texto, null, c).catch(() => alert(t("Sin conexión con la PC")));
+}
+// (14-oct) "Cargar anteriores": la app trae los ultimos 30; los mas viejos se piden de a 30 al hub
+const viejos = {}, sinMas = {};
+async function cargarAnteriores() {
+  const c = abierto, actuales = [...(viejos[c] || []), ...((datos[c] || {}).mensajes || [])];
+  const antes = actuales.length ? Math.min(...actuales.map(m => m.ts)) : Date.now() / 1000;
+  const M = $("msgs"), alto = M.scrollHeight;
+  try {
+    const j = await (await fetch(`api/anteriores?chat=${encodeURIComponent(c)}&antes=${antes}&n=30`, { cache: "no-store" })).json();
+    if (!j.ok) return;
+    if (j.mensajes.length < 30) sinMas[c] = true;
+    viejos[c] = [...j.mensajes, ...(viejos[c] || [])];
+    firma = ""; mensajes(); M.scrollTop = M.scrollHeight - alto;   // queda donde estabas leyendo
+  } catch (e) {}
+}
+let chatMd = null;   // de que chat son los mensajes que se pintan (para resolver sus links relativos)
+// (19-oct, idea de jinbe/deck) "Lo que hizo el chat": arriba de cada respuesta, una linea plegada tipo app de Claude
+// ("Ejecutó 3 comandos, leyó x.py, obtuvo una página") que al tocarla muestra cada paso. Ajustes, APAGADO por defecto.
+let conPasos = false; try { conPasos = localStorage.getItem("opPasos") === "1"; } catch (e) {}
+const pasosDe = {};
+async function pedirPasos(c) {
+  const p = pasosDe[c] || (pasosDe[c] = { t: 0, pidiendo: false, ult: 0 });
+  if (p.pidiendo || Date.now() - p.ult < 8000) return;
+  p.pidiendo = true; p.ult = Date.now();
+  try {
+    const j = await (await fetch("api/pasos?chat=" + encodeURIComponent(c), { cache: "no-store" })).json();
+    const nuevo = JSON.stringify(j.turnos || []);
+    if (j.ok && nuevo !== p.json) { p.json = nuevo; p.turnos = j.turnos || []; p.t = Date.now(); if (abierto === c) mensajes(); }
+  } catch (e) {} finally { p.pidiendo = false; }
+}
+function asignarPasos(lista, turnos) {   // cada turno va arriba de la primera respuesta del chat que llego despues
+  const out = {}, resp = lista.filter(m => !m.yo && m.evento !== "Archivo");
+  for (const tu of turnos) { const m = resp.find(x => x.ts >= tu.fin - 3 && !out[x.ts]); if (m) out[m.ts] = tu.pasos; }
+  return out;
+}
+function resumenPasos(ps) {
+  const n = {}, base = s => String(s).split(/[\\/]/).pop();
+  ps.forEach(p => { const k = /^(Bash|PowerShell)$/.test(p.h) ? "cmd" : /^(Read|NotebookRead)$/.test(p.h) ? "leer" : /^(Edit|Write|NotebookEdit|MultiEdit)$/.test(p.h) ? "editar"
+    : /^(Grep|Glob)$/.test(p.h) ? "buscar" : p.h === "WebFetch" ? "web" : p.h === "WebSearch" ? "busweb" : /^(Agent|Task)$/.test(p.h) ? "agente" : "otro"; (n[k] = n[k] || []).push(p); });
+  const uno = (k, s1, sN) => n[k] ? (n[k].length === 1 ? s1(n[k][0]) : sN(n[k].length)) : null;
+  const partes = [uno("cmd", () => t("ejecutó un comando"), k => tf("ejecutó {0} comandos", k)), uno("leer", p => tf("leyó {0}", base(p.d)), k => tf("leyó {0} archivos", k)),
+    uno("editar", p => tf("editó {0}", base(p.d)), k => tf("editó {0} archivos", k)), uno("buscar", () => t("buscó en los archivos"), k => tf("buscó {0} veces en los archivos", k)),
+    uno("web", () => t("obtuvo una página"), k => tf("obtuvo {0} páginas", k)), uno("busweb", () => t("buscó en la web"), k => tf("buscó {0} veces en la web", k)),
+    uno("agente", () => t("lanzó un subagente"), k => tf("lanzó {0} subagentes", k)), uno("otro", p => tf("usó {0}", p.h), k => tf("usó {0} herramientas más", k))].filter(Boolean);
+  const s = partes.join(", "); return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function cajaPasos(ps) {
+  const det = document.createElement("details"), sum = document.createElement("summary"), ul = document.createElement("ul");
+  det.className = "pasos"; sum.textContent = resumenPasos(ps); det.append(sum, ul);
+  ps.forEach(p => { const li = document.createElement("li"), b = document.createElement("b"); b.textContent = p.h; li.append(b, " " + p.d); ul.appendChild(li); });
+  return det;
+}
+// (27-oct) archivos que Claude te manda con SendUserFile (capturas, gifs, PDF): el hub entrega caption + rutas (+ si se pueden abrir
+// desde el celular, con la MISMA seguridad del visor). Imagen = miniatura que abre el visor de la app; otro tipo = enlace; lo que el
+// visor no puede abrir se ve con su nombre y el motivo, sin miniatura rota
+function cuerpoArchivos(box, m) {
+  if (m.caption) { const p = document.createElement("div"); p.innerHTML = md(m.caption); box.appendChild(p); }
+  m.archivos.forEach(f => {
+    const url = "abrir?chat=" + encodeURIComponent(chatMd || "") + "&r=" + encodeURIComponent(f.r);
+    if (!f.ok) {
+      const s = document.createElement("span"); s.className = "arch-no";
+      s.textContent = "📎 " + f.n + " · " + t("no se puede abrir desde el celular"); box.appendChild(s); return;
+    }
+    const a = document.createElement("a"); a.href = url; a.target = "_blank";
+    if (f.t === "img") {
+      a.className = "mimg"; const im = document.createElement("img"); im.src = url; im.loading = "lazy"; im.alt = "";
+      const sm = document.createElement("small"); sm.textContent = f.n; a.append(im, sm);
+    } else { a.className = "arch-link"; a.textContent = "📎 " + f.n; }
+    box.appendChild(a);
+  });
+}
+function mensajes() {
+  chatMd = abierto;
+  const M = $("msgs"), recientes = (datos[abierto] || {}).mensajes || [];
+  const ya = new Set(recientes.map(m => m.ts)), lista = [...(viejos[abierto] || []).filter(m => !ya.has(m.ts)), ...recientes];
+  const f = abierto + "|" + lista.map(m => m.ts).join(",") + "|" + (conPasos ? (pasosDe[abierto] || {}).t || 0 : "-");
+  if (f === firma) return; firma = f;
+  if (conPasos) pedirPasos(abierto);
+  const pasosPara = conPasos ? asignarPasos(lista, (pasosDe[abierto] || {}).turnos || []) : {};
+  const abajo = M.scrollHeight - M.scrollTop - M.clientHeight < 40;
+  M.innerHTML = lista.length ? "" : '<p class="vacio">' + t("Todavía no hay mensajes de este chat.") + '</p>';
+  if (lista.length >= 20 && !sinMas[abierto]) {
+    const b = document.createElement("button"); b.className = "vermas"; b.style.cssText = "align-self:center;margin:4px 0";
+    b.textContent = t("Cargar anteriores"); b.onclick = cargarAnteriores; M.appendChild(b);
+  }
+  lista.forEach(m => {
+    if (pasosPara[m.ts]) M.appendChild(cajaPasos(pasosPara[m.ts]));
+    const d = document.createElement("div"); d.className = "msg" + (m.yo ? " yo" : "");
+    const cuerpo = document.createElement("div");
+    if (m.evento === "Archivo" && m.archivos && m.archivos.length) cuerpoArchivos(cuerpo, m); else cuerpo.innerHTML = md(m.texto);
+    d.appendChild(cuerpo);
+    if (!m.yo && m.texto.length > 900 && !expandidos.has(m.ts)) {
+      cuerpo.className = "corte"; const b = document.createElement("button"); b.className = "vermas"; b.textContent = t("ver todo");
+      b.onclick = () => { expandidos.add(m.ts); cuerpo.className = ""; b.remove(); }; d.appendChild(b);
+    }
+    const tm = document.createElement("time");
+    tm.textContent = new Date(m.ts * 1000).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }); d.appendChild(tm); M.appendChild(d);
+  });
+  if (abajo || !M.dataset.listo) { M.dataset.listo = 1; alFinal(); }
+  else { const antes = +(M.dataset.cuenta || 0); if (lista.length > antes && antes) nuevosAbajo += lista.length - antes; }
+  M.dataset.cuenta = lista.length; setTimeout(marcarBajar, 50);
+  chipsContexto();
+}
+function abrir(c) {
+  if (!abierto) abrirCapa({ k: "chat" });   // UNA entrada, para que el gesto de volver cierre el chat
+  else { try { localStorage.setItem("borrador:" + abierto, $("txt").value); } catch (e) {} }   // cambiar de chat guarda el borrador
+  abierto = c; sel = c; vistos[c] = Date.now() / 1000; try { localStorage.setItem("vistos", JSON.stringify(vistos)); } catch (e) {}
+  $("det-nombre").textContent = nombreDe(c);
+  if (!grande) {   // la mascota chiquita de la cabecera (se reusa al cambiar de chat)
+    grande = Companero.crear($("grande"), pjC(), null);
+    const G = $("grande");
+    G.onpointerdown = ev => { ev.preventDefault(); grande && grande.acariciar(true); };
+    G.onpointerup = G.onpointercancel = G.onpointerleave = () => grande && grande.acariciar(false);
+  }
+  $("detalle").classList.add("abierto"); document.body.classList.add("en-chat"); window.scrollTo(0, 0);
+  $("msgs").dataset.listo = ""; $("msgs").dataset.cuenta = 0; nuevosAbajo = 0; firma = ""; mensajes(); alFinal(); marcarSilencio(); pintarPermiso();
+  try { $("txt").value = localStorage.getItem("borrador:" + c) || ""; crecer(); } catch (e) {}
+  grande.ir(estadoDe(c)); pintar(false); pausas(); reconectarSSE();
+  requestAnimationFrame(() => { const p = $("det-pills").querySelector(".pill.on"); p && p.scrollIntoView({ inline: "center", block: "nearest" }); });
+  try { if (navigator.clearAppBadge && !CHATS.some(([k]) => k !== c && estadoDe(k) === "escribio")) navigator.clearAppBadge(); } catch (e) {}
+  limpiarAvisos(true);
+}
+// el gesto de volver del iPhone y el boton "atras" de Android cierran el chat (abrir agrega una entrada al historial)
+function cerrarChat() {
+  const D = $("detalle"); D.classList.remove("abierto", "teclado"); document.body.classList.remove("en-chat"); D.style.height = D.style.top = D.style.bottom = "";
+  if (grande) grande.destruir(); grande = null; abierto = null; if (heroe) heroe._e = null; pausas(); pintar(true); reconectarSSE(); medirLuego();
+}
+// (22-oct) si lo que se cierra es el visor de archivos, el chat se queda abierto: el visor es otra capa y un atras cierra
+// solo la de arriba
+$("volver").onclick = () => { if (!cerrarCapa("chat")) cerrarChat(); };
+$("form").onsubmit = async ev => {
+  ev.preventDefault(); const ta = $("txt"), texto = ta.value.trim();
+  if (!texto && !fotoPendiente && !videoPendiente) return;
+  // (25-oct, LShinox: "se manda normal, pero en el cajón se mantiene el texto") el cajon se vacia YA y no al final:
+  // antes esperaba a la recarga de la lista, y el teclado del iPhone podia devolver la palabra que estaba corrigiendo.
+  // Si el envio falla, el texto vuelve al cajon para no perderlo.
+  const chat = abierto;
+  const limpiar = () => { const v = ta.value.trim(); if (v && texto.includes(v)) ta.value = ""; crecer(); try { localStorage.removeItem("borrador:" + chat); } catch (e) {} };
+  ta.value = ""; crecer(); ta.disabled = true;
+  let ok = false;
+  try {
+    let video = null;
+    if (videoPendiente) { video = await subirVideo(videoPendiente); if (!video) throw "video"; }
+    ok = await enviar(texto, fotoPendiente, null, video);
+  } catch (e) { if (e !== "video") alert(t("Sin conexión con la PC")); }
+  ta.disabled = false;
+  if (ok) { quitarFoto(); limpiar(); setTimeout(limpiar, 400); }
+  else if (!ta.value) { ta.value = texto; crecer(); }
+};
+// (16-oct) video: se sube crudo (sin base64) con barra de avance; el hub lo guarda en la PC y devuelve su nombre
+function subirVideo(f) {
+  return new Promise(ok => {
+    const x = new XMLHttpRequest(), txt = $("previa-txt");
+    x.open("POST", "api/subir"); x.setRequestHeader("Content-Type", f.type || "video/mp4");
+    x.upload.onprogress = e => { if (e.lengthComputable) txt.textContent = tf("Subiendo… {0} %", Math.round(e.loaded / e.total * 100)); };
+    x.onload = () => { let j = {}; try { j = JSON.parse(x.responseText); } catch (e) {}
+      if (j.ok) ok(j.archivo); else { alert(tf("No se pudo enviar: {0}", j.error || x.status)); txt.textContent = t("Escribe algo (opcional) y envía"); ok(null); } };
+    x.onerror = () => { alert(t("Sin conexión con la PC")); txt.textContent = t("Escribe algo (opcional) y envía"); ok(null); };
+    x.send(f);
+  });
+}
+async function enviar(texto, foto, c, video) {
+  c = c || abierto;
+  const r = await fetch("api/responder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat: c, texto, foto, video }) });
+  const j = await r.json();
+  // (15-oct) chat dormido: el mensaje quedo en cola y se entrega solo cuando el chat despierte (abrirlo en la PC)
+  if (j.ok && j.pendiente) alert(j.despertando
+    ? t("Ese chat estaba dormido: lo estoy despertando en la PC. Tu mensaje llega en unos segundos y te aviso.")
+    : t("Ese chat está dormido en la PC: tu mensaje quedó en cola y se entrega solo apenas lo abras en la app de Claude. Te aviso cuando llegue."));
+  if (j.ok) {
+    try { navigator.vibrate && navigator.vibrate(30); } catch (e) {}   // Android: vibracion corta al enviar
+    const k = c === abierto ? grande : heroe;
+    if (k) { k.ir("enviado"); k._e = "enviado"; setTimeout(() => { if (k === grande || k === heroe) { k._e = null; k.ir(estadoDe(c)); } }, 2600); }
+    vistos[c] = Date.now() / 1000; try { localStorage.setItem("vistos", JSON.stringify(vistos)); } catch (e) {}
+    try { await cargar(); } catch (e) {}   // (25-oct) ya se envio: si la recarga falla no es un error de envio (antes: "Sin conexion" y el texto quedaba)
+  } else alert(tf("No se pudo enviar: {0}", j.error || r.status));
+  return j.ok;
+}
+$("chips").onclick = ev => { const b = ev.target.closest(".chip"); if (b) tocarChip(b, b.dataset.envio || b.textContent, abierto); };
+$("adj").onclick = () => $("foto").click();
+let fotoPendiente = null, videoPendiente = null;
+async function prepararFoto(f) {
+  if (f && f.type.startsWith("video/")) {   // (16-oct) videos: tal cual, sin achicar
+    if (f.size > 5 * 1024 * 1024 * 1024) { alert(t("video demasiado grande (máx. 5 GB)")); return; }
+    quitarFoto(); videoPendiente = f;
+    const v = $("previa-vid"); v.src = URL.createObjectURL(f); v.hidden = false; $("previa-img").hidden = true;
+    $("previa-txt").textContent = tf("Video · {0} MB · escribe algo (opcional) y envía", (f.size / 1048576).toFixed(1));
+    $("previa").classList.add("si"); $("txt").focus();
+    return;
+  }
+  if (!f || !f.type.startsWith("image/")) return;
+  quitarFoto(); $("previa-img").hidden = false;
+  const img = await createImageBitmap(f), k = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  fotoPendiente = c.toDataURL("image/jpeg", .85);
+  $("previa-img").src = fotoPendiente; $("previa").classList.add("si");
+  $("txt").focus();
+}
+function quitarFoto() {
+  fotoPendiente = null; $("previa").classList.remove("si");
+  if (videoPendiente) { const v = $("previa-vid"); URL.revokeObjectURL(v.src); v.removeAttribute("src"); v.hidden = true; videoPendiente = null; }
+  $("previa-img").hidden = false; $("previa-txt").textContent = t("Escribe algo (opcional) y envía");
+}
+$("quitar").onclick = quitarFoto;
+$("foto").onchange = ev => { const f = ev.target.files[0]; ev.target.value = ""; prepararFoto(f); };
+$("txt").addEventListener("paste", ev => {   // pegar una captura directo en el cuadro de texto
+  const it = [...(ev.clipboardData && ev.clipboardData.items || [])].find(i => i.type.startsWith("image/"));
+  if (it) { ev.preventDefault(); prepararFoto(it.getAsFile()); }
+});
+
+// ---- (15-oct) Info del chat: tocar el nombre arriba del chat muestra cuanto contexto lleva y el uso del plan ----
+function medidor(titulo, pct, detalle) {
+  const d = document.createElement("div"); d.className = "medidor";
+  d.innerHTML = '<div class="fila2"><b></b><span></span></div><div class="barra"><i></i></div>';
+  d.querySelector("b").textContent = titulo; d.querySelector("span").textContent = detalle;
+  const i = d.querySelector("i"); i.style.width = Math.min(100, Math.max(1, pct)) + "%"; i.className = pct >= 80 ? "alto" : pct >= 60 ? "medio" : "";
+  return d;
+}
+const miles = n => n >= 1e6 ? (n / 1e6).toFixed(1).replace(".0", "") + "M" : Math.round(n / 1000) + "k";
+async function abrirInfo() {
+  const c = abierto; if (!c) return;
+  $("info-d").style.background = colorDe(c); $("info-nombre").textContent = nombreDe(c); $("info-sub").textContent = subDe(c);
+  const B = $("info-cuerpo"); B.innerHTML = '<p class="sub">' + t("Buscando…") + "</p>"; $("info").classList.add("si");
+  try {
+    const j = await (await fetch("api/info?chat=" + encodeURIComponent(c), { cache: "no-store" })).json();
+    B.innerHTML = "";
+    if (j.contexto) B.appendChild(medidor(t("Contexto de este chat"), j.contexto.pct, `${miles(j.contexto.tokens)} / ${miles(j.contexto.max)} · ${Math.round(j.contexto.pct)}%`));
+    else B.insertAdjacentHTML("beforeend", '<p class="sub">' + t("No se pudo leer el contexto de este chat.") + "</p>");
+    pintarUso(B, j.uso || {});
+    // (22-oct) archivar este chat (lo hace el chat de Kodama con la herramienta de la app de Claude)
+    const ar = document.createElement("button"); ar.className = "sinc full"; ar.style.cssText = "margin-top:14px;background:var(--btn);color:var(--rojo)";
+    ar.textContent = t("Archivar este chat");
+    ar.onclick = async () => {
+      if (!confirm(tf("¿Archivar «{0}»? Lo puedes desarchivar desde la lista de chats.", nombreDe(c)))) return;
+      ar.disabled = true; ar.textContent = t("Archivando…");
+      try { const r = await (await fetch("api/archivar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat: c }) })).json();
+        ar.textContent = r.ok ? t("Listo: sale de la lista en unos segundos") : (t("No se pudo: ") + (r.error || "")); }
+      catch (e) { ar.textContent = t("Sin conexión con la PC"); }
+    };
+    B.appendChild(ar);
+  } catch (e) { B.innerHTML = '<p class="sub">' + t("Sin conexión con la PC") + "</p>"; }
+}
+// (16-oct, LShinox) Ajustes > Espacio en la PC: lo que guardo el Companero (fotos/videos del celular en la carpeta de cada
+// chat, fotos temporales, respaldos), del mas pesado al mas liviano; vienen marcados los que no se usan hace tiempo y
+// se mandan a la Papelera de la PC (se pueden recuperar). El celular nunca manda rutas: solo los ids de la revision.
+const peso = b => b >= 1073741824 ? (b / 1073741824).toFixed(1) + " GB" : b >= 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB";
+// "Conservar siempre los archivos": apagado por defecto; prendido, no se marca nada para borrar y no se purga nada solo
+async function leerConservar() { try { const j = await (await fetch("api/limpieza?solo=ajuste", { cache: "no-store" })).json(); if (j.ok) $("op-conservar").checked = !!j.conservar; } catch (e) {} }
+$("op-conservar").onchange = async ev => {
+  const v = ev.target.checked;
+  try { const j = await (await fetch("api/conservar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ conservar: v }) })).json(); if (!j.ok) throw 0; }
+  catch (e) { ev.target.checked = !v; alert(t("Sin conexión con la PC")); }
+};
+leerConservar();
+// (22-oct, mejora 2) reglas de permisos: lo que ya aprobaste con "siempre" o "en esta tarea", con boton para quitarlo
+async function cargarReglas(borrar) {
+  const R = $("reglas");
+  let j; try { j = await (await fetch("api/reglas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(borrar || {}) })).json(); }
+  catch (e) { R.innerHTML = '<p class="sub">' + t("Sin conexión con la PC") + "</p>"; return; }
+  R.innerHTML = "";
+  const fila = (txt, donde, quitar) => {
+    const f = document.createElement("div"); f.className = "fila";
+    const s = document.createElement("span"); s.style.cssText = "font-size:13px;word-break:break-all"; s.textContent = txt;
+    const d = document.createElement("small"); d.className = "sub"; d.style.display = "block"; d.textContent = donde; s.appendChild(d);
+    const b = document.createElement("button"); b.textContent = t("Quitar"); b.onclick = () => cargarReglas(quitar);
+    f.append(s, b); R.appendChild(f);
+  };
+  (j.siempre || []).forEach(c => fila(c, t("Siempre"), { borrar: c }));
+  (j.tarea || []).forEach(x => x.claves.forEach(c => fila(c, t("Solo en") + " " + x.chat, { borrar: c, sesion: x.sesion })));
+  if (!R.children.length) R.innerHTML = '<p class="sub">' + t("No tienes reglas. Se crean al aprobar con «Permitir siempre esto» o «Permitir en esta tarea».") + "</p>";
+}
+cargarReglas();
+// (22-oct, mejora 5, idea de Perch/Nudge) revisar que los hooks sigan puestos (y arreglarlos) y desinstalar limpio
+async function revisarHooks(arreglar) {
+  const R = $("hooks-res"); R.innerHTML = '<p class="sub">' + t("Revisando…") + "</p>";
+  let j; try { j = await (await fetch("api/hooks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ arreglar: !!arreglar }) })).json(); }
+  catch (e) { R.innerHTML = '<p class="sub">' + t("Sin conexión con la PC") + "</p>"; return; }
+  if (!j.items) { R.innerHTML = '<p class="sub">' + (j.error || t("No se pudo")) + "</p>"; return; }
+  R.innerHTML = "";
+  j.items.forEach(x => { const p = document.createElement("p"); p.className = "sub"; p.style.margin = "2px 0"; p.textContent = (x.ok ? "✓ " : "✕ ") + x.que; if (!x.ok) p.style.color = "#e57a6b"; R.appendChild(p); });
+  const n = document.createElement("p"); n.className = "sub"; n.textContent = tf("Hooks de otros programas: {0}, no se tocan.", j.ajenos || 0); R.appendChild(n);
+  if (!j.ok) { const b = document.createElement("button"); b.textContent = t("Arreglar (se guarda un respaldo antes)"); b.onclick = () => revisarHooks(true); R.appendChild(b); }
+}
+$("rev-hooks").onclick = () => revisarHooks(false);
+// (22-oct, LShinox) la lectura exacta por el chat de Kodama es un extra: apagado por defecto, para quien no mira el uso
+// en la app de Claude. Mientras tanto se usa el archivo de la app y el estimado.
+async function lecturaExacta(cuerpo) {
+  const N = $("lectura-nota");
+  let j; try { j = await (await fetch("api/lectura-exacta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo || {}) })).json(); }
+  catch (e) { N.textContent = t("Sin conexión con la PC"); return; }
+  $("op-lectura").checked = !!j.activa;
+  N.textContent = !j.activa ? t("Apagado: el uso sale del archivo de la app de Claude y de un estimado (no gasta plan). Actívalo si quieres el dato exacto a pedido; gasta un poco de plan y la app de Claude cambia de chat unos segundos.")
+    : j.chat_listo ? t("Activo. El chat de Kodama solo lee el uso y archiva chats; no ve tus archivos.")
+    : tf("Falta un paso en la PC: en la app de Claude, pestaña Code, abre una sesión nueva en la carpeta {0} y escribe «hola».", j.carpeta);
+}
+// (22-oct, LShinox) activarla pide confirmar DESPUES de leer que aporta y que hay que hacer (contra el clic por curiosidad)
+$("op-lectura").onchange = ev => {
+  if (!ev.target.checked) return lecturaExacta({ activar: false });
+  ev.target.checked = false;
+  const N = $("lectura-nota"); N.innerHTML = "";
+  const caja = document.createElement("div"); caja.style.cssText = "background:var(--card);border-radius:14px;padding:10px 12px;margin:6px 0";
+  [["b", t("Qué aporta")], ["p", t("El porcentaje EXACTO de tu plan (últimas 5 horas y semana) cuando lo pides con «Actualizar», y archivar o desarchivar chats desde la mascota.")],
+   ["b", t("Qué cuesta")], ["p", t("Cada lectura gasta un poco de tu plan, y la app de Claude cambia de chat unos segundos mientras lee. Sin esto, Kodama igual muestra el uso con el archivo de la app de Claude y un estimado, gratis.")],
+   ["b", t("Qué tienes que hacer")], ["p", t("En la PC, en la app de Claude, pestaña Code: abrir una sesión nueva en la carpeta que te indicamos y escribir «hola». Una sola vez.")]]
+    .forEach(([tag, tx]) => { const e = document.createElement(tag); e.textContent = tx; e.style.cssText = tag === "b" ? "display:block;margin-top:6px" : "margin:2px 0;font-size:14px"; caja.appendChild(e); });
+  const fila = document.createElement("div"); fila.style.cssText = "display:flex;gap:8px;margin-top:10px";
+  const no = document.createElement("button"); no.textContent = t("Cancelar"); no.onclick = () => lecturaExacta();
+  const si = document.createElement("button"); si.textContent = t("Sí, activarla"); si.style.cssText = "background:var(--acento);color:#1e1c1a;font-weight:600";
+  si.onclick = () => lecturaExacta({ activar: true });
+  fila.append(no, si); caja.appendChild(fila); N.appendChild(caja);
+};
+lecturaExacta();
+$("desinst").onclick = () => {
+  const D = $("desinst-d");
+  D.innerHTML = '<label class="fila"><span data-t>' + t("Dejar la configuración de Claude exactamente como antes de instalar") + '</span><input type="checkbox" class="sw" id="des-rest"></label>'
+    + '<p class="sub">' + t("Si no lo marcas, se quita solo lo de Kodama y tus otros hooks quedan igual. Tus datos se guardan.") + "</p>";
+  const b = document.createElement("button"); b.textContent = t("Desinstalar"); D.appendChild(b);
+  b.onclick = async () => {
+    if (!confirm(t("¿Desinstalar? Los avisos dejan de llegar."))) return;
+    try {
+      const j = await (await fetch("api/desinstalar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ restaurar: $("des-rest").checked }) })).json();
+      D.innerHTML = '<p class="sub"></p>'; D.firstChild.textContent = j.ok ? (j.detalle || []).join(" · ") : (j.error || t("No se pudo"));
+    } catch (e) { alert(t("Sin conexión con la PC")); }
+  };
+};
+$("limpiar").onclick = async () => {
+  if (!confirm(t("¿Reviso todos los archivos que guardó Kodama? Te los muestro del más pesado al más liviano y te marco los que ya no se usan."))) return;
+  $("info-d").style.background = "var(--acento)"; $("info-nombre").textContent = t("Espacio en la PC");
+  $("info-sub").textContent = t("Buscando…"); const B = $("info-cuerpo"); B.innerHTML = ""; $("info").classList.add("si");
+  let j; try { j = await (await fetch("api/limpieza", { cache: "no-store" })).json(); } catch (e) { $("info-sub").textContent = t("Sin conexión con la PC"); return; }
+  const A = j.archivos || [];
+  $("info-sub").textContent = !A.length ? t("No hay archivos guardados por Kodama.")
+    : j.conservar ? tf("{0} archivos · {1} en total. Tienes «Conservar siempre» prendido: no marqué ninguno.", j.cuantos, peso(j.total))
+    : tf("{0} archivos · {1} en total. Marqué los que no se usan hace tiempo.", j.cuantos, peso(j.total));
+  if (!A.length) return;
+  const L = document.createElement("div"); L.className = "limp"; B.appendChild(L);
+  for (const a of A) {
+    const fila = document.createElement("label"), ch = document.createElement("input"), n = document.createElement("div"), b = document.createElement("b"), s = document.createElement("span"), p = document.createElement("span");
+    ch.type = "checkbox"; ch.checked = a.recomendado; ch.dataset.id = a.id; ch.dataset.bytes = a.bytes;
+    n.className = "n"; b.textContent = a.nombre; s.textContent = a.donde + " · " + (a.recomendado ? t("sin usar hace") + " " + a.dias + " " + t("días") : tf("hace {0} días", a.dias));
+    p.className = "p"; p.textContent = peso(a.bytes);
+    n.append(b, s); fila.append(ch, n, p); L.appendChild(fila);
+  }
+  const btn = document.createElement("button"); btn.type = "button"; btn.className = "sinc full"; B.appendChild(btn);
+  const marcados = () => [...L.querySelectorAll("input:checked")];
+  const cuenta = () => { const m = marcados(); btn.disabled = !m.length; btn.textContent = tf("Mover a la Papelera ({0} · {1})", m.length, peso(m.reduce((x, i) => x + +i.dataset.bytes, 0))); };
+  L.onchange = cuenta; cuenta();
+  btn.onclick = async () => {
+    const m = marcados(); if (!m.length || !confirm(tf("¿Mando {0} archivos a la Papelera de la PC? Se pueden recuperar desde ahí.", m.length))) return;
+    btn.disabled = true;
+    try {
+      const r = await (await fetch("api/limpieza", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: m.map(i => i.dataset.id) }) })).json();
+      m.forEach(i => { if (r.ok) i.closest("label").remove(); });
+      $("info-sub").textContent = tf("Listo: {0} archivos a la Papelera ({1}).", r.hechos || 0, peso(r.liberado || 0)) + (r.fallos ? " " + tf("{0} no se pudieron mover.", r.fallos) : "");
+    } catch (e) { alert(t("Sin conexión con la PC")); }
+    cuenta();
+  };
+};
+// (15-oct) uso del plan: exacto o estimado (≈, sin gastar plan); "Actualizar" pide una lectura exacta al chat Medidor
+function pintarUso(B, u) {
+  B.querySelectorAll(".uso").forEach(x => x.remove());
+  const caja = document.createElement("div"); caja.className = "uso"; B.appendChild(caja);
+  const val = x => (x.estimado ? "≈ " : "") + Math.round(x.pct) + "%";
+  if (u["5h"]) caja.appendChild(medidor(t("Plan · últimas 5 horas"), u["5h"].pct, val(u["5h"])));
+  if (u.semana) caja.appendChild(medidor(t("Plan · semana"), u.semana.pct, val(u.semana)));
+  const nota = document.createElement("p"); nota.className = "sub"; caja.appendChild(nota);
+  const est = (u["5h"] || u.semana || {}).estimado;
+  nota.textContent = !u.ts ? t("Sin dato del uso del plan todavía.")
+    : est ? tf("≈ estimado con lo que gastaron tus chats desde el último dato exacto ({0}). No gasta plan.", hace(u.base_ts || u.ts))
+    : tf("Dato exacto, {0}.", hace(u.ts));
+  const a = document.createElement("a"); a.href = "#"; a.textContent = t("Actualizar (lectura exacta)"); a.style.cssText = "color:var(--tx);font-size:14px";
+  a.onclick = async ev => {
+    ev.preventDefault(); a.textContent = t("Pidiendo el dato exacto…");
+    try {
+      const r = await (await fetch("api/medir", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).json();
+      if (!r.ok) { a.textContent = t("No se pudo: ") + r.error; return; }
+      const antes = u.ts || 0;
+      for (let i = 0; i < 15; i++) {
+        await new Promise(z => setTimeout(z, 4000));
+        const j = await (await fetch("api/info?chat=" + encodeURIComponent(abierto || ""), { cache: "no-store" })).json();
+        const n = j.uso || {};
+        if (n.ts && n.ts > antes && !((n["5h"] || n.semana || {}).estimado)) { pintarUso(B, n); return; }
+      }
+      a.textContent = t("Todavía no llega: el chat Medidor puede estar dormido.");
+    } catch (e) { a.textContent = t("Sin conexión con la PC"); }
+  };
+  caja.appendChild(a);
+}
+$("det-info").onclick = abrirInfo;
+$("info").onclick = ev => { if (!ev.target.closest(".hoja")) $("info").classList.remove("si"); };
+
+// ---- (15-oct) avisos del celular: al abrir la app se borran los de chats que ya no te esperan ----
+let limpiadoT = 0;
+async function limpiarAvisos(forzar) {
+  if (!forzar && Date.now() - limpiadoT < 10000) return; limpiadoT = Date.now();
+  try {
+    const reg = await navigator.serviceWorker.getRegistration(); if (!reg || !reg.getNotifications) return;
+    (await reg.getNotifications()).forEach(n => {
+      const c = n.tag, d = datos[c];
+      if (c === "companero-ok" || (d && !d.permiso && (estadoDe(c) !== "escribio" || c === abierto)) || (CHATS.length && !d && c !== "companero")) n.close();
+    });
+    if (navigator.clearAppBadge && !CHATS.some(([k]) => urgencia(k) >= 3)) navigator.clearAppBadge();
+  } catch (e) {}
+}
+
+// ---- Archivos: los HTML que hicieron tus chats (se abren en el celular; corren aislados de la app) ----
+let ARCH = [], filtroArch = "";
+const hace = ts => { const s = Date.now() / 1000 - ts; return s < 90 ? t("ahora") : s < 5400 ? tf("hace {0} min", Math.round(s / 60)) : s < 129600 ? tf("hace {0} h", Math.round(s / 3600)) : tf("hace {0} d", Math.round(s / 86400)); };
+async function cargarArchivos() {
+  const A = $("archivos"); if (!ARCH.length) A.innerHTML = '<p class="vacio">' + t("Buscando…") + "</p>";
+  try { const j = await (await fetch("api/archivos", { cache: "no-store" })).json(); ARCH = j.archivos || []; pintarArchivos(); }
+  catch (e) { A.innerHTML = '<p class="vacio">' + t("No se pudo cargar la lista.") + "</p>"; }
+}
+function pintarArchivos() {
+  const F = $("filtros"), A = $("archivos"), carpetas = [...new Set(ARCH.map(x => x.carpeta))];
+  F.innerHTML = ""; if (carpetas.length > 1) ["", ...carpetas].forEach(c => { const b = document.createElement("button"); b.textContent = c || t("Todos"); b.className = c === filtroArch ? "on" : ""; b.onclick = () => { filtroArch = c; pintarArchivos(); }; F.appendChild(b); });
+  const lista = ARCH.filter(x => !filtroArch || x.carpeta === filtroArch);
+  A.innerHTML = lista.length ? "" : '<p class="vacio">' + t("Todavía no hay archivos.") + "</p>";
+  lista.forEach(x => {
+    const a = document.createElement("a"); a.className = "arch"; a.target = "_blank"; a.rel = "noopener";
+    a.href = "ver/" + x.raiz + "/" + x.ruta.split("/").map(encodeURIComponent).join("/");
+    a.innerHTML = '<svg class="i"><use href="#i-archivos"/></svg><div><b></b><small></small></div>';
+    a.querySelector("b").textContent = x.titulo || x.nombre; a.querySelector("small").textContent = x.carpeta + " · " + hace(x.ts);
+    A.appendChild(a);
+  });
+}
+
+// ---- Ajustes ----
+$("sinc").onclick = async () => {
+  try {
+    const r = await (await fetch("api/sincronizar-grupos", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).json();
+    if (!r.ok) throw new Error(r.error);
+    alert(tf("Listo: {0} chats tomaron el grupo que tienen en la app de Claude.", r.chats));
+    await cargar(); cargarCandidatos();
+  } catch (e) { alert(t("No se pudo: ") + e.message); }
+};
+async function cargarCandidatos() {   // (14-oct) que chats se ven en la app: interruptor por chat
+  const C = $("cand");
+  try {
+    const j = await (await fetch("api/candidatos", { cache: "no-store" })).json();
+    C.innerHTML = "";
+    j.chats.forEach(x => {
+      const f = document.createElement("label"); f.className = "cand";
+      f.innerHTML = '<button type="button" class="pc" aria-label="Color"></button><div><b></b><small></small><br><select class="gsel"></select></div><input type="checkbox" class="sw">';
+      f.querySelector("b").textContent = x.nombre; f.querySelector("small").textContent = x.carpeta || t("fijo");
+      // (15-oct) grupo propio del chat: "Sin grupo", los que ya existen o uno nuevo
+      const gs = f.querySelector(".gsel"), todos = [...new Set(j.chats.map(k => k.grupo).filter(Boolean))].sort();
+      [["", t("Sin grupo")], ...todos.map(g => [g, g]), ["__nuevo", t("Nuevo grupo…")]].forEach(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; gs.appendChild(o); });
+      gs.value = x.grupo || "";
+      gs.onclick = ev => ev.stopPropagation();
+      gs.onchange = async () => {
+        let g = gs.value;
+        if (g === "__nuevo") { g = (prompt(t("Nombre del grupo nuevo:")) || "").trim(); if (!g) { gs.value = x.grupo || ""; return; } }
+        try {
+          const r = await (await fetch("api/grupo-chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat: x.chat, grupo: g }) })).json();
+          if (!r.ok) throw new Error(r.error);
+          await cargar(); cargarCandidatos();
+        } catch (e) { alert(t("No se pudo: ") + e.message); gs.value = x.grupo || ""; }
+      };
+      // (14-oct) color del chat: el punto abre la paleta debajo de la fila
+      const pc = f.querySelector(".pc"); pc.style.background = x.color || colorDe(x.chat);
+      pc.onclick = ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        const abierta = f.nextElementSibling && f.nextElementSibling.classList.contains("paleta");
+        C.querySelectorAll(".paleta").forEach(p => p.remove()); if (abierta) return;
+        const P = document.createElement("div"); P.className = "paleta";
+        [...PALETA, ""].forEach(col => {
+          const b = document.createElement("button"); b.type = "button";
+          if (col) { b.style.background = col; b.classList.toggle("on", col === x.color); } else { b.className = "def"; b.textContent = t("Automático"); }
+          b.onclick = async () => {
+            try {
+              const r = await (await fetch("api/color", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat: x.chat, color: col }) })).json();
+              if (!r.ok) throw new Error(r.error);
+              x.color = col || null; pc.style.background = col || colorDe(x.chat); P.remove(); await cargar(); armar();
+            } catch (e) { alert(t("No se pudo: ") + e.message); }
+          };
+          P.appendChild(b);
+        });
+        f.after(P);
+      };
+      const sw = f.querySelector("input"); sw.checked = !x.oculto;
+      sw.onchange = async () => {
+        try {
+          const r = await (await fetch("api/ocultar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: x.id, oculto: !sw.checked }) })).json();
+          if (!r.ok) throw new Error(r.error);
+          await cargar();
+        } catch (e) { sw.checked = !sw.checked; alert(t("No se pudo: ") + e.message); }
+      };
+      C.appendChild(f);
+    });
+  } catch (e) { C.innerHTML = '<p class="sub">' + t("No se pudo cargar la lista.") + "</p>"; }
+}
+async function grupos() {   // que chats van al celular: Personales o un grupo de la app de Claude. Lo guarda el hub.
+  try {
+    const g = await (await fetch("api/grupos", { cache: "no-store" })).json(), S = $("grpsel");
+    S.innerHTML = ""; g.opciones.forEach(o => { const op = document.createElement("option"); op.value = o.id; op.textContent = t(o.nombre); S.appendChild(op); });
+    S.value = g.actual;
+    $("fila-grp").style.display = g.opciones.length > 1 ? "" : "none";   // con un solo grupo no hace falta
+  } catch (e) {}
+}
+$("grpsel").onchange = async ev => {
+  try { await fetch("api/grupo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: ev.target.value }) }); } catch (e) {}
+  await cargar();
+};
+// silenciar el chat abierto: un toque 1 h, otro 8 h, otro lo quita. No avisa por push ni Telegram; aca se sigue viendo.
+function marcarSilencio() {
+  const h = ((datos[abierto] || {}).silencio || 0) * 1000, B = $("silencio");
+  if (h > Date.now()) { B.innerHTML = '<svg class="i"><use href="#i-silencio"/></svg>' + new Date(h).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); B.dataset.paso = (h - Date.now() > 2 * 3600e3) ? "8" : "1"; }
+  else { B.innerHTML = '<svg class="i"><use href="#i-campana"/></svg>'; B.dataset.paso = "0"; }
+}
+$("silencio").onclick = async () => {
+  const horas = { "0": 1, "1": 8, "8": 0 }[$("silencio").dataset.paso || "0"];
+  try { await fetch("api/silenciar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat: abierto, horas }) }); } catch (e) {}
+  await cargar();
+};
+// (15-oct) "No me esperes": apagado por defecto (LShinox); se activa en Ajustes y lo recuerda este celular
+let conLiberar = false; try { conLiberar = localStorage.getItem("opLiberar") === "1"; } catch (e) {}
+document.body.classList.toggle("con-liberar", conLiberar); $("op-liberar").checked = conLiberar;
+$("op-pasos").checked = conPasos;
+$("op-pasos").onchange = ev => { conPasos = ev.target.checked; try { localStorage.setItem("opPasos", conPasos ? "1" : "0"); } catch (e) {} firma = ""; if (abierto) mensajes(); };
+$("op-liberar").onchange = ev => { conLiberar = ev.target.checked; document.body.classList.toggle("con-liberar", conLiberar); try { localStorage.setItem("opLiberar", conLiberar ? "1" : "0"); } catch (e) {} };
+// (27-oct, 5.a vuelta) "Animaciones completas": encendido por defecto, de ESTE celular (localStorage "animCompletas", "0" = apagado), NO se sincroniza con el hub ni con la PC.
+// Encendido: la mascota ignora prefers-reduced-motion (gestos al azar, guiño, respiracion); apagado: respeta el ajuste de iOS. personajes-lottie.js lo lee en cada uso.
+let animComp = true; try { animComp = localStorage.getItem("animCompletas") !== "0"; } catch (e) {}
+window.KODAMA_ANIM_COMPLETAS = animComp; $("op-animcomp").checked = animComp;
+$("op-animcomp").onchange = ev => { animComp = ev.target.checked; window.KODAMA_ANIM_COMPLETAS = animComp; try { localStorage.setItem("animCompletas", animComp ? "1" : "0"); } catch (e) {} };
+$("idiomasel").value = IDIOMA; $("idiomasel").onchange = ev => fijarIdioma(ev.target.value);
+// (22-oct, LShinox) Apariencia: automatico (sigue al iPhone), claro u oscuro; se recuerda en este celular
+function fijarTema(v) {
+  if (v === "claro" || v === "oscuro") document.documentElement.dataset.tema = v; else delete document.documentElement.dataset.tema;
+  const oscuro = v === "oscuro" || (v !== "claro" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => { m.content = oscuro ? "#000000" : "#f5f1ea"; m.removeAttribute("media"); });
+}
+let TEMA = "auto"; try { TEMA = localStorage.getItem("tema") || "auto"; } catch (e) {}
+fijarTema(TEMA); $("temasel").value = TEMA;
+$("temasel").onchange = ev => { TEMA = ev.target.value; try { localStorage.setItem("tema", TEMA); } catch (e) {} fijarTema(TEMA); };
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => fijarTema(TEMA));
+// (22-oct, LShinox) Personaje: Gato / Gato ojos lisos / Brote. Debajo, los colores del que elegiste (los del gato o las
+// variantes del Brote) y, si es un cactus, "con flor". Y es la MISMA mascota que en la PC: se guarda en el hub.
+const COLORES = { gato: [["negro", "Negro"], ["naranja", "Naranja"], ["blanco", "Blanco"], ["gris", "Gris azulado"], ["esmoquin", "Esmoquin"]],
+  brote: [["brote5", "Verde"], ["broteDosHojas", "Dos hojas"], ["broteOtono", "Otoñal"], ["broteCactus", "Cactus"], ["broteCactusBolitas", "Cactus (bolitas)"]] };
+// (27-oct, 4.a vuelta) "Ojos" (con pupila = gatoPro / lisos = gato) va aparte del personaje y solo se ve con el gato.
+// (27-oct, lanzamiento) La capsula (y su color) existe solo en la mascota de la PC: el celular no la muestra ni la manda; el hub conserva el color.
+function pintarPersonaje() {
+  const esBrote = MOSTRAR_BROTE && pj.startsWith("brote");
+  $("pjsel").closest(".fila").style.display = MOSTRAR_BROTE ? "" : "none";   // sin Brote no hay nada que elegir: se oculta la fila "Personaje"
+  if (!MOSTRAR_BROTE) $("pjsel").querySelectorAll('option[value="brote"]').forEach(o => o.remove());   // y la opcion sale del selector
+  $("pjsel").value = esBrote ? "brote" : "gato";
+  $("fila-ojos").style.display = esBrote ? "none" : ""; $("ojossel").value = pj === "gato" ? "gato" : "gatoPro";
+  $("col-lbl").textContent = esBrote ? t("Tipo de brote") : t("Color del gato");
+  const S = $("colsel"); S.innerHTML = "";
+  COLORES[esBrote ? "brote" : "gato"].forEach(([v, n]) => { const o = document.createElement("option"); o.value = v; o.textContent = t(n); S.appendChild(o); });
+  S.value = esBrote ? pj : colorGato;
+  $("fila-flor").style.display = MOSTRAR_BROTE && pj.startsWith("broteCactus") ? "" : "none"; $("op-flor").checked = florCactus;
+}
+function cambiarPersonaje(compartir = true) {
+  try { localStorage.setItem("pj", pj); localStorage.setItem("colorGato", colorGato); localStorage.setItem("florCactus", florCactus ? "1" : "0"); if (pj.startsWith("brote")) localStorage.setItem("brote", pj); if (pj.startsWith("gato")) localStorage.setItem("ojosGato", pj); } catch (e) {}
+  pintarPersonaje(); crearHeroe(); armar();
+  if (compartir) compartirPersonaje();
+}
+const compartirPersonaje = () => fetch("api/personaje", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pj, color: colorGato, florCactus }) }).catch(() => {});
+$("pjsel").onchange = ev => { const v = ev.target.value; if (v === "brote" && !MOSTRAR_BROTE) return; if (v === "brote") { let b = "brote5"; try { b = localStorage.getItem("brote") || "brote5"; } catch (e) {} pj = b; }
+  else if (!pj.startsWith("gato")) { let o = "gatoPro"; try { o = localStorage.getItem("ojosGato") === "gato" ? "gato" : "gatoPro"; } catch (e) {} pj = o; } cambiarPersonaje(); };
+$("ojossel").onchange = ev => { if (!pj.startsWith("brote")) { pj = ev.target.value === "gato" ? "gato" : "gatoPro"; cambiarPersonaje(); } };
+$("colsel").onchange = ev => { if (pj.startsWith("brote")) pj = ev.target.value; else colorGato = ev.target.value; cambiarPersonaje(); };
+$("op-flor").onchange = ev => { florCactus = ev.target.checked; cambiarPersonaje(); };
+pintarPersonaje();
+async function traerPersonaje() {   // lo que se eligio en la PC (bandeja de la mascota) o en otro celular
+  try {
+    const j = await (await fetch("api/personaje", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).json();
+    if (!j.pj) return cambiarPersonaje(true);   // primera vez: se manda la de este celular
+    const jpj = pjVisible(j.pj.replace(/-sinflor$/, ""));   // un Brote guardado en el hub (o en la PC) se ve como gato
+    if (jpj === pj && (j.color || "negro") === colorGato && (j.florCactus !== false) === florCactus) return;
+    pj = jpj; colorGato = j.color || "negro"; florCactus = j.florCactus !== false; cambiarPersonaje(false);
+  } catch (e) {}
+}
+traerPersonaje(); setInterval(() => { if (!document.hidden) traerPersonaje(); }, 15000);
+// avisos (Web Push): en iPhone solo funciona con la app agregada a inicio y tras tocar el boton
+const b64 = s => { s = s.replace(/-/g, "+").replace(/_/g, "/"); const r = atob(s + "===".slice((s.length + 3) % 4)); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+function avisosListos(si) { const B = $("avisos"); B.textContent = si ? t("Activados") : t("Activar"); B.classList.toggle("si", !si); B.disabled = si; window._avisosOk = si; puntoAjustes(); }
+// (22-oct, LShinox) punto rojo en Ajustes: avisos sin activar o VERSION NUEVA (y el "1" en la fila Actualizaciones)
+function puntoAjustes() { $("pto-ajustes").classList.toggle("si", window._avisosOk === false || !!window._hayNueva); $("badge-act").hidden = !window._hayNueva; }
+async function cargarActualizacion(cuerpo) {
+  let j; try { j = await (await fetch("api/actualizar-auto", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo || {}) })).json(); } catch (e) { return; }
+  window._hayNueva = !!(j.nueva && j.nueva.version); puntoAjustes();
+  $("act-actual").textContent = j.actual || "";
+  $("act-estado").textContent = window._hayNueva ? tf("Hay una versión nueva: {0}", j.nueva.version) : t("Estás al día");
+  $("act-boton").hidden = !window._hayNueva; $("act-notas").textContent = window._hayNueva ? (j.nueva.notas || "") : "";
+  $("op-act-auto").checked = !!j.activa;
+}
+$("op-act-auto").onchange = ev => cargarActualizacion({ activar: ev.target.checked });
+// (26-oct) "Lo nuevo": se muestra UNA vez cuando la version instalada cambia (la version vista se recuerda en este celular).
+// Las estadisticas las calcula el hub con sus propios archivos: solo numeros de la ultima semana.
+async function mostrarLoNuevo() {
+  let j; try { j = await (await fetch("api/lo-nuevo", { cache: "no-store" })).json(); } catch (e) { return; }
+  let visto = null; try { visto = localStorage.getItem("loNuevoVisto"); } catch (e) {}
+  const lista = j && j.cambios && (j.cambios[IDIOMA] || j.cambios.es);
+  // (27-oct) instalacion NUEVA (sin version guardada en este celular): no se muestra; se guarda la version en silencio. Solo sale cuando la version CAMBIA.
+  if (j && j.version && visto == null) { try { localStorage.setItem("loNuevoVisto", j.version); } catch (e) {} return; }
+  if (!j || !j.version || j.version === visto || !lista || !lista.length) return;
+  const L = $("lonuevo-lista"); L.innerHTML = "";
+  lista.forEach(x => { const li = document.createElement("li"); li.textContent = x; L.appendChild(li); });
+  const s = j.stats || {};
+  $("lonuevo-est").textContent = s.avisos == null ? "" : tf("Esta semana: {0} avisos, {1} respuestas y {2} chats activos.", s.avisos, s.respuestas, s.chats)
+    + (s.respuestas_celular ? " " + tf("{0} de las respuestas, desde el celular.", s.respuestas_celular) : "");
+  $("lonuevo").hidden = false;
+  // (27-oct) la X y "Entendido" hacen lo mismo: ocultar YA (aunque falle el almacenamiento, queda oculta en esta sesion) y recordar la version vista
+  const cerrar = () => { $("lonuevo").hidden = true; try { localStorage.setItem("loNuevoVisto", j.version); } catch (e) {} };
+  $("lonuevo-ok").onclick = cerrar; $("lonuevo-x").onclick = cerrar;
+}
+mostrarLoNuevo();
+$("op-verarch").checked = verArchivados();
+$("op-verarch").onchange = ev => { try { localStorage.setItem("verArchivados", ev.target.checked ? "1" : "0"); } catch (e) {} armar(); };
+$("act-boton").onclick = async () => {
+  if (!confirm(t("¿Actualizar ahora? Kodama se reinicia en la PC y vuelve en un minuto."))) return;
+  const B = $("act-boton"); B.disabled = true; B.textContent = t("Actualizando…");
+  try { const r = await (await fetch("api/actualizar", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).json();
+    B.textContent = r.ok ? tf("Instalando {0}…", r.version) : (t("No se pudo: ") + (r.error || "")); }
+  catch (e) { B.textContent = t("Sin conexión con la PC"); }
+};
+cargarActualizacion(); setInterval(() => { if (!document.hidden) cargarActualizacion(); }, 1800000);
+async function prepararAvisos() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) { $("avisos").textContent = t("No disponible"); $("avisos").disabled = true; return; }
+  const reg = await navigator.serviceWorker.register("sw.js");
+  const sub = await reg.pushManager.getSubscription();
+  avisosListos(Notification.permission === "granted" && !!sub);
+  $("avisos").onclick = async () => {
+    try {
+      if (await Notification.requestPermission() !== "granted") { alert(t("Sin permiso de avisos: activalo en Ajustes > Notificaciones > Kodama.")); return; }
+      const { clave } = await (await fetch("api/vapid")).json();
+      const s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(clave) });
+      const r = await fetch("api/suscribir", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(s) });
+      if ((await r.json()).ok) avisosListos(true);
+    } catch (e) { alert(tf("No se pudieron activar los avisos: {0}", e.message)); }
+  };
+}
+navigator.serviceWorker && navigator.serviceWorker.addEventListener("message", e => { if (e.data && e.data.abrir) abrir(e.data.abrir); });
+
+function ajustarTeclado() {
+  const vv = window.visualViewport, D = $("detalle"); if (!vv) return;
+  // en la app instalada del iPhone innerHeight TAMBIEN se achica con el teclado: se mira el foco y la altura de pantalla
+  const enfocado = document.activeElement && document.activeElement.id === "txt";
+  const abierto_t = enfocado || vv.height < window.innerHeight - 120 || vv.height < screen.height * .7;
+  D.classList.toggle("teclado", abierto_t);
+  D.style.height = vv.height + "px"; D.style.top = vv.offsetTop + "px"; D.style.bottom = "auto";
+  if (abierto_t) alFinal();
+}
+if (window.visualViewport) { visualViewport.addEventListener("resize", ajustarTeclado); visualViewport.addEventListener("scroll", ajustarTeclado); }
+// la caja de texto crece hacia arriba mientras escribes (como WhatsApp), hasta ~5 lineas
+function crecer() {
+  const ta = $("txt"); ta.style.height = "46px";
+  const h = Math.min(ta.scrollHeight, 110); ta.style.height = h + "px"; ta.style.overflowY = ta.scrollHeight > 110 ? "auto" : "hidden";   // (15-oct) ~4 lineas
+  alFinal();
+}
+$("txt").addEventListener("input", crecer);
+$("txt").addEventListener("input", ev => { try { if (abierto) ev.target.value ? localStorage.setItem("borrador:" + abierto, ev.target.value) : localStorage.removeItem("borrador:" + abierto); } catch (e) {} });
+// el chat te esta esperando (puente): soltarlo para que siga sin tu respuesta
+$("liberar").onclick = async () => {
+  try { await fetch("api/liberar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat: abierto }) }); } catch (e) {}
+  await cargar();
+};
+["focus", "blur"].forEach(ev => $("txt").addEventListener(ev, () => setTimeout(ajustarTeclado, 60)));
+gsap.ticker.fps(30);
+fetch("ajustes.json", { cache: "no-store" }).then(r => r.json()).then(a => { window.CompaneroAjustes = a; }).catch(() => {});
+document.addEventListener("visibilitychange", () => { document.hidden ? gsap.globalTimeline.pause() : gsap.globalTimeline.resume(); });
+// (15-oct) alturas reales de la barra de arriba y del menu de abajo (cambian con la zona segura del iPhone)
+// (16-oct) el Inicio volvia a quedar con la caja debajo del menu: el iPhone pone la zona segura de abajo DESPUES de
+// abrir la app (y al volver de segundo plano); eso agranda el padding del menu y el ResizeObserver solo miraba el
+// contenido. Ahora mira el borde, no acepta 0 (menu oculto dentro de un chat) y re-mide al volver a la app.
+function medirBarras() {
+  const R = document.documentElement.style, h = $("tabs").offsetHeight;
+  if (h > 0) R.setProperty("--tabs", h + "px");
+  R.setProperty("--arriba", Math.ceil(($("err").textContent ? $("err") : $("top")).getBoundingClientRect().bottom + 4) + "px");
+}
+const medirLuego = () => { medirBarras(); requestAnimationFrame(medirBarras); setTimeout(medirBarras, 400); };
+window.addEventListener("resize", medirBarras); window.addEventListener("orientationchange", medirLuego);
+window.addEventListener("pageshow", medirLuego); document.addEventListener("visibilitychange", () => { if (!document.hidden) medirLuego(); });
+new ResizeObserver(medirBarras).observe($("tabs"), { box: "border-box" });
+document.body.classList.add("inicio"); medirBarras(); crearHeroe(); grupos();
+cargar().then(() => { const h = _hashInicial; if (CHATS.some(c => c[0] === h)) abrir(h); });
+conectarSSE(); setInterval(() => { if (!es || es.readyState !== 1 || Date.now() - (window._sseT || 0) > 40000) { cargar(); conectarSSE(); } }, 4000);
+prepararAvisos().catch(() => {});
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { cargar(); conectarSSE(); } });
+</script>
+</body>
+</html>
