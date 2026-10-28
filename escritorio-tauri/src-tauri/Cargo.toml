@@ -9,10 +9,14 @@ publish = false
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon"] }
+# (28-oct) "macos-private-api": hace falta para la ventana transparente en macOS (tauri.conf.json: macOSPrivateApi); en Windows no hace nada
+tauri = { version = "2", features = ["tray-icon", "macos-private-api"] }
 tauri-plugin-global-shortcut = "2"
 serde_json = "1"
+
 # (14-oct, rendimiento) para pedirle a WebView2 que use poca memoria; mismas versiones que ya trae tauri (sin descargas)
+# (28-oct) solo Windows: en macOS el webview es WKWebView y estos crates no se compilan
+[target.'cfg(windows)'.dependencies]
 webview2-com = "=0.39.1"
 windows-core = "=0.62.2"
 

@@ -169,6 +169,8 @@ def dir_datos_app_claude(home):
             return max(nuevo, key=os.path.getmtime)
         real = glob.glob(os.path.join(local, "Packages", "Claude_*", "LocalCache", "Roaming", "Claude"))
         return real[0] if real else os.path.join(os.environ.get("APPDATA") or os.path.join(home, "AppData", "Roaming"), "Claude")
+    if sys.platform == "darwin":   # (28-oct) macOS: solo una ruta, para que el modulo importe; SIN verificar en un Mac
+        return os.path.join(home, "Library", "Application Support", "Claude")
     _pendiente()
 
 
@@ -176,6 +178,8 @@ def carpeta_datos_usuario():
     """Nombre de la carpeta de datos de aplicaciones dentro de la carpeta del usuario (en Windows, 'AppData')."""
     if sys.platform == "win32":
         return "AppData"
+    if sys.platform == "darwin":   # (28-oct) macOS: solo una ruta, sin verificar en un Mac
+        return "Library"
     _pendiente()
 
 
@@ -183,6 +187,8 @@ def temp_claude_relativa():
     """Donde guarda Claude sus carpetas de trabajo (scratchpads), relativa a la carpeta del usuario y normalizada."""
     if sys.platform == "win32":
         return os.path.normcase(os.path.join("AppData", "Local", "Temp", "claude"))
+    if sys.platform == "darwin":   # (28-oct) macOS: solo una ruta, sin verificar en un Mac (si no coincide, queda mas restrictivo)
+        return os.path.normcase(os.path.join("Library", "Caches", "claude"))
     _pendiente()
 
 
@@ -314,6 +320,8 @@ def ruta_tailscale_cli():
     """tailscale (el programa de linea de comandos)."""
     if sys.platform == "win32":
         return r"C:\Program Files\Tailscale\tailscale.exe"
+    if sys.platform == "darwin":   # (28-oct) macOS: solo una ruta, sin verificar en un Mac
+        return "/Applications/Tailscale.app/Contents/MacOS/Tailscale"
     _pendiente()
 
 
@@ -321,6 +329,8 @@ def socket_tailscale():
     """Socket (en Windows, una tuberia) del tailscaled PROPIO de Kodama; el de la empresa no se toca."""
     if sys.platform == "win32":
         return r"\\.\pipe\companero-tailscaled"
+    if sys.platform == "darwin":   # (28-oct) macOS: solo una ruta (socket Unix), sin verificar en un Mac
+        return "/tmp/companero-tailscaled.sock"
     _pendiente()
 
 

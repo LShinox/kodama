@@ -1,6 +1,11 @@
 # © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt.
 """Simula el hook Stop del puente sin tocar ningun chat: sesion de prueba anotada como si fuera al celular,
 pregunta al final, y una 'respuesta del celular' escrita a los 4 s. Mide cuanto espera y que devuelve."""
+# (28-oct) macOS/Linux: esta prueba solo corre en Windows.
+import sys as _sys_plat
+if _sys_plat.platform != "win32":
+    print("SALTADA: usa el hub vivo y el python del venv de Windows (.venv\\Scripts\\python.exe)")
+    raise SystemExit(0)
 import json, os, subprocess, sys, threading, time
 APP = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PY = APP + r"\.venv\Scripts\python.exe"

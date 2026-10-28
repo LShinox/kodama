@@ -44,7 +44,7 @@ try:
     h.info = lambda s: (CMD, "Chat X", "🐱") if s else None
 
     def ent(ev, **k):
-        d = {"hook_event_name": ev, "session_id": SID, "cwd": AQUI, "transcript_path": f"C:/x/C--Users-{os.path.basename(os.path.expanduser('~'))}-Videos-Rol/{SID}.jsonl"}
+        d = {"hook_event_name": ev, "session_id": SID, "cwd": AQUI, "transcript_path": f"C:/x/{config.clave_carpeta(os.path.join(os.path.expanduser('~'), 'Videos', 'Rol'))}/{SID}.jsonl"}   # (28-oct) mismo valor en Windows (C--Users-<u>-Videos-Rol); en macOS la clave empieza con "-"
         d.update(k)
         return d
 

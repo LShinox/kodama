@@ -1,0 +1,147 @@
+# (c) 2026 LShinox - PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). See LICENSE.txt.
+# CI: builds the desktop pet (Tauri) and runs the Python tests on macOS and Windows. No secrets are used.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+
+jobs:
+  macos:
+    name: macOS (build + tests)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: escritorio-tauri/src-tauri
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: escritorio-tauri/package-lock.json
+
+      - name: Install JS dependencies
+        working-directory: escritorio-tauri
+        run: npm ci
+
+      - name: Prepare the pet UI
+        working-directory: escritorio-tauri
+        run: node preparar-ui.js
+
+      - name: Build the pet (tauri build --no-bundle)
+        working-directory: escritorio-tauri
+        run: npx tauri build --no-bundle
+
+      - name: Upload the macOS binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodama-macos
+          path: escritorio-tauri/src-tauri/target/release/kodama
+          retention-days: 7
+          if-no-files-found: error
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Prepare a clean test state
+        if: ${{ !cancelled() }}
+        run: python pruebas/preparar_ci.py
+
+      - name: Test - probar_mejoras
+        if: ${{ !cancelled() }}
+        run: python pruebas/probar_mejoras.py
+
+      - name: Test - probar_ultimos
+        if: ${{ !cancelled() }}
+        run: python pruebas/probar_ultimos.py
+
+      - name: Test - probar_limites
+        if: ${{ !cancelled() }}
+        run: python pruebas/probar_limites.py
+
+      - name: Test - probar_cola
+        if: ${{ !cancelled() }}
+        run: python pruebas/probar_cola.py
+
+      - name: Test - probar_punto5
+        if: ${{ !cancelled() }}
+        run: python pruebas/probar_punto5.py
+
+  windows:
+    name: Windows (build + tests)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: escritorio-tauri/src-tauri
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: escritorio-tauri/package-lock.json
+
+      - name: Install JS dependencies
+        working-directory: escritorio-tauri
+        run: npm ci
+
+      - name: Prepare the pet UI
+        working-directory: escritorio-tauri
+        run: node preparar-ui.js
+
+      - name: Build the pet (tauri build --no-bundle)
+        working-directory: escritorio-tauri
+        run: npx tauri build --no-bundle
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Prepare a clean test state
+        if: ${{ !cancelled() }}
+        run: python pruebas/preparar_ci.py
+
+      - name: Test - probar_mejoras
+        if: ${{ !cancelled() }}
+        run: python pruebas/probar_mejoras.py
+
+      - name: Test - probar_ultimos
+        if: ${{ !cancelled() }}
+        run: python pruebas/probar_ultimos.py
+
+      - name: Test - probar_limites
+        if: ${{ !cancelled() }}
+        run: python pruebas/probar_limites.py
+
+      - name: Test - probar_cola
+        if: ${{ !cancelled() }}
+        run: python pruebas/probar_cola.py
+
+      - name: Test - probar_punto5
+        if: ${{ !cancelled() }}
+        run: python pruebas/probar_punto5.py

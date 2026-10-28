@@ -1,4 +1,9 @@
 # © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt.
+# (28-oct) macOS/Linux: esta prueba solo corre en Windows.
+import sys as _sys_plat
+if _sys_plat.platform != "win32":
+    print("SALTADA: necesita dist/companero-0.9.0.* (paquete de Windows ya publicado), que no esta en el repo")
+    raise SystemExit(0)
 import json, os, sys, shutil, zipfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import companero_actualizar as ca, companero_reporte as cr

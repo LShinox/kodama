@@ -8,6 +8,7 @@
   },
   "app": {
     "withGlobalTauri": true,
+    "macOSPrivateApi": true,
     "windows": [
       {
         "label": "main",
@@ -35,6 +36,6 @@
     "active": false,
     "publisher": "LShinox",
     "copyright": "© 2026 LShinox",
-    "icon": ["icons/icon.ico"]
+    "icon": ["icons/icon.ico", "icons/icon.icns", "icons/icon.png"]
   }
 }

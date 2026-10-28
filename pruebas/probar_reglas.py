@@ -1,5 +1,10 @@
 # © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt.
 """Prueba mejora 2 sin chats reales: aprobar con 'siempre' guarda la regla y el hook la aplica solo. Deja todo como estaba."""
+# (28-oct) macOS/Linux: esta prueba solo corre en Windows.
+import sys as _sys_plat
+if _sys_plat.platform != "win32":
+    print("SALTADA: usa el hub vivo y el python del venv de Windows (.venv\\Scripts\\python.exe)")
+    raise SystemExit(0)
 import json, os, subprocess, sys, time
 APP = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, APP)
