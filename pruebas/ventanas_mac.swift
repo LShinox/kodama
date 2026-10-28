@@ -25,8 +25,8 @@ for s in NSScreen.screens {
     var d: [String: Any] = ["frame": [s.frame.origin.x, s.frame.origin.y, s.frame.size.width, s.frame.size.height]]
     if #available(macOS 12.0, *) {
         d["safeTop"] = s.safeAreaInsets.top
-        d["auxLeft"] = s.auxiliaryTopLeftArea.size.width
-        d["auxRight"] = s.auxiliaryTopRightArea.size.width
+        d["auxLeft"] = (s.auxiliaryTopLeftArea?.size.width ?? 0)
+        d["auxRight"] = (s.auxiliaryTopRightArea?.size.width ?? 0)
     }
     screens.append(d)
 }

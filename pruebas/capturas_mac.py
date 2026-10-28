@@ -13,6 +13,7 @@ It stops only the processes it started, by their saved PID.
 """
 import argparse
 import hashlib
+import http.client
 import json
 import os
 import shutil
@@ -39,9 +40,19 @@ def anotar(nivel, titulo, texto):
     print("::%s title=%s::%s" % (nivel, titulo, t), flush=True)
 
 
+def hub_req(metodo, ruta, cuerpo=None):
+    """Direct HTTP to the fake hub with http.client: it never goes through a system proxy (urllib would, if the runner defines one)."""
+    c = http.client.HTTPConnection("127.0.0.1", PUERTO, timeout=5)
+    try:
+        c.request(metodo, ruta, body=json.dumps(cuerpo).encode() if cuerpo is not None else None, headers={"Content-Type": "application/json"})
+        r = c.getresponse()
+        return r.read()
+    finally:
+        c.close()
+
+
 def hub_set(esc):
-    req = urllib.request.Request("http://127.0.0.1:%d/_set" % PUERTO, data=json.dumps({"esc": esc}).encode(), headers={"Content-Type": "application/json"})
-    urllib.request.urlopen(req, timeout=5).read()
+    hub_req("POST", "/_set", {"esc": esc})
 
 
 def pedir(work, orden="x", espera=9.0):
@@ -193,16 +204,23 @@ def main():
 
     if not os.path.exists(a.bin):
         anotar("error", "capturas_mac", "binary not found: " + a.bin)
-    hub = subprocess.Popen([sys.executable, os.path.join(AQUI, "hub_falso_capturas.py"), str(PUERTO)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    hub_log = open(os.path.join(work, "hub.log"), "w")
+    hub = subprocess.Popen([sys.executable, os.path.join(AQUI, "hub_falso_capturas.py"), str(PUERTO)], stdout=hub_log, stderr=subprocess.STDOUT, start_new_session=True)
     pet = None
     try:
         t0 = time.time()
-        while time.time() - t0 < 15:
+        hub_ok = False
+        while time.time() - t0 < 20:
             try:
-                urllib.request.urlopen("http://127.0.0.1:%d/api/inactivo" % PUERTO, timeout=2).read()
+                hub_req("GET", "/api/inactivo")
+                hub_ok = True
                 break
             except Exception:
                 time.sleep(0.4)
+        if not hub_ok:
+            hub_log.flush()
+            with open(os.path.join(work, "hub.log"), errors="replace") as hl:
+                anotar("error", "fake hub unreachable", "poll=%s log=%s" % (hub.poll(), hl.read()[-600:]))
         hub_set("reposo")
 
         # baseline: the desktop WITHOUT the pet (to tell whether later shots really contain the app)
@@ -299,7 +317,7 @@ def main():
             except Exception:
                 pass
         for n in os.listdir(work):
-            if n.startswith("pet-") and n.endswith(".log"):
+            if n.endswith(".log"):
                 shutil.copy(os.path.join(work, n), os.path.join(out, n))
                 try:
                     with open(os.path.join(work, n), encoding="utf-8", errors="replace") as lf:
