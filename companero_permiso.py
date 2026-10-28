@@ -18,6 +18,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
+from kodama_comun import celular_abierto, va_al_celular  # noqa: E402,F401
 
 BASE = config.ESTADO
 DIR = os.path.join(BASE, "permisos")
@@ -32,24 +33,17 @@ def sin_uso():
     return (ctypes.windll.kernel32.GetTickCount() - lii.dwTime) / 1000.0
 
 
-def celular_abierto():
+def _responder(dec):
+    """(28-oct) Escribe la decision del hook PermissionRequest: es lo unico que Claude Code lee de la salida."""
+    sys.stdout.write(json.dumps({"hookSpecificOutput": {"hookEventName": "PermissionRequest", "decision": dec}}, ensure_ascii=False))
+    sys.stdout.flush()
+
+
+def _quitar(ruta):
     try:
-        return time.time() - os.path.getmtime(os.path.join(BASE, "celular_activo")) < 30
+        os.remove(ruta)
     except OSError:
-        return False
-
-
-def va_al_celular(sid, proy):
-    if sid not in config.OCULTAR and (config.es_personal(proy) or sid in config.FIJAS):
-        return True
-    for f, campo in (("sesiones_extra.json", None), ("elegidos.json", "sesiones")):
-        try:
-            x = json.load(open(os.path.join(BASE, f), encoding="utf-8"))
-            if sid in (x.get(campo) if campo else x):
-                return True
-        except Exception:
-            pass
-    return False
+        pass
 
 
 def resumen(tool, inp, tope=1500):
@@ -120,8 +114,7 @@ def main():
     if regla:   # (22-oct, mejora 2) ya lo aprobaste con una regla: no se pregunta ni en la PC ni en el celular
         with open(os.path.join(BASE, "permisos.jsonl"), "a", encoding="utf-8") as f:
             f.write(json.dumps({"ts": time.time(), "sesion": sid[:8], "por_regla": regla, "herramienta": tool}) + "\n")
-        sys.stdout.write(json.dumps({"hookSpecificOutput": {"hookEventName": "PermissionRequest", "decision": {"behavior": "allow"}}}))
-        sys.stdout.flush()
+        _responder({"behavior": "allow"})
         return
     lejos = sin_uso() >= 120 or celular_abierto() or os.environ.get("COMPANERO_PERMISO_PRUEBA") == "1"
     if not sid or not lejos or not va_al_celular(sid, proy):
@@ -147,15 +140,11 @@ def main():
                     # (22-oct, mejora 6) con motivo, Claude sabe por que y busca otra forma en vez de insistir
                     mot = (r.get("motivo") or "").strip()
                     dec = {"behavior": "deny", "message": f"{config.NOMBRE} lo denegó desde el celular." + (f" Motivo: {mot}" if mot else "")}
-                sys.stdout.write(json.dumps({"hookSpecificOutput": {"hookEventName": "PermissionRequest", "decision": dec}}, ensure_ascii=False))
-                sys.stdout.flush()
+                _responder(dec)
                 return
             time.sleep(1)
     finally:
-        try:
-            os.remove(ped)
-        except OSError:
-            pass
+        _quitar(ped)
 
 
 PLAN_Q = "¿Apruebo el plan?"
@@ -201,15 +190,11 @@ def plan(d, sid, proy, inp):
                     dec = {"behavior": "allow", "updatedPermissions": [{"type": "setMode", "mode": modo, "destination": "session"}]}
                 else:
                     dec = {"behavior": "deny", "message": f"{config.NOMBRE} pidió desde el celular seguir planeando: todavía no ejecutes el plan; espera sus cambios."}
-                sys.stdout.write(json.dumps({"hookSpecificOutput": {"hookEventName": "PermissionRequest", "decision": dec}}, ensure_ascii=False))
-                sys.stdout.flush()
+                _responder(dec)
                 return
             time.sleep(1)
     finally:
-        try:
-            os.remove(ped)
-        except OSError:
-            pass
+        _quitar(ped)
 
 
 def pregunta(d, sid, proy, inp):
@@ -257,10 +242,7 @@ def pregunta(d, sid, proy, inp):
                 return
             time.sleep(1)
     finally:
-        try:
-            os.remove(ped)
-        except OSError:
-            pass
+        _quitar(ped)
 
 
 if __name__ == "__main__":

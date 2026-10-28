@@ -95,17 +95,6 @@ def muestra_b():   # espirales que giran (2 vueltas en los 3 s del archivo; el b
     return reemplazar_ojos(d, nuevas)
 
 
-def escalar_claves(prop, k):
-    """Multiplica por k los valores de una propiedad animada (rotacion) de la capa."""
-    if prop.get("a") == 1:
-        for f in prop["k"]:
-            for c in ("s", "e"):
-                if c in f and isinstance(f[c], list):
-                    f[c] = [round(v * k, 3) for v in f[c]]
-    else:
-        prop["k"] = round(prop["k"] * k, 3)
-
-
 def forma_parpado(nombre, puntos):
     """Parpado = poligono cerrado del color del CUERPO (el recolorador lo cambia con el color del gato)."""
     return {"ty": "gr", "nm": nombre, "bm": 0, "hd": False, "it": [

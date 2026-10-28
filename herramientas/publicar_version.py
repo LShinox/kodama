@@ -25,12 +25,12 @@ PUBLICA = os.path.join(APP, "clave_publica.txt")
 DIST = os.path.join(APP, "dist")
 
 INCLUIR = [
-    "arrancar.pyw", "companero_*.py", "config.py", "grupos_app.py", "estimador.py", "instalar.py",
+    "arrancar.pyw", "companero_*.py", "kodama_*.py", "config.py", "grupos_app.py", "estimador.py", "instalar.py",
     "requirements.txt", "VERSION", "LEEME.md", "LICENCIA.txt", "LICENSE.txt", "clave_publica.txt",
     "web/*.html", "web/*.js", "web/*.json", "web/*.png",
     "escritorio-tauri/src-tauri/target/release/kodama.exe",
 ]
-EXCLUIR = ["*.bak*", "web/opciones.html", "web/maquetas*", "web/bench.html", "web/mascotas-referencia.html", "web/GSDevTools*",
+EXCLUIR = ["*.bak*", "web/opciones.html", "web/maquetas*", "web/bench.html", "web/mascotas-referencia.html",
            "web/ajustes.json",   # ajustes.json es de cada persona (animaciones editadas)
            "web/lottie/muestras/*"]   # (27-oct) muestras de ojos de "atascado": no las usa la app
 

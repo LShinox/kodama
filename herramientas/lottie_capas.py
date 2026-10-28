@@ -129,10 +129,8 @@ GROSOR_BORDE = 4.0       # grosor del contorno de la silueta (lienzo de 360); el
 GROSOR_MATE = 5.0        # (8.a vuelta) 1 mas que el contorno (4): las rayas quedan 0,5 unidades ANTES del borde interior de la linea y nunca la pisan (con 4 rozaban el borde con el antialias; con menos pisaban ~0,2 px)
 
 
-def copia_mate(sil, ind, nm, cl):
-    """Copia de la capa 'silueta' como MATE DE LUMINANCIA (td=1): relleno BLANCO y contorno NEGRO de GROSOR_MATE centrado en el trazo = solo el interior de la linea."""
-    m = copy.deepcopy(sil)
-    m.update({"ind": ind, "nm": nm, "cl": cl, "td": 1})
+def _pintar_mate(m, grosor):
+    """(28-oct) Deja la capa `m` como MATE DE LUMINANCIA: sin matte propio (tt), relleno BLANCO y contorno NEGRO de `grosor`."""
     m.pop("tt", None)
     for g in m["shapes"]:
         for it in g.get("it", []):
@@ -142,8 +140,15 @@ def copia_mate(sil, ind, nm, cl):
             elif it.get("ty") == "st":
                 it["c"] = {"a": 0, "k": [0, 0, 0, 1]}
                 it["o"] = {"a": 0, "k": 100}
-                it["w"] = {"a": 0, "k": GROSOR_MATE}
+                it["w"] = {"a": 0, "k": grosor}
     return m
+
+
+def copia_mate(sil, ind, nm, cl):
+    """Copia de la capa 'silueta' como MATE DE LUMINANCIA (td=1): relleno BLANCO y contorno NEGRO de GROSOR_MATE centrado en el trazo = solo el interior de la linea."""
+    m = copy.deepcopy(sil)
+    m.update({"ind": ind, "nm": nm, "cl": cl, "td": 1})
+    return _pintar_mate(m, GROSOR_MATE)
 
 
 def mate_de_rayas(d):
@@ -345,17 +350,7 @@ def capa_tapa(sil, ind, nm, region=None):
 def mate_oreja(ore, ind, nm):
     m = copy.deepcopy(ore)
     m.update({"ind": ind, "nm": nm, "cl": "tapa-oreja", "td": 1})
-    m.pop("tt", None)
-    for g in m["shapes"]:
-        for it in g.get("it", []):
-            if it.get("ty") == "fl":
-                it["c"] = {"a": 0, "k": [1, 1, 1, 1]}
-                it["o"] = {"a": 0, "k": 100}
-            elif it.get("ty") == "st":
-                it["c"] = {"a": 0, "k": [0, 0, 0, 1]}
-                it["o"] = {"a": 0, "k": 100}
-                it["w"] = {"a": 0, "k": 2 * INSET_OREJA}
-    return m
+    return _pintar_mate(m, 2 * INSET_OREJA)
 
 
 def region_de(por, ore, sil):

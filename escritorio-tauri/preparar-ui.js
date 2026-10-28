@@ -1,7 +1,7 @@
 // © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt.
-// Arma la carpeta ui\ de la mascota en Tauri a partir de la MISMA pagina de Electron (escritorio\index.html), para no
-// mantener dos copias: cambia las rutas ../web/ -> web/, quita la CSP de la pagina (la pone tauri.conf.json, que
-// ademas deja hablar con el hub) y agrega companero-tauri.js, que reemplaza al preload.js de Electron.
+// Arma la carpeta ui\ de la mascota en Tauri a partir de la pagina de la mascota (escritorio\index.html):
+// cambia las rutas ../web/ -> web/, quita la CSP de la pagina (la pone tauri.conf.json, que ademas deja hablar
+// con el hub) y agrega companero-tauri.js, que hace de puente entre la pagina, la ventana y el hub.
 // (26-oct) tambien copia el gato Lottie: personajes-lottie.js y la carpeta web\lottie\ (lottie-web 5.12.2 light + los JSON).
 const fs = require("fs"), path = require("path");
 const AQUI = __dirname, RAIZ = path.join(AQUI, ".."), UI = path.join(AQUI, "ui");

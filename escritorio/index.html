@@ -1322,7 +1322,7 @@ $("ascerrar").onclick = ocultarAsomo;
 $("asomo").addEventListener("mouseenter", () => clearTimeout(tAsomo));   // mientras lo lees no se va
 $("asomo").addEventListener("mouseleave", () => { if (asomoAct) tAsomo = setTimeout(ocultarAsomo, 4000); });
 
-// atajos globales (main.js): Ctrl+Shift+F10 abre/cierra el globo del chat que más te necesita; Ctrl+Shift+F11 responde al asomo
+// atajos globales (companero-tauri.js): Ctrl+Shift+F10 abre/cierra el globo del chat que más te necesita; Ctrl+Shift+F11 responde al asomo
 companero.alAtajo(q => {
   if (q === "prueba") { if (modoAviso && !enEscena) entrarEscena().then(asomoPrueba); else asomoPrueba(); return; }   // (28-oct) escondida (modo aviso): primero sale a escena
   if (q === "asomo") return responderAsomo();

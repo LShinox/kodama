@@ -18,6 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
+from kodama_comun import lineas_finales  # noqa: E402
 
 BASE = config.ESTADO
 EXTRA = os.path.join(BASE, "sesiones_extra.json")
@@ -38,11 +39,8 @@ def anotar(sid, carpeta):
 
 def ultimo_mensaje(ruta):
     """Ultimo texto del modelo en transcript.jsonl (formato no documentado: se prueban las formas comunes)."""
-    try:
-        with open(ruta, "rb") as f:
-            f.seek(max(0, os.path.getsize(ruta) - 300000))
-            lineas = f.read().decode("utf-8", "ignore").splitlines()
-    except (OSError, TypeError):
+    lineas = lineas_finales(ruta)
+    if lineas is None:
         return None
     for l in reversed(lineas):
         try:

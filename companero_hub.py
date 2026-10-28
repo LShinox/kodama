@@ -1307,13 +1307,6 @@ def poner_pendiente(cmd, texto, marca, socket_viejo):
               open(os.path.join(PENDIENTES_DIR, nombre), "w", encoding="utf-8"), ensure_ascii=False)
 
 
-def pendientes_de(cmd):
-    try:
-        return sum(1 for f in os.listdir(PENDIENTES_DIR) if f.endswith(".json") and json.load(open(os.path.join(PENDIENTES_DIR, f), encoding="utf-8")).get("chat") == cmd)
-    except (OSError, ValueError):
-        return 0
-
-
 def entregar_pendientes():
     """Cada 10 s: si el chat de un mensaje en cola registro un buzon NUEVO (desperto) o paso 1 min del ultimo intento,
     se reintenta. Entregado -> se borra y se avisa. Mas de 24 h -> se descarta (queda en el historial como tuyo)."""

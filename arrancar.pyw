@@ -45,9 +45,7 @@ if not corriendo("companero-tailscaled", "tailscaled.exe"):
     log(f"tailscaled arrancado pid={pid}")
     time.sleep(8)
 
-ESC = os.path.join(BASE, "escritorio")
-# (14-oct) mascota en Tauri (mas liviana): se usa si config.json dice "escritorio": "tauri" y el .exe existe;
-# si no, Electron como siempre. Nunca las dos a la vez.
+# (14-oct) mascota en Tauri: se usa si config.json dice "escritorio": "tauri" y el .exe existe. (28-oct) Electron ya no existe.
 import json as _json
 try:
     _usar_tauri = _json.load(open(os.path.join(BASE, "config.json"), encoding="utf-8-sig")).get("escritorio") == "tauri"
@@ -66,7 +64,7 @@ def corriendo_mascota():
 # (15-oct, contra #11) mientras se recompila la mascota, estado\no-relanzar (de menos de 15 min) frena el relanzar
 _pausa = os.path.join(BASE, "estado", "no-relanzar")
 _pausado = os.path.exists(_pausa) and time.time() - os.path.getmtime(_pausa) < 900
-# (15-oct) OJO: la pausa frena la mascota ENTERA; antes caia al "elif" y arrancaba la de Electron (dos mascotas)
+# (15-oct) OJO: la pausa frena la mascota ENTERA (si no, se podria arrancar una segunda)
 if _pausado:
     pass
 elif _usar_tauri and os.path.exists(TAURI):
@@ -96,10 +94,6 @@ elif _usar_tauri and os.path.exists(TAURI):
     if not corriendo_mascota():
         pid = lanzar([TAURI], BASE, os.path.join(BASE, "estado", "escritorio.pid"))   # cwd = BASE: ahi busca estado\
         log(f"escritorio (tauri) arrancado pid={pid}")
-elif os.path.exists(os.path.join(ESC, "node_modules", "electron", "dist", "electron.exe")) and not corriendo(ESC, "electron.exe"):
-    pid = lanzar([os.path.join(ESC, "node_modules", "electron", "dist", "electron.exe"), ESC], ESC,
-                 os.path.join(BASE, "estado", "escritorio.pid"))
-    log(f"escritorio arrancado pid={pid}")
 
 if not corriendo("companero_hub.py", "pythonw.exe"):
     pid = lanzar([os.path.join(BASE, ".venv", "Scripts", "pythonw.exe"), os.path.join(BASE, "companero_hub.py")], BASE)

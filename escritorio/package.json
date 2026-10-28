@@ -1,1 +1,0 @@
-{"name":"companero-escritorio","version":"0.1.0","private":true,"main":"main.js","scripts":{"start":"electron ."},"allowScripts":{"electron":true},"devDependencies":{"electron":"^44.5.0"}}

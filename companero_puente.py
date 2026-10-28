@@ -20,6 +20,7 @@ import time
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 import config
+from kodama_comun import celular_abierto, va_al_celular  # noqa: E402,F401
 BASE = config.ESTADO
 PUENTE = os.path.join(BASE, "puente")
 PERSONALES = config.PERSONALES
@@ -39,27 +40,6 @@ def sin_uso():
     lii = LII(); lii.cbSize = ctypes.sizeof(LII)
     ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii))
     return (ctypes.windll.kernel32.GetTickCount() - lii.dwTime) / 1000.0
-
-
-def celular_abierto():
-    """La app del celular esta abierta ahora (el hub toca estado/celular_activo mientras la usas)."""
-    try:
-        return time.time() - os.path.getmtime(os.path.join(BASE, "celular_activo")) < 30
-    except OSError:
-        return False
-
-
-def va_al_celular(sid, proy):
-    if sid not in config.OCULTAR and (config.es_personal(proy) or sid in config.FIJAS):
-        return True
-    for f, campo in (("sesiones_extra.json", None), ("elegidos.json", "sesiones")):
-        try:
-            x = json.load(open(os.path.join(BASE, f), encoding="utf-8"))
-            if sid in (x.get(campo) if campo else x):
-                return True
-        except Exception:
-            pass
-    return False
 
 
 def main():
