@@ -60,19 +60,19 @@ jobs:
       - name: Take the screenshots
         run: python pruebas/capturas_mac.py --bin escritorio-tauri/src-tauri/target/release/kodama --out "$RUNNER_TEMP/capturas-mac"
 
-      - name: Print preview crops as annotations, part 1 (test aid: only when the commit message has [previews])
+      - name: "Print preview crops as annotations, part 1 (test aid, only when the commit message has [previews])"
         if: ${{ always() && contains(github.event.head_commit.message, '[previews]') }}
         run: python pruebas/emitir_previews.py "$RUNNER_TEMP/capturas-mac/previews.json" 0
 
-      - name: Print preview crops as annotations, part 2 (test aid: only when the commit message has [previews])
+      - name: "Print preview crops as annotations, part 2 (test aid, only when the commit message has [previews])"
         if: ${{ always() && contains(github.event.head_commit.message, '[previews]') }}
         run: python pruebas/emitir_previews.py "$RUNNER_TEMP/capturas-mac/previews.json" 1
 
-      - name: Print preview crops as annotations, part 3 (test aid: only when the commit message has [previews])
+      - name: "Print preview crops as annotations, part 3 (test aid, only when the commit message has [previews])"
         if: ${{ always() && contains(github.event.head_commit.message, '[previews]') }}
         run: python pruebas/emitir_previews.py "$RUNNER_TEMP/capturas-mac/previews.json" 2
 
-      - name: Print preview crops as annotations, part 4 (test aid: only when the commit message has [previews])
+      - name: "Print preview crops as annotations, part 4 (test aid, only when the commit message has [previews])"
         if: ${{ always() && contains(github.event.head_commit.message, '[previews]') }}
         run: python pruebas/emitir_previews.py "$RUNNER_TEMP/capturas-mac/previews.json" 3
 
