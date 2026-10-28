@@ -31,7 +31,7 @@ def _vivo(pidfile, texto):
         out = subprocess.run(["powershell", "-NoProfile", "-Command",
                               f"(Get-CimInstance Win32_Process -Filter 'ProcessId={pid}').CommandLine"],
                              capture_output=True, text=True, timeout=20, creationflags=0x08000000).stdout
-        return "si" if texto in out else "no"
+        return "si" if any(t in out for t in ((texto,) if isinstance(texto, str) else texto)) else "no"
     except Exception:
         return "?"
 
@@ -66,7 +66,7 @@ def resumen(salud):
         "python": platform.python_version(),
         "app_claude": _app_claude(),
         "hub_vivo": _vivo("hub.pid", "companero_hub.py"),
-        "mascota_viva": _vivo("escritorio.pid", "companero"),
+        "mascota_viva": _vivo("escritorio.pid", ("kodama.exe", "companero.exe")),
         "salud": [t for _, t in salud] or ["sin problemas detectados"],
         "hooks": _hooks(),
         "fecha": time.strftime("%Y-%m-%d %H:%M"),
@@ -79,7 +79,7 @@ def armar(salud, redactar):
     escritorio = os.path.join(config.HOME, "Desktop")
     if not os.path.isdir(escritorio):
         escritorio = config.HOME
-    ruta = os.path.join(escritorio, f"Companero-reporte-{time.strftime('%Y%m%d-%H%M')}.zip")
+    ruta = os.path.join(escritorio, f"Kodama-reporte-{time.strftime('%Y%m%d-%H%M')}.zip")
     with zipfile.ZipFile(ruta, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("resumen.json", json.dumps(r, ensure_ascii=False, indent=1))
         for nombre, n in LOGS:
@@ -92,7 +92,7 @@ def armar(salud, redactar):
             z.writestr("config.json", json.dumps({k: v for k, v in c.items() if k not in CONF_FUERA}, ensure_ascii=False, indent=1))
         except (OSError, ValueError):
             pass
-        z.writestr("LEEME.txt", "Revisa este archivo antes de subirlo: lleva el final de los registros del Companero con "
+        z.writestr("LEEME.txt", "Revisa este archivo antes de subirlo: lleva el final de los registros de Kodama con "
                                 "claves y rutas tapadas. No lleva tus mensajes ni tus claves.\n")
     return ruta, r
 

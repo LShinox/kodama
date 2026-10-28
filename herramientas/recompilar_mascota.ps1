@@ -8,7 +8,7 @@ try {
     node preparar-ui.js
     $p = [int](Get-Content (Join-Path $app 'estado\escritorio.pid'))
     $proc = Get-Process -Id $p -ErrorAction SilentlyContinue
-    if ($proc -and $proc.ProcessName -eq 'companero') { Stop-Process -Id $p -Force; "mascota parada (PID $p)" }
+    if ($proc -and ($proc.ProcessName -eq 'kodama' -or $proc.ProcessName -eq 'companero')) { Stop-Process -Id $p -Force; "mascota parada (PID $p)" }
     Set-Location (Join-Path $app 'escritorio-tauri')
     # (27-oct, lanzamiento) el .exe va en un release PUBLICO: sin esto lleva la ruta de tu usuario (carpeta .cargo\registry) en los mensajes de panico
     $env:RUSTFLAGS = '--remap-path-prefix=' + $env:USERPROFILE + '=C:\kodama'
@@ -21,5 +21,5 @@ try {
     Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
         CommandLine = '"' + (Join-Path $app '.venv\Scripts\pythonw.exe') + '" arrancar.pyw'; CurrentDirectory = $app } | Out-Null
     Start-Sleep 6
-    "mascota: " + ((Get-Process companero -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id) -join ',')
+    "mascota: " + ((Get-Process kodama, companero -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id) -join ',')
 }

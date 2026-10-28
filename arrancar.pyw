@@ -1,6 +1,6 @@
 # © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt.
 """Arranca (si no estan corriendo) el Tailscale del companero y el hub. Lo llama la tarea
-programada "Companero" al iniciar sesion y cada 10 min (vigilante). Sin ventanas.
+programada "Kodama" al iniciar sesion y cada 10 min (vigilante). Sin ventanas.
 Procesos desprendidos y fuera del job del que lanza, para que nada se los lleve al cerrarse."""
 import os
 import subprocess
@@ -53,7 +53,16 @@ try:
     _usar_tauri = _json.load(open(os.path.join(BASE, "config.json"), encoding="utf-8-sig")).get("escritorio") == "tauri"
 except Exception:
     _usar_tauri = False
-TAURI = os.path.join(BASE, "escritorio-tauri", "src-tauri", "target", "release", "companero.exe")
+_REL = os.path.join(BASE, "escritorio-tauri", "src-tauri", "target", "release")
+# (28-oct) el exe se llama kodama.exe; si no existe (PC de desarrollo que aun no recompila), se usa el viejo companero.exe
+TAURI = os.path.join(_REL, "kodama.exe") if os.path.exists(os.path.join(_REL, "kodama.exe")) else os.path.join(_REL, "companero.exe")
+
+
+def corriendo_mascota():
+    """PIDs de la mascota viva, con el nombre nuevo (kodama.exe) o el viejo (companero.exe): asi no se lanza una segunda."""
+    return corriendo("escritorio-tauri", "kodama.exe") + corriendo("escritorio-tauri", "companero.exe")
+
+
 # (15-oct, contra #11) mientras se recompila la mascota, estado\no-relanzar (de menos de 15 min) frena el relanzar
 _pausa = os.path.join(BASE, "estado", "no-relanzar")
 _pausado = os.path.exists(_pausa) and time.time() - os.path.getmtime(_pausa) < 900
@@ -61,7 +70,7 @@ _pausado = os.path.exists(_pausa) and time.time() - os.path.getmtime(_pausa) < 9
 if _pausado:
     pass
 elif _usar_tauri and os.path.exists(TAURI):
-    # (20-oct) tras una suspension (Modern Standby) el WebView2 de la mascota puede morir: companero.exe sigue
+    # (20-oct) tras una suspension (Modern Standby) el WebView2 de la mascota puede morir: el exe sigue
     # vivo con la ventana en pantalla pero transparente, y el icono de la bandeja no la "muestra". Sano = tiene un
     # msedgewebview2.exe hijo. Si el proceso (el NUESTRO, por el PID de escritorio.pid) lleva >2 min sin hijo,
     # se cierra por PID y se relanza abajo.
@@ -70,7 +79,7 @@ elif _usar_tauri and os.path.exists(TAURI):
         _pid = int(open(_pidf).read().strip())
     except (OSError, ValueError):
         _pid = 0
-    if _pid and _pid in corriendo("escritorio-tauri", "companero.exe"):
+    if _pid and _pid in corriendo_mascota():
         _r = subprocess.run(["powershell", "-NoProfile", "-Command",
                              f"$p=Get-CimInstance Win32_Process -Filter 'ProcessId={_pid}'; "
                              f"$h=@(Get-CimInstance Win32_Process -Filter \"ParentProcessId={_pid} AND Name='msedgewebview2.exe'\").Count; "
@@ -84,7 +93,7 @@ elif _usar_tauri and os.path.exists(TAURI):
             subprocess.run(["taskkill", "/PID", str(_pid), "/F"], capture_output=True, creationflags=0x08000000)
             log(f"escritorio (tauri) pid={_pid} sin WebView2 (ventana en blanco): cerrado para relanzar")
             time.sleep(2)
-    if not corriendo("escritorio-tauri", "companero.exe"):
+    if not corriendo_mascota():
         pid = lanzar([TAURI], BASE, os.path.join(BASE, "estado", "escritorio.pid"))   # cwd = BASE: ahi busca estado\
         log(f"escritorio (tauri) arrancado pid={pid}")
 elif os.path.exists(os.path.join(ESC, "node_modules", "electron", "dist", "electron.exe")) and not corriendo(ESC, "electron.exe"):

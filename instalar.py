@@ -1,5 +1,5 @@
 # © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt.
-"""Instalador del Companero para Windows (14-oct-2026, paso 2 hacia el uso masivo).
+"""Instalador de Kodama para Windows (14-oct-2026, paso 2 hacia el uso masivo).
 
     python instalar.py --prueba     -> muestra TODO lo que haria, sin tocar nada (empezar siempre por aca)
     python instalar.py              -> instala / repara (se puede correr de nuevo sin romper nada)
@@ -10,14 +10,14 @@ Que hace, en orden:
  1. Revisa Python (3.10+) y la app de Claude (MSIX) y avisa si falta algo.
  2. Crea .venv e instala requirements.txt (pywebpush) — descarga de PyPI, la pregunta antes.
  3. Crea estado\\ con: clave local (local.key), claves VAPID para avisos al celular, config.json si no existe.
- 4. Agrega al ~\\.claude\\settings.json (respaldo antes, une sin pisar lo tuyo): los hooks del Companero
+ 4. Agrega al ~\\.claude\\settings.json (respaldo antes, une sin pisar lo tuyo): los hooks de Kodama
     (SessionStart, UserPromptSubmit, Notification, Stop + puente, SessionEnd, PostToolUse) y la statusLine de uso.
- 5. Crea la tarea programada "Companero" (al iniciar sesion y cada 10 min) que corre arrancar.pyw.
+ 5. Crea la tarea programada "Kodama" (al iniciar sesion y cada 10 min) que corre arrancar.pyw.
  6. (21-oct) La mascota (Tauri) ya viene compilada en el paquete; 7. hooks de Codex y Antigravity si estan instalados.
  Flags (21-oct, para que lo corra el Claude de la persona): --acepto (licencia aceptada en el chat), --si (descargas).
  Lo normal es llegar aca desde instalar.ps1 (la linea de una sola orden del README publico), que baja el paquete,
  comprueba su sha256 y lo deja en estado\\instalacion\\ para que aca se verifique la firma.
-Telegram y Tailscale los configuras vos (el instalador te dice como); sin ellos el Companero anda solo en la PC.
+Telegram y Tailscale los configuras vos (el instalador te dice como); sin ellos Kodama anda solo en la PC.
 """
 import json
 import os
@@ -41,7 +41,8 @@ GEMINI_HOOKS = os.path.join(config.HOME, ".gemini", "config", "hooks.json")
 SETTINGS = os.path.join(config.HOME, ".claude", "settings.json")
 PY = sys.executable
 PYW = os.path.join(os.path.dirname(PY), "pythonw.exe")
-TAREA = "Companero"
+TAREA = "Kodama"
+TAREA_VIEJA = "Companero"   # (28-oct) nombre anterior de la tarea: se borra al instalar/quitar para no dejar dos
 NUESTROS = ("companero_hook.py", "companero_puente.py", "companero_uso.py", "companero_permiso.py")
 
 
@@ -66,7 +67,7 @@ def preguntar(txt):
 
 
 def cmd_hook(script, *args):
-    """(21-oct) con el Python del .venv del Companero (no depende de que "python" este en el PATH de la persona)."""
+    """(21-oct) con el Python del .venv de Kodama (no depende de que "python" este en el PATH de la persona)."""
     extra = "".join(" " + a for a in args)
     return f'"{PYV}" "{os.path.join(AQUI, script)}"{extra}'.replace("\\", "/")
 
@@ -113,7 +114,7 @@ def tocar_settings(poner):
         d.pop("statusLine")
     if not hooks:
         d.pop("hooks", None)
-    paso(f"  settings.json: eventos con hooks del Companero -> {sorted(hooks_nuestros()) if poner else 'ninguno'}")
+    paso(f"  settings.json: eventos con hooks de Kodama -> {sorted(hooks_nuestros()) if poner else 'ninguno'}")
     if PRUEBA:
         return
     if os.path.exists(SETTINGS):
@@ -147,7 +148,9 @@ def claves():
 
 
 def tarea(poner):
-    subprocess.run(["schtasks", "/Delete", "/TN", TAREA, "/F"], capture_output=True) if not PRUEBA else None
+    if not PRUEBA:
+        for t in (TAREA, TAREA_VIEJA):   # (28-oct) borra tambien la tarea "Companero" de versiones anteriores (solo la tarea, ningun proceso)
+            subprocess.run(["schtasks", "/Delete", "/TN", t, "/F"], capture_output=True)
     if not poner:
         paso(f'  tarea programada "{TAREA}" quitada')
         return
@@ -198,14 +201,15 @@ def otros_agentes(poner):
             d = json.load(open(GEMINI_HOOKS, encoding="utf-8"))
         except (OSError, ValueError):
             d = {}
-        d.pop("companero", None)
+        d.pop("companero", None)   # (28-oct) clave anterior del hook
+        d.pop("kodama", None)
         if poner:
             if " " in AQUI:
                 paso("  Antigravity: NO se conecta (su formato de hooks no admite carpetas con espacios en la ruta)")
             else:   # Antigravity corre el comando sin shell: SIN comillas (gotcha del 20-oct)
                 c = lambda ev, t: [{"type": "command", "command": cmd_hook("companero_antigravity.py", ev).replace('"', ""), "timeout": t}]
-                d["companero"] = {"SessionStart": c("SessionStart", 10), "PreInvocation": c("PreInvocation", 10), "Stop": c("Stop", 15)}
-        paso(f"  Antigravity: hook \"companero\" {'puesto' if poner and 'companero' in d else 'quitado'} en ~\\.gemini\\config\\hooks.json")
+                d["kodama"] = {"SessionStart": c("SessionStart", 10), "PreInvocation": c("PreInvocation", 10), "Stop": c("Stop", 15)}
+        paso(f"  Antigravity: hook \"kodama\" {'puesto' if poner and 'kodama' in d else 'quitado'} en ~\\.gemini\\config\\hooks.json")
         if not PRUEBA:
             _respaldo(GEMINI_HOOKS)
             os.makedirs(os.path.dirname(GEMINI_HOOKS), exist_ok=True)
@@ -259,7 +263,8 @@ def instalar():
     paso("5. Arranque automático")
     tarea(True)
     # (21-oct) la mascota ya viene compilada (Tauri) en el paquete: no se descarga nada
-    tauri = os.path.join(AQUI, "escritorio-tauri", "src-tauri", "target", "release", "companero.exe")
+    _rel = os.path.join(AQUI, "escritorio-tauri", "src-tauri", "target", "release")
+    tauri = os.path.join(_rel, "kodama.exe") if os.path.exists(os.path.join(_rel, "kodama.exe")) else os.path.join(_rel, "companero.exe")
     paso("6. Mascota de escritorio: " + ("incluida" if os.path.exists(tauri) else "NO viene en esta copia (solo celular/Telegram)"))
     if "--solo-claude" in sys.argv:
         paso("7. Codex y Antigravity: no (--solo-claude)")

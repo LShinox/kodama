@@ -53,7 +53,7 @@ def estado_tailscale():
 
 def iniciar_sesion_tailscale():
     """Lanza `up` sin esperar (se queda esperando el login) y devuelve la URL de inicio de sesion en cuanto aparece."""
-    subprocess.Popen([TS_EXE, f"--socket={SOCKET}", "up", "--hostname=companero", "--unattended"],
+    subprocess.Popen([TS_EXE, f"--socket={SOCKET}", "up", "--hostname=kodama", "--unattended"],
                      creationflags=SIN_VENTANA, close_fds=True)
     for _ in range(20):
         time.sleep(1)

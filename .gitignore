@@ -14,7 +14,8 @@ ts/
 .venv/
 node_modules/
 target/
-escritorio-tauri/ui/
+escritorio-tauri/ui/*
+!escritorio-tauri/ui/companero-tauri.js
 escritorio-tauri/src-tauri/gen/
 __pycache__/
 *.pyc

@@ -22,7 +22,7 @@ $Tx = @{
     pidePython = @{ es = 'Falta Python 3.10 o mas nuevo. Lo instalo con winget (Python 3.12, ~30 MB)?'; en = 'Python 3.10 or newer is missing. Install it with winget (Python 3.12, ~30 MB)?' }
     sinPython  = @{ es = 'Sin Python no se puede instalar.'; en = 'Cannot install without Python.' }
     buscando   = @{ es = 'Buscando la ultima version en github.com/{0}'; en = 'Looking for the latest version at github.com/{0}' }
-    faltanArch = @{ es = 'La version {0} no trae sus archivos (companero-{0}.zip y .json).'; en = 'Version {0} does not include its files (companero-{0}.zip and .json).' }
+    faltanArch = @{ es = 'La version {0} no trae sus archivos (kodama-{0}.zip y .json).'; en = 'Version {0} does not include its files (kodama-{0}.zip and .json).' }
     huella     = @{ es = 'El archivo bajado no coincide con su huella (sha256): no se instala nada.'; en = 'The downloaded file does not match its checksum (sha256): nothing was installed.' }
     bajada     = @{ es = 'Version {0} bajada y comprobada'; en = 'Version {0} downloaded and verified' }
     copiado    = @{ es = 'Copiado en {0}'; en = 'Copied to {0}' }
@@ -56,24 +56,24 @@ Paso "Python: $(& $py --version)"
 Paso (Tr 'buscando' $Repo)
 $rel = Invoke-RestMethod "https://api.github.com/repos/$Repo/releases/latest" -Headers @{ 'User-Agent' = 'Kodama-instalador' }
 $ver = $rel.tag_name.TrimStart('v', 'V')
-$zipA = $rel.assets | Where-Object name -eq "companero-$ver.zip"
-$jsonA = $rel.assets | Where-Object name -eq "companero-$ver.json"
+$zipA = $rel.assets | Where-Object name -eq "kodama-$ver.zip"
+$jsonA = $rel.assets | Where-Object name -eq "kodama-$ver.json"
 if (-not $zipA -or -not $jsonA) { throw (Tr 'faltanArch' $ver) }
-$tmp = Join-Path $env:TEMP "companero-$ver"
+$tmp = Join-Path $env:TEMP "kodama-$ver"
 New-Item -ItemType Directory -Force $tmp | Out-Null
-Invoke-WebRequest $zipA.browser_download_url -OutFile "$tmp\companero-$ver.zip" -UseBasicParsing
-Invoke-WebRequest $jsonA.browser_download_url -OutFile "$tmp\companero-$ver.json" -UseBasicParsing
-$man = Get-Content "$tmp\companero-$ver.json" -Raw | ConvertFrom-Json
-$sha = (Get-FileHash "$tmp\companero-$ver.zip" -Algorithm SHA256).Hash.ToLower()
+Invoke-WebRequest $zipA.browser_download_url -OutFile "$tmp\kodama-$ver.zip" -UseBasicParsing
+Invoke-WebRequest $jsonA.browser_download_url -OutFile "$tmp\kodama-$ver.json" -UseBasicParsing
+$man = Get-Content "$tmp\kodama-$ver.json" -Raw | ConvertFrom-Json
+$sha = (Get-FileHash "$tmp\kodama-$ver.zip" -Algorithm SHA256).Hash.ToLower()
 if ($sha -ne $man.sha256) { throw (Tr 'huella') }
 Paso (Tr 'bajada' $ver)
 
 # 3. Descomprimir (sin pisar estado\, config.json ni el .venv si ya estaba instalado)
 New-Item -ItemType Directory -Force $Destino | Out-Null
-Expand-Archive "$tmp\companero-$ver.zip" -DestinationPath $Destino -Force
+Expand-Archive "$tmp\kodama-$ver.zip" -DestinationPath $Destino -Force
 $inst = Join-Path $Destino 'estado\instalacion'
 New-Item -ItemType Directory -Force $inst | Out-Null
-Copy-Item "$tmp\companero-$ver.zip", "$tmp\companero-$ver.json" $inst -Force
+Copy-Item "$tmp\kodama-$ver.zip", "$tmp\kodama-$ver.json" $inst -Force
 Remove-Item $tmp -Recurse -Force
 Paso (Tr 'copiado' $Destino)
 

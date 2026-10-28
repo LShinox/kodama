@@ -6,7 +6,7 @@ por defecto: sin chats fijos (se eligen desde los grupos de la app de Claude) y 
 
 config.json:
 {
-  "url_publica": "https://companero.<tu-tailnet>.ts.net",   # direccion de la app del celular (Tailscale)
+  "url_publica": "https://kodama.<tu-tailnet>.ts.net",   # direccion de la app del celular (Tailscale)
   "token_telegram": "C:/ruta/al/token.txt",                  # opcional; vacio = sin Telegram
   "chats": [                                                  # chats fijos ("Personales"), por carpeta
     {"carpeta": "~/Proyectos/juego", "id": "juegos", "nombre": "Juegos", "emoji": "🎮", "color": "#2E8B57"}

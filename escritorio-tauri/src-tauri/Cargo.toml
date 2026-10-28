@@ -1,7 +1,7 @@
 # © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt.
 [package]
-name = "companero"
-version = "0.1.0"
+name = "kodama"
+version = "1.0.0"
 edition = "2021"
 publish = false
 

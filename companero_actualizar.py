@@ -2,8 +2,8 @@
 """(21-oct-2026) Actualizador del Companero, por los "releases" del repo publico de GitHub (config.REPO).
 
 Cada release `vX.Y.Z` trae dos archivos que arma herramientas\\publicar_version.py:
-  companero-X.Y.Z.zip   el programa (sin estado\\, respaldos\\, ts\\, .venv\\ ni config.json)
-  companero-X.Y.Z.json  {"version", "sha256", "firma", "notas"}: firma Ed25519 del sha256 con la clave privada de LShinox
+  kodama-X.Y.Z.zip      el programa (sin estado\\, respaldos\\, ts\\, .venv\\ ni config.json)
+  kodama-X.Y.Z.json     {"version", "sha256", "firma", "notas"}: firma Ed25519 del sha256 con la clave privada de LShinox
 Solo se instala si el sha256 coincide Y la firma valida contra clave_publica.txt (viene con el programa). Sin esa
 clave, no se instala nada: un zip cambiado en GitHub no puede meterse en la PC de nadie.
 
@@ -65,7 +65,9 @@ def buscar():
     if not v or _num(v) <= _num(config.VERSION):
         return None
     a = {x.get("name"): x.get("browser_download_url") for x in rel.get("assets") or []}
-    z, m = a.get(f"companero-{v}.zip"), a.get(f"companero-{v}.json")
+    # (28-oct) el release se llama kodama-X.zip; los anteriores, companero-X.zip: se aceptan los dos
+    z = a.get(f"kodama-{v}.zip") or a.get(f"companero-{v}.zip")
+    m = a.get(f"kodama-{v}.json") or a.get(f"companero-{v}.json")
     if not z or not m:
         return None
     return {"version": v, "notas": (rel.get("body") or "")[:1500], "zip": z, "manifiesto": m, "pagina": rel.get("html_url")}
@@ -97,7 +99,7 @@ def descargar(info):
     os.makedirs(CARPETA, exist_ok=True)
     try:
         man = json.loads(_get(info["manifiesto"]))
-        ruta = os.path.join(CARPETA, f"companero-{info['version']}.zip")
+        ruta = os.path.join(CARPETA, f"kodama-{info['version']}.zip")
         with open(ruta, "wb") as f:
             f.write(_get(info["zip"], timeout=300))
     except Exception as e:
@@ -118,7 +120,7 @@ def lanzar_aplicar(ruta_zip):
 
 
 def _parar(pidfile, texto):
-    """Para SOLO el proceso del Companero cuyo PID esta en estado\\<pidfile> (y si su linea de comando lo confirma)."""
+    """Para SOLO el proceso de Kodama cuyo PID esta en estado\\<pidfile> (y si su linea de comando lo confirma)."""
     try:
         pid = int(open(os.path.join(EST, pidfile)).read().strip())
     except (OSError, ValueError):
@@ -126,7 +128,7 @@ def _parar(pidfile, texto):
     out = subprocess.run(["powershell", "-NoProfile", "-Command",
                           f"(Get-CimInstance Win32_Process -Filter 'ProcessId={pid}').CommandLine"],
                          capture_output=True, text=True, timeout=30, creationflags=0x08000000).stdout
-    if texto in out:
+    if any(t in out for t in ((texto,) if isinstance(texto, str) else texto)):
         subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, creationflags=0x08000000)
         log(f"parado PID {pid} ({texto})")
 
@@ -143,7 +145,7 @@ def aplicar(ruta_zip):
     try:
         time.sleep(2)   # que el hub termine de responder
         _parar("hub.pid", "companero_hub.py")
-        _parar("escritorio.pid", "companero")
+        _parar("escritorio.pid", ("kodama.exe", "companero.exe"))
         time.sleep(2)
         req_viejo = open(os.path.join(APP, "requirements.txt"), "rb").read() if os.path.exists(os.path.join(APP, "requirements.txt")) else b""
         with zipfile.ZipFile(ruta_zip) as z:

@@ -1,10 +1,10 @@
 # © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt.
 param([int]$seg = 30)
-# CPU de la mascota (companero.exe + sus WebView2), por tipo de proceso, en % de UN nucleo
+# CPU de la mascota (kodama.exe + sus WebView2), por tipo de proceso, en % de UN nucleo
 $ids = @()
-$m = Get-Process companero -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($m) { $ids += [pscustomobject]@{ id = $m.Id; t = 'companero.exe' } }
-Get-CimInstance Win32_Process -Filter "Name='msedgewebview2.exe'" | Where-Object { $_.CommandLine -match 'webview-exe-name=companero' } | ForEach-Object {
+$m = Get-Process kodama, companero -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($m) { $ids += [pscustomobject]@{ id = $m.Id; t = 'kodama.exe' } }
+Get-CimInstance Win32_Process -Filter "Name='msedgewebview2.exe'" | Where-Object { $_.CommandLine -match 'webview-exe-name=(kodama|companero)' } | ForEach-Object {
     $t = ([regex]'--type=(\S+)').Match($_.CommandLine).Groups[1].Value; if (-not $t) { $t = 'browser' }
     $ids += [pscustomobject]@{ id = $_.ProcessId; t = $t }
 }

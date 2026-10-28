@@ -5,12 +5,12 @@ y te dejan responderles sin ir al chat. © 2026 LShinox — código bajo PolyFor
 
 ## Qué necesitas
 - Windows 10/11 con la **app de escritorio de Claude** (pestaña Code).
-- **Python 3.10+** (python.org). Para la mascota de escritorio, **Node.js** (nodejs.org).
+- **Python 3.10+** (python.org). La mascota de escritorio ya viene compilada: no necesitas instalar nada más para ella.
 - Opcional, para el celular: **Tailscale** (gratis) en la PC y en el celular, con la misma cuenta.
 - Opcional, para avisos por Telegram: un bot propio (se crea con @BotFather).
 
 ## Instalar
-1. Copia la carpeta de Kodama donde quieras (por ejemplo `C:\Apps\companero`).
+1. Copia la carpeta de Kodama donde quieras (por ejemplo `C:\Apps\Kodama`).
 2. Abre una terminal en esa carpeta y prueba sin tocar nada: `python instalar.py --prueba`
 3. Si todo se ve bien: `python instalar.py` (te muestra la licencia, pregunta antes de cada descarga y respalda
    tu configuración de Claude antes de cambiarla).
@@ -46,7 +46,7 @@ Para quitarlo: `python instalar.py --quitar` (tus datos quedan; con `--borrar-da
   chat de Claude (por ejemplo para generar imágenes) no aparecen.
 - **Antigravity (Google), compatible en etapa 1:** cada conversación aparece en la mascota y el celular, se ve
   "trabajando" y avisa cuando termina. Todavía no se aprueban permisos ni se le escribe desde aquí. El instalador
-  deja `~\.gemini\config\hooks.json` (hook "companero").
+  deja `~\.gemini\config\hooks.json` (hook "kodama").
 
 ## Si algo falla
 - En el celular: "¿No puedes conectar?" (debajo de los chats) revisa todo en orden y dice qué hacer.
