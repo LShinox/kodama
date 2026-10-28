@@ -89,6 +89,24 @@ jobs:
         if: ${{ !cancelled() }}
         run: python pruebas/probar_plataforma_mac.py
 
+  macos-installer:
+    name: macOS installer (end to end, fake HOME)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      # instalar.sh against a LOCAL test package signed with a throwaway key (KODAMA_ORIGEN_PRUEBA is test-only). It runs with a
+      # fake HOME, never loads anything into launchd (--sin-launchctl) and never touches the real signing key (it is not in CI).
+      - name: Test - probar_instalador_mac (instalar.sh + instalar.py, fake HOME)
+        run: python pruebas/probar_instalador_mac.py
+
   windows:
     name: Windows (build + tests)
     runs-on: windows-latest

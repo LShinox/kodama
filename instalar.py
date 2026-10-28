@@ -1,5 +1,5 @@
 # © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt.
-"""Instalador de Kodama para Windows (14-oct-2026, paso 2 hacia el uso masivo).
+"""Instalador de Kodama para Windows y macOS (14-oct-2026, paso 2 hacia el uso masivo; macOS: Mac-F3, 28-oct-2026).
 
     python instalar.py --prueba     -> muestra TODO lo que haria, sin tocar nada (empezar siempre por aca)
     python instalar.py              -> instala / repara (se puede correr de nuevo sin romper nada)
@@ -19,6 +19,11 @@ Que hace, en orden:
  Flags (21-oct, para que lo corra el Claude de la persona): --acepto (licencia aceptada en el chat), --si (descargas).
  Lo normal es llegar aca desde instalar.ps1 (la linea de una sola orden del README publico), que baja el paquete,
  comprueba su sha256 y lo deja en estado\\instalacion\\ para que aca se verifique la firma.
+macOS (beta): lo normal es llegar desde instalar.sh (la linea `curl ... | bash` del README), que baja kodama-X-macos.zip,
+comprueba su sha256, crea el .venv (.venv/bin/python) y corre este archivo. Aca cambian solo: el venv, el "arranque
+automatico" (un LaunchAgent, ~/Library/LaunchAgents/app.kodama.plist, en vez de la tarea programada) y que los datos quedan
+en ~/Kodama/estado (igual que en Windows). Flag solo para pruebas: --sin-launchctl (escribe/borra el plist pero NO llama a
+launchctl ni lanza nada). --quitar en macOS: hooks, statusLine, Codex/Antigravity, launchctl bootout y borra el plist.
 Telegram y Tailscale los configuras vos (el instalador te dice como); sin ellos Kodama anda solo en la PC.
 """
 import json
@@ -32,12 +37,15 @@ import time
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 import config  # noqa: E402
+import kodama_plataforma as plataforma  # noqa: E402
 
 PRUEBA = "--prueba" in sys.argv
 QUITAR = "--quitar" in sys.argv
 ACEPTO = "--acepto" in sys.argv   # (21-oct) la persona acepto la licencia en el chat con su Claude
 SI = "--si" in sys.argv           # (21-oct) responde "sí" a las descargas (sin consola interactiva)
-PYV = os.path.join(AQUI, ".venv", "Scripts", "python.exe")
+SIN_LAUNCHCTL = "--sin-launchctl" in sys.argv   # (Mac-F3) SOLO pruebas: en macOS no llama a launchctl ni lanza nada
+MAC = sys.platform == "darwin"
+PYV = plataforma.python_del_venv(AQUI) if sys.platform in ("win32", "darwin") else ""   # Windows: .venv\Scripts\python.exe; macOS: .venv/bin/python
 CODEX_HOOKS = os.path.join(config.HOME, ".codex", "hooks.json")
 GEMINI_HOOKS = os.path.join(config.HOME, ".gemini", "config", "hooks.json")
 SETTINGS = os.path.join(config.HOME, ".claude", "settings.json")
@@ -50,6 +58,8 @@ NUESTROS = ("companero_hook.py", "companero_puente.py", "companero_uso.py", "com
 
 
 def paso(txt):
+    if MAC:   # (Mac-F3) los mensajes estan escritos con rutas de Windows (estado\, ~\.claude\...): en macOS, con /
+        txt = txt.replace("\\", "/")
     print(("[PRUEBA] " if PRUEBA else "") + txt)
 
 
@@ -187,7 +197,7 @@ def claves():
                       "from cryptography.hazmat.primitives import serialization as s\n"
                       "v = Vapid01(); v.generate_keys(); v.save_key(sys.argv[1])\n"
                       "open(sys.argv[2], 'w').write(b64urlencode(v.public_key.public_bytes(s.Encoding.X962, s.PublicFormat.UncompressedPoint)))\n")
-            subprocess.run([os.path.join(AQUI, ".venv", "Scripts", "python.exe"), "-c", codigo, priv, pub], check=True)
+            subprocess.run([PYV, "-c", codigo, priv, pub], check=True)
         hacer("  claves VAPID nuevas para los avisos del celular", gen)
     cfg = os.path.join(AQUI, "config.json")
     if not os.path.exists(cfg):
@@ -196,7 +206,26 @@ def claves():
                                 open(cfg, "w", encoding="utf-8"), indent=2))
 
 
+def lanzador_mac(poner):
+    """(Mac-F3) El equivalente de la tarea programada en macOS: un LaunchAgent (arrancar_mac.py). Con --sin-launchctl solo
+    escribe/borra el plist (para las pruebas de CI); sin esa bandera lo carga/descarga con launchctl."""
+    import arrancar_mac as am
+    if not poner:
+        hacer(f'  LaunchAgent "{am.ETIQUETA}" quitado ({am.ruta_plist()})', lambda: am.quitar(descargar=not SIN_LAUNCHCTL))
+        return
+
+    def crear():
+        r = am.instalar(AQUI, PYV, cargar=not SIN_LAUNCHCTL)
+        if not r["ok"]:   # el plist ya esta escrito: se avisa, no se corta (se carga al proximo inicio de sesion)
+            paso(f"  ojo: el LaunchAgent quedo escrito pero launchctl no lo cargo ({r['detalle']}). Cierra sesion y vuelve a entrar, "
+                 f"o corre: launchctl bootstrap gui/$(id -u) {r['ruta']}")
+    hacer(f'  LaunchAgent "{am.ETIQUETA}": al iniciar sesion y cada 10 min -> arrancar.pyw ({am.ruta_plist()})'
+          + (" [sin launchctl]" if SIN_LAUNCHCTL else ""), crear)
+
+
 def tarea(poner):
+    if MAC:
+        return lanzador_mac(poner)
     if not PRUEBA:
         for t in (TAREA, TAREA_VIEJA):   # (28-oct) borra tambien la tarea "Companero" de versiones anteriores (solo la tarea, ningun proceso)
             subprocess.run(["schtasks", "/Delete", "/TN", t, "/F"], capture_output=True)
@@ -282,8 +311,26 @@ def verificar_paquete():
     paso("  firma del paquete verificada")
 
 
+def preparar_binario_mac(ruta):
+    """(Mac-F3) El zip no guarda permisos de ejecucion de forma fiable: se los pone al binario de la mascota. Una descarga con
+    curl no trae el atributo de cuarentena (Gatekeeper no la bloquea); si aun asi lo trae (bajado con un navegador, AirDrop...),
+    se quita SOLO de ese binario, jamas de otra cosa."""
+    try:
+        os.chmod(ruta, 0o755)
+    except OSError as e:
+        paso(f"  ojo: no pude hacer ejecutable {ruta}: {e}")
+    if not os.path.exists("/usr/bin/xattr"):
+        return
+    r = subprocess.run(["/usr/bin/xattr", "-p", "com.apple.quarantine", ruta], capture_output=True, text=True)
+    if r.returncode == 0:
+        subprocess.run(["/usr/bin/xattr", "-d", "com.apple.quarantine", ruta], capture_output=True, text=True)
+        paso("  cuarentena de macOS quitada del binario de la mascota")
+
+
 def instalar():
     print("Kodama — instalación" + (" (PRUEBA: no se toca nada)" if PRUEBA else ""))
+    if sys.platform not in ("win32", "darwin"):
+        raise SystemExit("Kodama funciona en Windows y macOS (beta).")
     if ACEPTO:
         paso("Licencia aceptada (--acepto)")
     else:
@@ -295,10 +342,10 @@ def instalar():
     paso(f"1. Python {sys.version.split()[0]} OK · app de Claude: {config.dir_app_claude()}"
          + ("" if os.path.isdir(config.dir_app_claude()) else "  (NO ENCONTRADA: los grupos de la app no van a andar)"))
     venv = os.path.join(AQUI, ".venv")
-    if not os.path.exists(os.path.join(venv, "Scripts", "python.exe")):
+    if not os.path.exists(PYV):
         if preguntar("2. ¿Crear .venv e instalar pywebpush (descarga ~5 MB de PyPI)?"):
             subprocess.run([PY, "-m", "venv", venv], check=True)
-            subprocess.run([os.path.join(venv, "Scripts", "python.exe"), "-m", "pip", "install", "-r",
+            subprocess.run([PYV, "-m", "pip", "install", "-r",
                             os.path.join(AQUI, "requirements.txt")], check=True)
     else:
         paso("2. .venv ya existe")
@@ -306,21 +353,27 @@ def instalar():
         raise SystemExit("Sin .venv no se puede seguir (los avisos usan ese Python). No se tocó la configuración de Claude.")
     verificar_paquete() if not PRUEBA else paso("  (prueba: no se verifica la firma)")
     paso("3. Claves y configuración")
+    if MAC and not PRUEBA:   # (Mac-F3) carpetas de datos: junto al programa, como en Windows (~/Kodama/estado, respaldos, ts)
+        for d in (config.ESTADO, config.RESPALDOS, config.TS_DIR, os.path.join(config.ESTADO, "instalacion")):
+            os.makedirs(d, exist_ok=True)
     claves()
     paso("4. Hooks y medidor de uso en ~\\.claude\\settings.json")
     tocar_settings(True)
-    paso("5. Arranque automático")
+    paso("5. Arranque automático" + (" (LaunchAgent)" if MAC else ""))
     tarea(True)
     # (21-oct) la mascota ya viene compilada (Tauri) en el paquete: no se descarga nada
-    _rel = os.path.join(AQUI, "escritorio-tauri", "src-tauri", "target", "release")
-    tauri = os.path.join(_rel, "kodama.exe") if os.path.exists(os.path.join(_rel, "kodama.exe")) else os.path.join(_rel, "companero.exe")
+    tauri = plataforma.ruta_exe_mascota(AQUI)   # kodama.exe (o el viejo companero.exe) en Windows; el binario `kodama` en macOS
+    if MAC and os.path.exists(tauri) and not PRUEBA:
+        preparar_binario_mac(tauri)
     paso("6. Mascota de escritorio: " + ("incluida" if os.path.exists(tauri) else "NO viene en esta copia (solo celular/Telegram)"))
     if "--solo-claude" in sys.argv:
         paso("7. Codex y Antigravity: no (--solo-claude)")
     else:
         paso("7. Codex y Antigravity (si los tienes)")
         otros_agentes(True)
-    if not PRUEBA:
+    if MAC:   # el LaunchAgent (RunAtLoad) ya lo lanza al cargarse; con --sin-launchctl no se lanza nada
+        paso("8. " + ("Sin lanzar nada (--sin-launchctl)" if SIN_LAUNCHCTL else "La mascota aparece sola (el LaunchAgent la lanza al cargarse)"))
+    elif not PRUEBA:
         subprocess.Popen([os.path.join(AQUI, ".venv", "Scripts", "pythonw.exe"), os.path.join(AQUI, "arrancar.pyw")], cwd=AQUI,
                          creationflags=0x00000008, close_fds=True)   # que aparezca ya, sin esperar los 10 min de la tarea
     print("\nListo. Falta (opcional, a mano):\n"
@@ -373,7 +426,7 @@ def quitar():
         tocar_settings(False)
     tarea(False)
     otros_agentes(False)
-    paso("  la mascota de escritorio y el hub se cierran solos al reiniciar la PC (o cerralos desde la bandeja)")
+    paso("  la mascota de escritorio y el hub se cierran solos al reiniciar " + ("el Mac" if MAC else "la PC") + " (o cerralos desde la bandeja)")
     if "--borrar-datos" in sys.argv and (PRUEBA or input("¿Borrar estado\\, respaldos\\ y ts\\ (no se puede deshacer)? escribe BORRAR: ") == "BORRAR"):
         for d in (config.ESTADO, config.RESPALDOS, config.TS_DIR):
             hacer(f"  borrar {d}", lambda d=d: shutil.rmtree(d, ignore_errors=True))

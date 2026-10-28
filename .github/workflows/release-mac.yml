@@ -1,0 +1,74 @@
+# (c) 2026 LShinox - PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). See LICENSE.txt.
+# Builds the UNIVERSAL (arm64 + x86_64) macOS binary of the desktop pet and uploads it as the artifact `kodama-macos-universal`.
+# Manual only (Actions > "Release macOS (universal binary)" > Run workflow). It does NOT sign, publish or create any release and
+# uses no secrets: the maintainer downloads the artifact and runs herramientas/publicar_version.py --mac on their own PC, where
+# the release signing key lives (see herramientas/LEEME-mac.md).
+name: Release macOS (universal binary)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  universal:
+    name: macOS universal binary
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: escritorio-tauri/src-tauri
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: escritorio-tauri/package-lock.json
+
+      - name: Install JS dependencies
+        working-directory: escritorio-tauri
+        run: npm ci
+
+      - name: Prepare the pet UI
+        working-directory: escritorio-tauri
+        run: node preparar-ui.js
+
+      - name: Build the pet (universal-apple-darwin)
+        working-directory: escritorio-tauri
+        run: npx tauri build --no-bundle --target universal-apple-darwin
+
+      - name: Check the binary is universal
+        working-directory: escritorio-tauri/src-tauri
+        run: |
+          set -eu
+          OUT=target/universal-apple-darwin/release
+          BIN="$OUT/kodama"
+          if [ ! -f "$BIN" ]; then
+            # fallback: the Tauri CLI built both architectures but did not merge them; merge them here
+            ARM=target/aarch64-apple-darwin/release/kodama
+            X86=target/x86_64-apple-darwin/release/kodama
+            [ -f "$ARM" ] && [ -f "$X86" ] || { echo "No universal binary and no per-architecture binaries found"; exit 1; }
+            mkdir -p "$OUT"
+            lipo -create -output "$BIN" "$ARM" "$X86"
+          fi
+          ARCHS=$(lipo -archs "$BIN")
+          echo "Architectures: $ARCHS"
+          case "$ARCHS" in *arm64*) ;; *) echo "arm64 is missing"; exit 1 ;; esac
+          case "$ARCHS" in *x86_64*) ;; *) echo "x86_64 is missing"; exit 1 ;; esac
+          chmod 755 "$BIN"
+          shasum -a 256 "$BIN"
+
+      - name: Upload the universal macOS binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodama-macos-universal
+          path: escritorio-tauri/src-tauri/target/universal-apple-darwin/release/kodama
+          retention-days: 30
+          if-no-files-found: error

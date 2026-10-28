@@ -72,8 +72,9 @@ def estado():
     return {"escrito": os.path.exists(ruta_plist()), "cargado": cargado}
 
 
-def instalar(app_dir=None, python=None):
-    """Escribe el plist y lo carga (reemplazando uno anterior). Devuelve {'ok', 'ruta', 'detalle'}."""
+def instalar(app_dir=None, python=None, cargar=True):
+    """Escribe el plist y lo carga (reemplazando uno anterior). Devuelve {'ok', 'ruta', 'detalle'}.
+    `cargar=False` (F3, solo pruebas: instalar.py --sin-launchctl): escribe el plist pero NO llama a launchctl."""
     if sys.platform != "darwin":
         return {"ok": False, "ruta": ruta_plist(), "detalle": "solo en macOS"}
     ruta = ruta_plist()
@@ -84,6 +85,8 @@ def instalar(app_dir=None, python=None):
         f.write(plist_bytes(app_dir, python))
     os.replace(tmp, ruta)
     os.chmod(ruta, 0o644)
+    if not cargar:
+        return {"ok": True, "ruta": ruta, "detalle": "plist escrito (sin launchctl)"}
     try:
         _launchctl("bootout", f"{_dominio()}/{ETIQUETA}")   # si ya estaba cargado, se recarga con lo nuevo (si no, da error: se ignora)
         rc, msg = _launchctl("bootstrap", _dominio(), ruta)
@@ -94,14 +97,15 @@ def instalar(app_dir=None, python=None):
     return {"ok": rc == 0, "ruta": ruta, "detalle": msg or "cargado"}
 
 
-def quitar():
-    """Lo descarga y borra el plist. Devuelve {'ok', 'detalle'}."""
+def quitar(descargar=True):
+    """Lo descarga y borra el plist. Devuelve {'ok', 'detalle'}. `descargar=False` (solo pruebas): no llama a launchctl."""
     if sys.platform != "darwin":
         return {"ok": False, "detalle": "solo en macOS"}
-    try:
-        _launchctl("bootout", f"{_dominio()}/{ETIQUETA}")
-    except (OSError, subprocess.SubprocessError):
-        pass
+    if descargar:
+        try:
+            _launchctl("bootout", f"{_dominio()}/{ETIQUETA}")
+        except (OSError, subprocess.SubprocessError):
+            pass
     try:
         os.remove(ruta_plist())
     except FileNotFoundError:
