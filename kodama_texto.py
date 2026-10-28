@@ -144,6 +144,7 @@ _EN = {
     "OK, adelante.": "OK, go ahead.", "Sigue con lo que ibas.": "Carry on with what you were doing.",
     "Para ahí y espera mis instrucciones.": "Stop there and wait for my instructions.",
     "Explícame lo anterior en 3 líneas, sin jerga.": "Explain the above in 3 lines, no jargon.",
+    "Kodama, responde aquí": "Kodama, reply here",
 }
 
 
@@ -151,6 +152,26 @@ def tr(es, **kw):
     """Texto en el idioma de config.json; las llaves {x} se completan con kw."""
     txt = _EN.get(es, es) if config.IDIOMA == "en" else es
     return txt.format(**kw) if kw else txt
+
+
+# (28-oct, "Etiqueta") Lo que Kodama antepone a un mensaje que entrega a un chat de Claude Code desde el celular (📱) o la mascota (🐾):
+# "📱 Nombre (Kodama, responde aquí): texto" / en ingles "📱 Name (Kodama, reply here): texto". Antes era una frase larga entre corchetes
+# ("📱 [Nombre, desde el celular, con Kodama; contéstale aquí en este chat] "); esa sigue reconociéndose porque quedó en transcripts.
+_TAG_KODAMA = _re.compile(r"^(?:📱|🐾) .{1,60}\(Kodama, (?:responde aquí|reply here)\): ")
+_TAG_KODAMA_ANTIGUO = "con Kodama; contéstale aquí"
+
+
+def etiqueta_kodama(marca="📱 ", nombre=None):
+    """Etiqueta (con el espacio final) para un mensaje entregado por Kodama; el idioma sigue al ajuste de Kodama."""
+    emoji = "🐾" if (marca or "").strip().startswith("🐾") else "📱"
+    nombre = " ".join(str(nombre if nombre else config.NOMBRE).split())[:40] or "?"
+    return f"{emoji} {nombre} ({tr('Kodama, responde aquí')}): "
+
+
+def es_entrega_kodama(texto):
+    """True si el texto empieza con la etiqueta de Kodama (nueva en es/en, o la antigua)."""
+    t = (texto or "").strip()
+    return bool(_TAG_KODAMA.match(t)) or _TAG_KODAMA_ANTIGUO in t[:200]
 
 
 def titulo_aviso(emo, nombre, tipo, n):

@@ -8,10 +8,9 @@ import os
 import re as _re
 import time
 
-import config
 import kodama_plataforma as plataforma
 from kodama_nucleo import PERMISOS, PUENTE, REGLAS_PERMISO, SES, api, log
-from kodama_texto import redactar, tr
+from kodama_texto import etiqueta_kodama, redactar, tr
 
 
 def leer_reglas():
@@ -171,9 +170,8 @@ def entregar(s, texto, marca="📱 "):
     # (21-oct) por el buzon, Claude Code lo envuelve como "mensaje de OTRA sesion": un chat (Rol) contesto "no pude
     # responderle a esa sesion" sin saber que era LShinox desde el celular. La marca ahora dice quien escribe y donde
     # contestar. (Sigue sin contar como aprobacion: eso solo pasa por el puente, cuando el chat te estaba esperando.)
-    quien = (f"{config.NOMBRE}, desde la mascota del escritorio" if marca.startswith("🐾")
-             else f"{config.NOMBRE}, desde el celular")
-    etiqueta = f"{marca.strip()} [{quien}, con Kodama; contéstale aquí en este chat] "
+    # (28-oct, "Etiqueta") mas corta y en el idioma de Kodama: "📱 Nombre (Kodama, responde aquí): " (🐾 si viene de la mascota)
+    etiqueta = etiqueta_kodama(marca)
     try:
         with p:
             p.write((json.dumps({"type": "auth", "token": s["token"]}) + "\n").encode())

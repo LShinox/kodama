@@ -5,6 +5,7 @@ ni las sesiones reales: todo el estado va a una carpeta temporal y `api` del hub
   1) cerrar el aviso cuando respondes directo en la PC: el hook real recibe UserPromptSubmit -> cola -> procesar_cola del hub -> los botones
      de Telegram de ese chat quedan en "✓ Respondiste en la PC"; lo que Kodama mismo entrego (buzon o puente) no cierra nada dos veces.
   2) "pensando" vs "ejecutando": el hook ligero (PreToolUse) y el hook completo (PostToolUse / UserPromptSubmit / Stop) y la lectura del hub.
+  3) (28-oct) la etiqueta con que Kodama entrega un mensaje al chat ("📱 Nombre (Kodama, responde aquí): ", en/es) y su deteccion, incluida la antigua.
 No imprime textos de mensajes ni claves. Uso: python probar_ultimos.py"""
 import io, json, os, shutil, sys, tempfile, time
 
@@ -23,6 +24,8 @@ def ver(nombre, obtenido, esperado):
     print(("OK  " if ok else "MAL ") + f"{nombre}: {obtenido!r}" + ("" if ok else f" (esperado {esperado!r})"))
     if not ok:
         mal.append(nombre)
+        if os.environ.get("GITHUB_ACTIONS") == "true":   # (28-oct) anotacion visible sin login: la prueba falla a veces solo en CI
+            print(f"::error title=probar_ultimos::{nombre}: {obtenido!r} (esperado {esperado!r})"[:400].replace("\n", " "))
 
 
 tmp = tempfile.mkdtemp(prefix="kodama-prueba-")
@@ -67,6 +70,11 @@ try:
     ver("fase_parse pensando", h.fase_parse("pensando||990.0", ahora), ("pensando", None))
     ver("fase_parse categoria rara -> herramienta", h.fase_parse("ejecutando|xx|999.0", ahora), ("ejecutando", "herramienta"))
     ver("fase_parse basura", h.fase_parse("hola", ahora), (None, None))
+    # (28-oct) la hora del hook va redondeada a 0.01 s: leida al instante puede quedar unos ms "en el futuro" (o igual, con el reloj de
+    # Windows que avanza a saltos de ~16 ms). Eso es ejecutando; una hora muy futura (reloj corrido) no.
+    ver("fase_parse: 5 ms en el futuro sigue ejecutando", h.fase_parse("ejecutando|comando|1000.01", 1000.005), ("ejecutando", "comando"))
+    ver("fase_parse: hora de la fase igual a ahora", h.fase_parse("ejecutando|web|1000.00", ahora), ("ejecutando", "web"))
+    ver("fase_parse: 1 min en el futuro (reloj corrido) -> pensando", h.fase_parse("ejecutando|web|1060.0", ahora), ("pensando", None))
     for tool, esperado in [("Bash", "comando"), ("PowerShell", "comando"), ("WebFetch", "web"), ("WebSearch", "web"), ("Agent", "subagente"), ("Task", "subagente"),
                            ("mcp__claude-in-chrome__navigate", "web"), ("mcp__Claude_Browser__computer", "web"), ("mcp__wp-ejemplo__wp_list_posts", "herramienta"),
                            ("Read", ""), ("Edit", ""), ("Grep", "")]:
@@ -119,15 +127,29 @@ try:
     ver("duplicado: cero llamadas", len(llamadas), 0)
     # (c) un mensaje que entrego Kodama (buzon, con su marca) no cierra
     os.remove(cola)
-    hook_real(ent("UserPromptSubmit", prompt="📱 [LShinox, desde el celular, con Kodama; contéstale aquí en este chat] OK, adelante."))
+    hook_real(ent("UserPromptSubmit", prompt="📱 LShinox (Kodama, responde aquí): OK, adelante."))
     conf = conf_nueva(); llamadas.clear()
     h.procesar_cola(conf, 0)
-    ver("buzon de Kodama: no cierra (ya lo cerro Kodama al responder)", (len(llamadas), CMD in conf["tg_abiertos"]), (0, True))
-    os.remove(cola)
-    hook_real(ent("UserPromptSubmit", prompt="🐾 [LShinox, desde la mascota del escritorio, con Kodama; contéstale aquí en este chat] Sigue."))
-    conf = conf_nueva(); llamadas.clear()
-    h.procesar_cola(conf, 0)
-    ver("buzon (mascota): no cierra", len(llamadas), 0)
+    ver("buzon de Kodama (etiqueta nueva, es): no cierra (ya lo cerro Kodama al responder)", (len(llamadas), CMD in conf["tg_abiertos"]), (0, True))
+    # (28-oct) las demas formas de la etiqueta: mascota, ingles y la antigua (quedo en transcripts); ninguna cierra
+    for nombre_caso, prompt in [("mascota, es", "🐾 LShinox (Kodama, responde aquí): Sigue."),
+                                ("celular, en", "📱 LShinox (Kodama, reply here): OK, go ahead."),
+                                ("mascota, en", "🐾 LShinox (Kodama, reply here): Carry on."),
+                                ("antigua, celular", "📱 [LShinox, desde el celular, con Kodama; contéstale aquí en este chat] OK, adelante."),
+                                ("antigua, mascota", "🐾 [LShinox, desde la mascota del escritorio, con Kodama; contéstale aquí en este chat] Sigue.")]:
+        os.remove(cola)
+        hook_real(ent("UserPromptSubmit", prompt=prompt))
+        conf = conf_nueva(); llamadas.clear()
+        h.procesar_cola(conf, 0)
+        ver(f"etiqueta {nombre_caso}: no cierra", len(llamadas), 0)
+    # lo que escribes tu (aunque empiece con el emoji, o diga "Kodama") NO es una entrega de Kodama: sigue cerrando
+    for nombre_caso, prompt in [("emoji suelto", "📱 hola, ya lo vi"), ("sin dos puntos", "📱 LShinox (Kodama, responde aquí) ya"),
+                                ("texto parecido", "Kodama, responde aquí: ok"), ("etiqueta en medio", "ok 📱 LShinox (Kodama, reply here): x")]:
+        os.remove(cola)
+        hook_real(ent("UserPromptSubmit", prompt=prompt))
+        conf = conf_nueva(); llamadas.clear()
+        h.procesar_cola(conf, 0)
+        ver(f"tuyo ({nombre_caso}): si cierra", len(llamadas), 2)
     # (d) puente: sin marca, pero Kodama lo registro en respuestas.jsonl hace segundos
     os.remove(cola)
     open(resp, "w", encoding="utf-8").write(json.dumps({"ts": time.time() - 3, "evento": "yo", "chat": CMD, "texto": "Sigue con lo que ibas.", "via": "telegram"}) + "\n")
@@ -154,6 +176,34 @@ try:
     h.cerrar_avisos(conf, CMD, "ok")
     ver("cierre por Telegram: etiqueta de siempre", {p["reply_markup"]["inline_keyboard"][0][0]["text"] for m, p in llamadas}, {"✓ Respondiste: ok"})
     ver("EN: traduccion de la etiqueta nueva", h._EN.get("✓ Respondiste en la PC"), "✓ You replied on the PC")
+
+    # ============ 3) la etiqueta que antepone entregar() ============
+    print("--- etiqueta de entrega")
+    import kodama_plataforma as plat
+
+    class Buzon:
+        def __init__(self): self.datos = b""
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def write(self, b): self.datos += b
+
+    def lo_que_entrega(marca, idioma):
+        """Llama a entregar() con un buzon falso y devuelve el texto que le habria llegado al chat."""
+        b, guardado = Buzon(), (config.IDIOMA, config.NOMBRE, plat.es_ruta_buzon, plat.abrir_buzon, h.por_puente)
+        try:
+            config.IDIOMA, config.NOMBRE = idioma, "LShinox"
+            plat.es_ruta_buzon, plat.abrir_buzon, h.por_puente = (lambda r: True), (lambda r: b), (lambda s, t: False)
+            err = h.entregar({"socket": "x", "token": "t"}, "hola", marca)
+        finally:
+            config.IDIOMA, config.NOMBRE, plat.es_ruta_buzon, plat.abrir_buzon, h.por_puente = guardado
+        lineas = [json.loads(l) for l in b.datos.decode("utf-8").splitlines()]
+        return err, (lineas[1]["message"]["content"] if len(lineas) == 2 else None)
+
+    for marca, idioma, esperado in [("📱 ", "es", "📱 LShinox (Kodama, responde aquí): hola"), ("🐾 ", "es", "🐾 LShinox (Kodama, responde aquí): hola"),
+                                    ("📱 ", "en", "📱 LShinox (Kodama, reply here): hola"), ("🐾 ", "en", "🐾 LShinox (Kodama, reply here): hola")]:
+        err, texto = lo_que_entrega(marca, idioma)
+        ver(f"entregar {marca.strip()} {idioma}: etiqueta", (err, texto), (None, esperado))
+        ver(f"entregar {marca.strip()} {idioma}: Kodama la reconoce como suya", h.entregado_por_kodama(texto, CMD), True)
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 

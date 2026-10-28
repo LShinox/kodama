@@ -11,7 +11,7 @@ import time
 import config
 from kodama_plataforma import segundos_sin_uso
 from kodama_nucleo import AUSENTE_SEG, BASE, CHATS, COLA, RESP, api, guardar_conf, leer_ultimas, log
-from kodama_texto import clasificar, pendientes, redactar, titulo_aviso, tr
+from kodama_texto import clasificar, es_entrega_kodama, pendientes, redactar, titulo_aviso, tr
 from kodama_push import push_a_todos
 from kodama_chats import info, mirando_chat, mirando_claude, sesiones, silenciado
 from kodama_permisos import PERM_TG
@@ -141,13 +141,10 @@ def cerrar_avisos(conf, cmd, texto="", etiqueta=None):
 # (27-oct, idea de clawd #1062: "el aviso de permiso se queda aunque Codex lo resolvio en nativo") Si le escribes a un chat directo en la
 # app de Claude de la PC (el hook manda UserPromptSubmit a la cola), sus avisos pendientes se cierran igual que si respondieras desde Kodama.
 # Lo que Kodama mismo entrego (buzon o puente) NO cuenta: ya cerro sus avisos al responder, y asi no hay un cierre duplicado.
-_MARCAS_KODAMA = ("📱", "🐾")
-_ENTREGA_KODAMA = "con Kodama; contéstale aquí"
-
-
+# (28-oct, "Etiqueta") la etiqueta nueva ("📱 Nombre (Kodama, responde aquí): ", o "reply here") y la antigua se reconocen en kodama_texto.
 def entregado_por_kodama(texto, cmd):
     t = (texto or "").strip()
-    if t.startswith(_MARCAS_KODAMA) or _ENTREGA_KODAMA in t[:200]:
+    if es_entrega_kodama(t):
         return True
     try:   # respuesta por el puente (sin marca): igual a una que Kodama registro hace menos de 2 min para ese chat
         for l in leer_ultimas(RESP, 40):

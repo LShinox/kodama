@@ -192,6 +192,7 @@ def historial():
 
 
 FASE_EJEC_SEG = 60                      # (27-oct) sin PostToolUse, "ejecutando" vuelve solo a "pensando" a los 60 s
+FASE_TOL_SEG = 2                       # (28-oct) la hora del hook va redondeada a 0.01 s (hasta 5 ms "en el futuro") y en Windows el reloj avanza a saltos de ~16 ms
 FASE_TIPOS = ("comando", "web", "subagente", "herramienta")
 
 
@@ -204,7 +205,7 @@ def fase_parse(txt, ahora=None):
     except ValueError:
         return None, None
     ahora = time.time() if ahora is None else ahora
-    if fase == "ejecutando" and 0 <= ahora - ts <= FASE_EJEC_SEG:
+    if fase == "ejecutando" and -FASE_TOL_SEG <= ahora - ts <= FASE_EJEC_SEG:
         return "ejecutando", (cat if cat in FASE_TIPOS else "herramienta")
     return ("pensando", None) if fase in ("pensando", "ejecutando") else (None, None)
 
