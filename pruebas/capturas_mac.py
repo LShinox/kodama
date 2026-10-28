@@ -245,18 +245,21 @@ def ventanas(exe_ventanas, pid):
         return {"error": str(e)}
 
 
-def previsualizar(out, nombre, f, alto):
-    """Small JPEG crop of the top-center area (where the island is). Best effort; goes into PREVIEWS (printed as annotations at the end)."""
+def previsualizar(out, nombre, f, region, zoom):
+    """Small JPEG crop (region = x, y, w, h in screen points) of a shot. Best effort; goes into PREVIEWS (written to previews.json; emitir_previews.py
+    prints them as annotations: an annotation message holds at most ~4 KB, so every image is cut in chunks)."""
     try:
-        g = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight", f], capture_output=True, text=True, timeout=20).stdout
+        g = subprocess.run(["sips", "-g", "pixelWidth", f], capture_output=True, text=True, timeout=20).stdout
         nums = [int(x) for x in g.split() if x.isdigit()]
         w = nums[0] if nums else 0
         esc = 2 if w > 1500 else 1
-        ancho, alto = 520 * esc, int(alto) * esc
+        x, y, rw, rh = [int(v) * esc for v in region]
         rc = os.path.join(out, "_rec.png")
         jp = os.path.join(out, "_rec.jpg")
-        subprocess.run(["sips", "-c", str(alto), str(ancho), "--cropOffset", "0", str(max(0, (w - ancho) // 2)), f, "--out", rc], capture_output=True, timeout=20)
-        subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", "70", rc, "--out", jp], capture_output=True, timeout=20)
+        subprocess.run(["sips", "-c", str(rh), str(rw), "--cropOffset", str(y), str(x), f, "--out", rc], capture_output=True, timeout=20)
+        if zoom != 1:
+            subprocess.run(["sips", "--resampleWidth", str(int(rw * zoom)), rc], capture_output=True, timeout=20)
+        subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", "38", rc, "--out", jp], capture_output=True, timeout=20)
         if os.path.exists(jp):
             with open(jp, "rb") as fh:
                 PREVIEWS.append((nombre, fh.read()))
@@ -269,7 +272,13 @@ def previsualizar(out, nombre, f, alto):
         NOTAS.append("preview failed for %s: %s" % (nombre, e))
 
 
-def foto(out, nombre, modo, d, pid, exe_ventanas, base_sha, alto=170):
+# crops (x, y, w, h in points) used for the previews; the island window is 440 wide, centered on a 1024-wide screen (x = 292)
+R_PILL = (342, 0, 340, 56)
+def R_ISLA(alto):
+    return (292, 0, 440, alto)
+
+
+def foto(out, nombre, modo, d, pid, exe_ventanas, base_sha, region=None, zoom=1):
     f = os.path.join(out, nombre + ".png")
     try:
         r = subprocess.run(["screencapture", "-x", f], capture_output=True, text=True, timeout=40)
@@ -277,8 +286,8 @@ def foto(out, nombre, modo, d, pid, exe_ventanas, base_sha, alto=170):
     except Exception as e:
         rc, err = -1, str(e)
     tam = os.path.getsize(f) if os.path.exists(f) else 0
-    if tam:
-        previsualizar(out, nombre, f, alto)
+    if tam and region:
+        previsualizar(out, nombre, f, region, zoom)
     wi = ventanas(exe_ventanas, pid)
     RESUMEN.append({"nombre": nombre, "modo": modo, "rc": rc, "stderr": err, "bytes": tam, "igual_al_fondo": bool(tam and sha(f) == base_sha),
                     "pagina": d, "ventanas": wi})
@@ -397,28 +406,28 @@ def main():
             d, ok = esperar(work, lambda d: lista(d) and d.get("estado") is not None, 60, "A: island up and state loaded")
             time.sleep(2.5)
             d = pedir(work) or d
-            foto(out, "A01-island-collapsed-en", "auto + simulated notch", d, pet.pid, exe_v, base_sha, 120)
+            foto(out, "A01-island-collapsed-en", "auto + simulated notch", d, pet.pid, exe_v, base_sha, R_PILL, 2)
 
             pedir(work, "kodama:hover")
             d, ok = esperar(work, lambda d: "hov" in clase(d), 15, "A: hover state")
             time.sleep(1.0)
-            foto(out, "A02-island-hover-en", "auto + simulated notch, mouse over (forced)", pedir(work) or d, pet.pid, exe_v, base_sha, 120)
+            foto(out, "A02-island-hover-en", "auto + simulated notch, mouse over (forced)", pedir(work) or d, pet.pid, exe_v, base_sha, R_PILL, 2)
             pedir(work, "kodama:hover")
             esperar(work, lambda d: "hov" not in clase(d), 15, "A: hover released")
 
             hub_set("trabajando", "en")
             d, ok = esperar(work, lambda d: d.get("estado") == "trabajando", 30, "A: working state")
             time.sleep(1.5)
-            foto(out, "A03-island-working-en", "auto + simulated notch", d, pet.pid, exe_v, base_sha, 120)
+            foto(out, "A03-island-working-en", "auto + simulated notch", d, pet.pid, exe_v, base_sha, None)
 
             hub_set("pregunta", "en")
             d, ok = esperar(work, lambda d: d.get("asomo") and abierta(d), 40, "A: question notice expanded")
             time.sleep(1.0)
-            foto(out, "A04-island-question-expanded-en", "auto + simulated notch", pedir(work) or d, pet.pid, exe_v, base_sha, 200)
+            foto(out, "A04-island-question-expanded-en", "auto + simulated notch", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(170))
             pedir(work, "kodama:globo")
             d, ok = esperar(work, lambda d: d.get("globo"), 20, "A: bubble open (question)")
             time.sleep(1.4)
-            foto(out, "A05-island-question-bubble-en", "auto + simulated notch (keyboard focus in the box)", pedir(work) or d, pet.pid, exe_v, base_sha, 260)
+            foto(out, "A05-island-question-bubble-en", "auto + simulated notch (keyboard focus in the box)", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(235))
             pedir(work, "kodama:globo")
             esperar(work, lambda d: not d.get("globo") and not abierta(d), 20, "A: bubble closed")
 
@@ -427,11 +436,11 @@ def main():
             hub_set("permiso", "en")
             d, ok = esperar(work, lambda d: d.get("asomo") and abierta(d), 40, "A: permission notice expanded")
             time.sleep(1.0)
-            foto(out, "A06-island-permission-expanded-en", "auto + simulated notch", pedir(work) or d, pet.pid, exe_v, base_sha, 200)
+            foto(out, "A06-island-permission-expanded-en", "auto + simulated notch", pedir(work) or d, pet.pid, exe_v, base_sha, None)
             pedir(work, "kodama:globo")
             d, ok = esperar(work, lambda d: d.get("globo"), 20, "A: bubble open (permission)")
             time.sleep(1.4)
-            foto(out, "A07-island-permission-bubble-en", "auto + simulated notch", pedir(work) or d, pet.pid, exe_v, base_sha, 260)
+            foto(out, "A07-island-permission-bubble-en", "auto + simulated notch", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(280))
             pedir(work, "kodama:globo")
             esperar(work, lambda d: not d.get("globo"), 20, "A: bubble closed 2")
 
@@ -440,12 +449,12 @@ def main():
             pedir(work, "kodama:ajustes-a")
             d, ok = esperar(work, lambda d: d.get("panel"), 20, "A: Settings open (option A)")
             time.sleep(1.4)
-            foto(out, "A08-settings-optionA-floating-panel-en", "auto + simulated notch: Settings as a floating panel under the pill", pedir(work) or d, pet.pid, exe_v, base_sha, 640)
+            foto(out, "A08-settings-optionA-floating-panel-en", "auto + simulated notch: Settings as a floating panel under the pill", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(610))
             pedir(work, "kodama:ajustes-b")   # closes the panel and opens it again with option B (the island grows into a settings card)
             time.sleep(0.8)
             d, ok = esperar(work, lambda d: d.get("panel") and abierta(d), 20, "A: Settings open (option B)")
             time.sleep(1.4)
-            foto(out, "A09-settings-optionB-expanded-card-en", "auto + simulated notch: the island grows into a settings card", pedir(work) or d, pet.pid, exe_v, base_sha, 640)
+            foto(out, "A09-settings-optionB-expanded-card-en", "auto + simulated notch: the island grows into a settings card", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(600))
             pet.parar()
             pet = None
 
@@ -457,11 +466,11 @@ def main():
             pet = Pet(a.bin, work, {}, "B")
             d, ok = esperar(work, lambda d: lista(d) and d.get("estado") is not None, 60, "B: island up and state loaded")
             time.sleep(2.5)
-            foto(out, "B01-island-no-notch-collapsed-en", "si, no notch", pedir(work) or d, pet.pid, exe_v, base_sha, 130)
+            foto(out, "B01-island-no-notch-collapsed-en", "si, no notch", pedir(work) or d, pet.pid, exe_v, base_sha, (342, 0, 340, 60), 2)
             hub_set("pregunta", "en")
             d, ok = esperar(work, lambda d: d.get("asomo") and abierta(d), 40, "B: question notice expanded")
             time.sleep(1.0)
-            foto(out, "B02-island-no-notch-question-expanded-en", "si, no notch", pedir(work) or d, pet.pid, exe_v, base_sha, 220)
+            foto(out, "B02-island-no-notch-question-expanded-en", "si, no notch", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(172))
             pet.parar()
             pet = None
 
@@ -473,11 +482,11 @@ def main():
             pet = Pet(a.bin, work, {}, "C")
             d, ok = esperar(work, lambda d: d.get("estado") is not None, 60, "C: normal pet up and state loaded")
             time.sleep(3)
-            foto(out, "C01-normal-mode-idle-en", "no (normal pet): bottom right corner; the menu bar must not show the app", pedir(work) or d, pet.pid, exe_v, base_sha, 760)
+            foto(out, "C01-normal-mode-idle-en", "no (normal pet): bottom right corner; the menu bar must not show the app", pedir(work) or d, pet.pid, exe_v, base_sha, (780, 540, 244, 180))
             hub_set("pregunta", "en")
             d, ok = esperar(work, lambda d: d.get("asomo"), 40, "C: question notice")
             time.sleep(1.2)
-            foto(out, "C02-normal-mode-question-en", "no (normal pet)", pedir(work) or d, pet.pid, exe_v, base_sha, 760)
+            foto(out, "C02-normal-mode-question-en", "no (normal pet)", pedir(work) or d, pet.pid, exe_v, base_sha, None)
             pet.parar()
             pet = None
 
@@ -489,15 +498,15 @@ def main():
             pet = Pet(a.bin, work, {"KODAMA_ISLA_MUESCA_PRUEBA": "190x32"}, "D")
             d, ok = esperar(work, lambda d: lista(d) and d.get("estado") is not None, 60, "D: island up and state loaded")
             time.sleep(2.5)
-            foto(out, "D01-island-collapsed-es", "auto + simulated notch, Spanish", pedir(work) or d, pet.pid, exe_v, base_sha, 120)
+            foto(out, "D01-island-collapsed-es", "auto + simulated notch, Spanish", pedir(work) or d, pet.pid, exe_v, base_sha, None)
             hub_set("pregunta", "es")
             d, ok = esperar(work, lambda d: d.get("asomo") and abierta(d), 40, "D: question notice expanded")
             time.sleep(1.0)
-            foto(out, "D02-island-question-expanded-es", "auto + simulated notch, Spanish", pedir(work) or d, pet.pid, exe_v, base_sha, 200)
+            foto(out, "D02-island-question-expanded-es", "auto + simulated notch, Spanish", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(160))
             pedir(work, "kodama:globo")
             d, ok = esperar(work, lambda d: d.get("globo"), 20, "D: bubble open")
             time.sleep(1.4)
-            foto(out, "D03-island-question-bubble-es", "auto + simulated notch, Spanish", pedir(work) or d, pet.pid, exe_v, base_sha, 260)
+            foto(out, "D03-island-question-bubble-es", "auto + simulated notch, Spanish", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(240))
             pedir(work, "kodama:globo")
             esperar(work, lambda d: not d.get("globo") and not abierta(d), 20, "D: bubble closed")
             hub_set("reposo", "es")
@@ -505,7 +514,7 @@ def main():
             pedir(work, "kodama:ajustes-a")
             d, ok = esperar(work, lambda d: d.get("panel"), 20, "D: Settings open")
             time.sleep(1.4)
-            foto(out, "D04-settings-floating-panel-es", "auto + simulated notch, Spanish", pedir(work) or d, pet.pid, exe_v, base_sha, 640)
+            foto(out, "D04-settings-floating-panel-es", "auto + simulated notch, Spanish", pedir(work) or d, pet.pid, exe_v, base_sha, None)
             pet.parar()
             pet = None
 
@@ -559,22 +568,11 @@ def main():
 
 
 def emitir_previews(out):
-    """JPEG crops as base64 annotations (2 per annotation, up to ~55 KB each): readable through the public API of the run without logging in."""
+    """JPEG crops into previews.json (part of the artifact). pruebas/emitir_previews.py prints them as annotations in later workflow steps."""
     if not PREVIEWS:
         return
     with open(os.path.join(out, "previews.json"), "w") as f:
         json.dump([{"nombre": n, "jpg_b64": base64.b64encode(b).decode()} for n, b in PREVIEWS], f)
-    lote, tam, k = [], 0, 0
-    for n, b in PREVIEWS + [(None, b"")]:
-        e = base64.b64encode(b).decode() if n else ""
-        if n is None or (lote and tam + len(e) > 52000) or len(lote) >= 3:
-            if lote:
-                k += 1
-                anotar("notice", "preview %02d" % k, "\n".join("%s %s" % (nn, ee) for nn, ee in lote))
-            lote, tam = [], 0
-        if n:
-            lote.append((n, e))
-            tam += len(e) + len(n) + 1
 
 
 def resumen(out):
