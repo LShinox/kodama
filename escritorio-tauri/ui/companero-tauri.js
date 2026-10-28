@@ -8,7 +8,21 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
   const T = window.__TAURI__, inv = T.core.invoke;
   let HUB = "http://127.0.0.1:8787";   // (26-oct) el puerto real sale de estado\puerto.txt (comando `puerto` de Rust); 8787 si no existe
   let KEY = "", conf = {};
-  const oyentes = { pj: [], visible: [], atajo: [], noMolestar: [], sonido: [], cursor: [], ojos: [], modo: [], ajustes: [], sueno: [], capsula: [], capsulaColor: [], animCompletas: [] };
+  // (28-oct) MODO ISLA (solo macOS; en Windows ES_MAC es false y nada de esto corre): la mascota vive en la muesca. Rust (isla_info) mide la pantalla y
+  // coloca la ventana arriba al centro; la pagina (escritorio\index.html) dibuja la isla cuando recibe `alIsla`. conf.isla = "auto" (por defecto: isla si
+  // hay muesca) | "si" (isla siempre; sin muesca, una pastilla debajo de la barra de menus) | "no". Cambiarlo recarga la pagina.
+  const ES_MAC = /Macintosh|Mac OS X/i.test(navigator.userAgent || "") && !/Windows/i.test(navigator.userAgent || "");
+  const ISLA_W = 440, ISLA_H = 640;   // ventana transparente de la isla (px logicos): cabe la pastilla abierta y Ajustes
+  let islaOn = false, islaCfg = null, islaMedida = null;
+  const islaModo = () => conf.isla === "si" || conf.isla === "no" ? conf.isla : "auto";
+  const islaDecidir = () => islaModo() === "si" || (islaModo() === "auto" && !!(islaMedida && islaMedida.notch));
+  async function islaColocar() {
+    try {
+      const m = JSON.parse(await inv("isla_info", { poner: true, activa: true, w: ISLA_W, h: ISLA_H }));
+      if (m && m.mac && !m.error) { islaMedida = m; islaCfg = { notch: !!m.notch, nw: m.nw, nh: m.nh, barra: m.barra, w: ISLA_W, h: ISLA_H, modo: islaModo() }; }
+    } catch (e) {}
+  }
+  const oyentes = { pj: [], visible: [], atajo: [], noMolestar: [], sonido: [], cursor: [], ojos: [], modo: [], ajustes: [], sueno: [], capsula: [], capsulaColor: [], animCompletas: [], isla: [] };
   const avisar = (k, ...a) => oyentes[k].forEach(f => { try { f(...a); } catch (e) {} });
   const clave = async () => KEY || (KEY = await inv("clave"));
   const leerPuerto = async () => { try { const p = parseInt(await inv("puerto"), 10); if (p >= 8787 && p <= 8799) HUB = "http://127.0.0.1:" + p; } catch (e) {} return HUB; };
@@ -78,6 +92,8 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
     // Se llama una vez con la conf ya leida (arranque) y cada vez que cambia en Ajustes.
     alCapsula: f => { oyentes.capsula.push(f); setTimeout(() => f(!!(conf && conf.capsula)), 0); },
     alAnimCompletas: f => { oyentes.animCompletas.push(f); setTimeout(() => f(animCompletas()), 0); },   // (5.a vuelta) "Animaciones completas" (true por defecto)
+    // (28-oct) MODO ISLA (solo macOS): se llama una vez con {notch, nw, nh, barra, w, h} cuando la isla esta activa (nunca en Windows)
+    alIsla: f => { oyentes.isla.push(f); if (islaCfg) setTimeout(() => f(islaCfg), 0); },
     alCapsulaColor: f => { oyentes.capsulaColor.push(f); setTimeout(() => f(capCol()), 0); },   // (27-oct, 4.a vuelta) color de la capsula: "blanca" (por defecto) | "negra"
     // (27-oct) la ventana NACE oculta (tauri.conf.json "visible": false) para que no se vea el destello del arranque. Aca NO se muestra
     // hasta que la pagina diga que el gato ya se dibujo (pintado(): primer cuadro de Lottie o del SVG + 1 requestAnimationFrame) o pasen 3,5 s
@@ -149,6 +165,8 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
   setInterval(async () => {                    // verificacion: si existe estado\escritorio-captura.pedido, un diagnostico FIJO
     try {                                      // (14-oct, auditoria) ya no evalua el contenido del archivo: cualquiera que escribiera ahi ejecutaba codigo con la clave a mano
       const expr = await inv("leer_pedido"); if (expr == null) return;
+      // (28-oct) solo macOS: tres ordenes FIJAS (no se evalua nada) para las capturas de CI: abrir/cerrar el globo, abrir Ajustes, mostrar el aviso de prueba
+      if (ES_MAC) { const o = String(expr).trim(); if (o === "kodama:globo") avisar("atajo", "globo"); else if (o === "kodama:ajustes") avisar("ajustes"); else if (o === "kodama:prueba") avisar("atajo", "prueba"); }
       const di = await inv("drop_info").catch(() => [null, null, null]);   // (27-oct, soltar 2) [AllowExternalDrop, mensajes "kodama-soltar" en Rust, rutas del ultimo]
       // (27-oct, 4.a vuelta) diagnostico FIJO ampliado: movimiento reducido, animaciones del navegador vivas (la respiracion del dormido), violaciones de CSP y estado del gato
       const r = JSON.stringify({ pj: (document.getElementById("pj") || {}).innerHTML?.length, err: window.__err || null,
@@ -162,6 +180,10 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
         arr: window.__arr || null, ext: di[0], msgsRust: di[1], rutasRust: di[2],
         enCursor: (() => { const c = window.__ultCursor; if (!c) return null; const el = document.elementFromPoint(c[0], c[1]);
           return el ? (el.id || el.tagName) + " < " + ((el.closest("[id]") || {}).id || "") : "nada"; })(),
+        // (28-oct) solo macOS: estado de la isla (clase, ancho, alto de la pastilla), aviso, globo y Ajustes abiertos; lo lee pruebas/capturas_mac.py
+        ...(ES_MAC ? { isla: (() => { const i = document.getElementById("isla"); if (!i) return null; const r = i.getBoundingClientRect(); return [i.className, Math.round(r.width), Math.round(r.height), Math.round(r.top)]; })(),
+          asomo: typeof asomoAct !== "undefined" ? !!asomoAct : null, globo: typeof abierto !== "undefined" ? !!abierto : null, panel: typeof panelAbierto !== "undefined" ? !!panelAbierto : null,
+          nombres: typeof datos !== "undefined" ? Object.keys(datos).filter(k => !k.startsWith("_")).length : null } : {}),
         pieRect: (() => { const r = (document.getElementById("pie") || document.body).getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom].map(Math.round); })() });
       inv("guardar_txt", { txt: String(r) });
     } catch (e) { inv("guardar_txt", { txt: "ERR " + e }); }
@@ -220,12 +242,19 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
     leer: () => ({ pj: pjVis(conf.pj), color: conf.color || "negro", florCactus: conf.florCactus !== false, ojos: !!conf.ojos,
                    modo: conf.modo === "aviso" ? "aviso" : "siempre", sonido: conf.sonido !== false, idioma: conf.idioma || "es", nueva,
                    sueno: sueno().on, suenoMin: sueno().min, loNuevoVisto: conf.loNuevoVisto || "", capsula: !!conf.capsula,
-                   animCompletas: animCompletas(), capsulaColor: capCol(), ojosGato: conf.ojosGato === "gato" ? "gato" : "gatoPro" }),
+                   animCompletas: animCompletas(), capsulaColor: capCol(), ojosGato: conf.ojosGato === "gato" ? "gato" : "gatoPro",
+                   islaDisp: ES_MAC && !!(islaMedida && islaMedida.mac), isla: islaModo(), islaOn }),
     poner: async (k, v) => {   // lo mismo que hacian los items del menu de la bandeja
       if (k === "sueno") { conf.sueno = !!v; guardar(); avisar("sueno", sueno()); return; }
       if (k === "suenoMin") { conf.suenoMin = +v; guardar(); avisar("sueno", sueno()); return; }
       if (k === "capsula") { conf.capsula = !!v; guardar(); avisar("capsula", conf.capsula); return; }
       if (k === "animCompletas") { conf.animCompletas = !!v; guardar(); aplicarAnimCompletas(); return; }   // solo en esta PC: no pasa por compartirPj()
+      if (k === "isla") {   // (28-oct) solo macOS: "auto" | "si" | "no"; si cambia si la isla esta activa, se recarga la pagina (la ventana vuelve a su tamaño de siempre antes)
+        if (!ES_MAC) return;
+        conf.isla = v === "si" || v === "no" ? v : "auto"; guardar();
+        setTimeout(async () => { if (islaDecidir() !== islaOn) { if (islaOn) { try { await inv("isla_info", { poner: true, activa: false, w: 400, h: 600 }); } catch (e) {} } location.reload(); } }, 200);
+        return;
+      }
       if (k === "loNuevoVisto") { conf.loNuevoVisto = String(v); guardar(); return; }   // (26-oct) "Lo nuevo" visto, por version
       if (k === "capsulaColor") { conf.capsulaColor = v === "negra" ? "negra" : "blanca"; guardar(); compartirPj(); avisar("capsulaColor", capCol()); return; }
       if (k === "pj" && !MOSTRAR_BROTE && /^brote/.test(v)) return;   // (lanzamiento) Brote oculto
@@ -241,9 +270,10 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
       else if (k === "reportar") hub("/api/reporte", {}).catch(() => {});
     },
   };
-  yo.onMoved(async () => { if (enPanel) return; try { const p = await yo.outerPosition(), f = await yo.scaleFactor(); if (p.x < -10000 || p.y < -10000) return; conf.x = Math.round(p.x / f) - (chica ? DX : 0); conf.y = Math.round(p.y / f) - (chica ? DY : 0); guardar(); } catch (e) {} });
+  yo.onMoved(async () => { if (enPanel || islaOn) return; try { const p = await yo.outerPosition(), f = await yo.scaleFactor(); if (p.x < -10000 || p.y < -10000) return; conf.x = Math.round(p.x / f) - (chica ? DX : 0); conf.y = Math.round(p.y / f) - (chica ? DY : 0); guardar(); } catch (e) {} });
 
   async function esquina() {
+    if (islaOn) { await islaColocar(); return; }   // (28-oct) modo isla: "Volver a la esquina" = volver a colocar la isla
     // (15-oct) con la ventana oculta currentMonitor() puede dar null: antes se usaba 1920x1080 fijo y la mascota quedaba
     // medio afuera en pantallas con escala (1536x864 reales). Ahora: monitor principal o, si no, el tamaño de la pantalla.
     let m = null;
@@ -274,6 +304,7 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
   const escalaCambio = () => { clearTimeout(tEscala); tEscala = setTimeout(reajustarEscala, 250); };
   async function reajustarEscala() {
     try {
+      if (islaOn) { await islaColocar(); repintar(); return; }   // (28-oct) modo isla: la ventana se vuelve a colocar arriba al centro de la pantalla con muesca
       if (enPanel) { repintar(); return; }   // con Ajustes abierto, su geometria se calcula al abrirlo y cerrarlo
       const p = await yo.outerPosition(), f = await yo.scaleFactor();
       if (p.x < -10000 || p.y < -10000) return;   // oculta o minimizada: no hay nada que ajustar
@@ -402,11 +433,15 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
     try { conf = JSON.parse(await inv("conf_leer")); } catch (e) { conf = {}; }
     // (14-oct) la posicion guardada solo vale si cae dentro de alguna pantalla (si no, a la esquina)
     // la mascota vive en la esquina de abajo a la derecha de su ventana (400x600): esa esquina tiene que verse entera
+    // (28-oct) macOS: se mide la pantalla y se decide si hay isla (conf.isla); en Windows ES_MAC es false y esta rama no corre
+    if (ES_MAC) { try { islaMedida = JSON.parse(await inv("isla_info", { poner: false, activa: false, w: 0, h: 0 })); } catch (e) {} islaOn = islaDecidir(); if (islaOn) await islaColocar(); if (!islaCfg) islaOn = false; }
     const dentro = conf.x != null && conf.y != null && await enPantalla(conf.x, conf.y);
-    if (dentro) await yo.setPosition(new T.dpi.LogicalPosition(conf.x, conf.y)); else { conf.x = conf.y = null; await esquina(); }
+    if (islaOn) { /* la ventana ya esta arriba al centro */ }
+    else if (dentro) await yo.setPosition(new T.dpi.LogicalPosition(conf.x, conf.y)); else { conf.x = conf.y = null; await esquina(); }
     const id = conf.idioma === "en" ? "en" : "es";
     if ((localStorage.getItem("idioma") || "es") !== id && window.fijarIdioma) return fijarIdioma(id);
     // (27-oct) ya NO se muestra aca: la ventana sigue oculta hasta pintado() (ver `ventana` arriba); con "visible": false (la ocultaste desde la bandeja) se queda oculta
+    if (islaOn && islaCfg) avisar("isla", islaCfg);   // (28-oct) la pagina arma la isla ANTES de que se muestre la ventana
     confLista = true;
     if (conf.visible === false) inv("visible", { si: false });
     else if (pintadoPend) mostrarPintado();

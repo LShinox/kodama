@@ -13,6 +13,10 @@ use tauri::{Emitter, LogicalPosition, Manager, WebviewWindow};
 #[cfg(not(windows))]
 use tauri::LogicalSize;
 
+// (28-oct) MODO ISLA (solo macOS): lo de AppKit (muesca, nivel de la ventana, Spaces) vive en isla.rs.
+#[cfg(target_os = "macos")]
+mod isla;
+
 static ESCRIBIENDO: AtomicBool = AtomicBool::new(false);
 // (27-oct, soltar 2) ARRASTRAR ARCHIVOS: lo maneja WebView2 (dragDropEnabled:false en tauri.conf.json, AllowExternalDrop:true aca) y la pagina
 // manda las rutas con postMessageWithAdditionalObjects("kodama-soltar", files). Contadores para el diagnostico fijo (comando `drop_info`):
@@ -185,8 +189,59 @@ fn visible(window: WebviewWindow, si: bool) {
     let _ = window.set_skip_taskbar(true);
 }
 
+/// (28-oct) MODO ISLA (solo macOS; en los demas sistemas devuelve {"mac":false} y no hace nada). Mide la pantalla de la isla (la que tiene muesca o,
+/// si ninguna, la principal) y devuelve JSON {mac, notch, nw, nh, barra, ancho, alto}. Con `poner`: activa = deja la ventana de w x h arriba al
+/// centro de esa pantalla, por encima de la barra de menus y en todos los Spaces; !activa = devuelve la ventana a su vida normal (w x h, nivel flotante).
+#[cfg(target_os = "macos")]
+fn isla_hacer(window: &WebviewWindow, poner: bool, activa: bool, w: f64, h: f64) -> String {
+    // AppKit solo en el hilo principal: los comandos sin `async` ya corren ahi; si no, se le pide al hilo principal y se espera la respuesta
+    if objc2::MainThreadMarker::new().is_some() { return isla_directo(window, poner, activa, w, h); }
+    let (tx, rx) = std::sync::mpsc::channel::<String>();
+    let w2 = window.clone();
+    if window.run_on_main_thread(move || { let _ = tx.send(isla_directo(&w2, poner, activa, w, h)); }).is_err() {
+        return "{\"mac\":true,\"error\":\"hilo\"}".into();
+    }
+    rx.recv_timeout(Duration::from_secs(3)).unwrap_or_else(|_| "{\"mac\":true,\"error\":\"hilo\"}".into())
+}
+#[cfg(target_os = "macos")]
+fn isla_directo(window: &WebviewWindow, poner: bool, activa: bool, w: f64, h: f64) -> String {
+    use objc2::MainThreadMarker;
+    let Some(mtm) = MainThreadMarker::new() else { return "{\"mac\":true,\"error\":\"hilo\"}".into() };
+    let Some(m) = isla::medir(mtm) else { return "{\"mac\":true,\"error\":\"pantalla\"}".into() };
+    if poner {
+        if let Ok(p) = window.ns_window() {
+            if activa {
+                unsafe { isla::aplicar(p as _, &m, w, h) };
+            } else {
+                unsafe { isla::quitar(p as _) };
+                let _ = window.set_size(LogicalSize::new(w, h));
+            }
+        }
+    }
+    serde_json::json!({ "mac": true, "notch": m.notch, "nw": m.nw, "nh": m.nh, "barra": m.barra,
+        "ancho": m.marco.size.width, "alto": m.marco.size.height }).to_string()
+}
+#[cfg(not(target_os = "macos"))]
+fn isla_hacer(_window: &WebviewWindow, _poner: bool, _activa: bool, _w: f64, _h: f64) -> String {
+    "{\"mac\":false}".into()
+}
+
+#[tauri::command]
+fn isla_info(window: WebviewWindow, poner: bool, activa: bool, w: f64, h: f64) -> String {
+    isla_hacer(&window, poner, activa, w, h)
+}
+
 #[tauri::command]
 fn reafirmar(window: WebviewWindow) {
+    // (28-oct) macOS en modo isla: set_always_on_top la bajaria a "flotante" (debajo de la barra de menus) y el tamaño de la isla no es el de la
+    // mascota de siempre: solo se vuelve a subir el nivel. En Windows este bloque no existe.
+    #[cfg(target_os = "macos")]
+    {
+        if isla::ACTIVA.load(Ordering::Relaxed) {
+            if let Ok(p) = window.ns_window() { unsafe { isla::reafirmar(p as _) }; }
+            return;
+        }
+    }
     let _ = window.set_always_on_top(true);
     // (21-oct) "no aparece la mascota" aunque el menu dice "Ocultar": Windows la minimizo (p. ej. "mostrar escritorio")
     // y al volver quedo VISIBLE pero de 160x28 px (el tamaño de una ventana minimizada). Si esta minimizada o mas chica
@@ -272,7 +327,7 @@ fn main() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             conf_leer, conf_guardar, clave, puerto, interactivo, escribir, mover, limites, visible, reafirmar, abrir_url,
-            leer_pedido, guardar_txt, salir, zona, drop_info
+            leer_pedido, guardar_txt, salir, zona, drop_info, isla_info
         ])
         // (27-oct) la ventana cambio de monitor/escala: la region se vuelve a armar con la escala nueva (el respaldo es el hilo de abajo)
         .on_window_event(|win, ev| {

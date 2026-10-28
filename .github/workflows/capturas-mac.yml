@@ -1,0 +1,68 @@
+# (c) 2026 LShinox - PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). See LICENSE.txt.
+# Screenshots of the desktop pet on a macOS runner: island mode (simulated notch, no notch) and the normal pet, in several states, against a FAKE hub.
+# No secrets, no releases. Runners may not allow capturing app windows (Screen Recording / TCC): then the images come out without the app and the job
+# summary says so (it is not bypassed). The page state and the window level/bounds are recorded either way.
+name: Captures (macOS)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "escritorio/**"
+      - "escritorio-tauri/**"
+      - "pruebas/capturas_mac.py"
+      - "pruebas/hub_falso_capturas.py"
+      - "pruebas/ventanas_mac.swift"
+      - ".github/workflows/capturas-mac.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  capturas:
+    name: Island screenshots (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: escritorio-tauri/src-tauri
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: escritorio-tauri/package-lock.json
+
+      - name: Install JS dependencies
+        working-directory: escritorio-tauri
+        run: npm ci
+
+      - name: Prepare the pet UI
+        working-directory: escritorio-tauri
+        run: node preparar-ui.js
+
+      - name: Build the pet (tauri build --no-bundle)
+        working-directory: escritorio-tauri
+        run: npx tauri build --no-bundle
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Take the screenshots
+        run: python pruebas/capturas_mac.py --bin escritorio-tauri/src-tauri/target/release/kodama --out "$RUNNER_TEMP/capturas-mac"
+
+      - name: Upload the screenshots
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-mac
+          path: ${{ runner.temp }}/capturas-mac
+          retention-days: 7
+          if-no-files-found: warn

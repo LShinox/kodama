@@ -20,6 +20,12 @@ serde_json = "1"
 webview2-com = "=0.39.1"
 windows-core = "=0.62.2"
 
+# (28-oct) MODO ISLA (solo macOS): nivel de la ventana, Spaces y medida de la muesca. Mismas versiones que ya trae tauri (tao); solo las funciones que se usan.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "bitflags", "NSResponder", "NSScreen", "NSWindow"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSArray", "NSGeometry", "NSObject"] }
+
 [profile.release]
 # binario chico: es una mascota, no necesita mas
 opt-level = "s"

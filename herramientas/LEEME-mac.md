@@ -48,3 +48,14 @@ binario de la mascota corriendo, Gatekeeper ni nada que necesite una pantalla.
 La mascota (ventana transparente, clic que atraviesa, bandeja, arrastrar archivos), `launchctl bootstrap` del LaunchAgent, el permiso de
 Automatizacion, el binario sin firmar/notarizar (Gatekeeper), la ruta de las sesiones de la app de Claude y la actualizacion (en macOS es
 manual: volver a correr `instalar.sh`).
+
+## Modo isla (muesca)
+
+En macOS la mascota puede vivir en la muesca del MacBook, como una Dynamic Island. `estado/escritorio.json` -> `"isla": "auto" | "si" | "no"`
+(por defecto `auto`: isla solo si la pantalla tiene muesca; `si`: siempre, y sin muesca es una pastilla justo debajo de la barra de menus; `no`:
+la mascota de siempre). Tambien en Ajustes > "Modo isla (muesca)". Cerrada es una pastilla negra pegada a la muesca (gato a un lado, punto de
+estado o numero de chats al otro); cuando un chat te necesita crece hacia abajo con el aviso / el globo / Ajustes y vuelve a cerrarse sola.
+Rust (`isla.rs`): muesca = `safeAreaInsets.top > 0` + `auxiliaryTopLeftArea/RightArea`, ventana por encima de la barra de menus
+(mainMenu + 3) y en todos los Spaces. Pruebas: `KODAMA_ISLA_MUESCA_PRUEBA=190x32` simula una muesca (solo CI).
+El workflow `capturas-mac.yml` saca capturas (`screencapture -x`) con un hub falso y las sube como el artefacto `capturas-mac` (7 dias); si el
+runner no deja capturar ventanas de apps (TCC), el resumen del job lo dice. Windows no cambia nada de esto.
