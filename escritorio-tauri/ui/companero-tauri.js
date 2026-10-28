@@ -166,7 +166,9 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
     try {                                      // (14-oct, auditoria) ya no evalua el contenido del archivo: cualquiera que escribiera ahi ejecutaba codigo con la clave a mano
       const expr = await inv("leer_pedido"); if (expr == null) return;
       // (28-oct) solo macOS: tres ordenes FIJAS (no se evalua nada) para las capturas de CI: abrir/cerrar el globo, abrir Ajustes, mostrar el aviso de prueba
-      if (ES_MAC) { const o = String(expr).trim(); if (o === "kodama:globo") avisar("atajo", "globo"); else if (o === "kodama:ajustes") avisar("ajustes"); else if (o === "kodama:prueba") avisar("atajo", "prueba"); }
+      if (ES_MAC) { const o = String(expr).trim(); if (o === "kodama:globo") avisar("atajo", "globo"); else if (o === "kodama:ajustes") avisar("ajustes"); else if (o === "kodama:prueba") avisar("atajo", "prueba");
+        // (28-oct, isla 2) mas ordenes FIJAS de prueba para la CI: mouse encima (fija/suelta), Ajustes con la opcion A o la B
+        else if (o === "kodama:hover" || o === "kodama:ajustes-a" || o === "kodama:ajustes-b") avisar("atajo", o.slice(7)); }
       const di = await inv("drop_info").catch(() => [null, null, null]);   // (27-oct, soltar 2) [AllowExternalDrop, mensajes "kodama-soltar" en Rust, rutas del ultimo]
       // (27-oct, 4.a vuelta) diagnostico FIJO ampliado: movimiento reducido, animaciones del navegador vivas (la respiracion del dormido), violaciones de CSP y estado del gato
       const r = JSON.stringify({ pj: (document.getElementById("pj") || {}).innerHTML?.length, err: window.__err || null,
@@ -183,7 +185,11 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
         // (28-oct) solo macOS: estado de la isla (clase, ancho, alto de la pastilla), aviso, globo y Ajustes abiertos; lo lee pruebas/capturas_mac.py
         ...(ES_MAC ? { isla: (() => { const i = document.getElementById("isla"); if (!i) return null; const r = i.getBoundingClientRect(); return [i.className, Math.round(r.width), Math.round(r.height), Math.round(r.top)]; })(),
           asomo: typeof asomoAct !== "undefined" ? !!asomoAct : null, globo: typeof abierto !== "undefined" ? !!abierto : null, panel: typeof panelAbierto !== "undefined" ? !!panelAbierto : null,
-          nombres: typeof datos !== "undefined" ? Object.keys(datos).filter(k => !k.startsWith("_")).length : null } : {}),
+          nombres: typeof datos !== "undefined" ? Object.keys(datos).filter(k => !k.startsWith("_")).length : null,
+          // (28-oct, isla 2) idioma de la pagina y los rotulos visibles de la interfaz (para comprobar que no se mezclan idiomas)
+          foco: document.hasFocus(), activo: document.activeElement ? (document.activeElement.id || document.activeElement.tagName) : null,
+          pjRect: (() => { const r = (document.getElementById("pj") || document.body).getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round); })(),
+          idioma: window.IDIOMA || null, rotulos: ["asnom", "aschip", "asresp", "benv", "vertodo", "paranom"].map(id => { const e = document.getElementById(id); return e ? id + "=" + (e.textContent || "").trim() : null; }).concat(["bin"].map(id => { const e = document.getElementById(id); return e ? id + ".placeholder=" + (e.placeholder || "") : null; }), Array.from(document.querySelectorAll("#bchips .chip")).map(e => "chip=" + e.textContent.trim())) } : {}),
         pieRect: (() => { const r = (document.getElementById("pie") || document.body).getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom].map(Math.round); })() });
       inv("guardar_txt", { txt: String(r) });
     } catch (e) { inv("guardar_txt", { txt: "ERR " + e }); }

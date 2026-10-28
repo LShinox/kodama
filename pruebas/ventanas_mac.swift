@@ -31,4 +31,12 @@ for s in NSScreen.screens {
     screens.append(d)
 }
 out["screens"] = screens
+// (isla 2) activation policy of the pet (0 regular, 1 accessory = no Dock icon / no app menu, 2 prohibited) and who owns the menu bar / is frontmost right now
+if let app = NSRunningApplication(processIdentifier: pid) {
+    out["activationPolicy"] = app.activationPolicy.rawValue
+    out["appName"] = app.localizedName ?? ""
+}
+out["menuBarOwner"] = NSWorkspace.shared.menuBarOwningApplication?.localizedName ?? ""
+out["frontmost"] = NSWorkspace.shared.frontmostApplication?.localizedName ?? ""
+out["frontmostPid"] = NSWorkspace.shared.frontmostApplication.map { Int($0.processIdentifier) } ?? -1
 if let data = try? JSONSerialization.data(withJSONObject: out, options: [.sortedKeys]), let txt = String(data: data, encoding: .utf8) { print(txt) }

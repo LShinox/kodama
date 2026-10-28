@@ -5,7 +5,7 @@ Adapted from herramientas/gifs/lanzamiento/hub_falso.py (same fictional chats), 
 
 Usage: python hub_falso_capturas.py <port>
   GET  /api/estado     -> fictional chats for the current scenario
-  POST /_set {"esc": ...} -> change scenario: reposo | trabajando | pregunta | permiso
+  POST /_set {"esc": ..., "lang": "en"|"es"} -> change scenario (reposo | trabajando | pregunta | permiso) and chat content language
   everything else      -> minimal answers so the pet and its Settings panel have something to show
 """
 import json
@@ -14,7 +14,7 @@ import sys
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-ESC = {"esc": "reposo"}
+ESC = {"esc": "reposo", "lang": "en"}   # lang: language of the fictional chat content (the pet UI language is set in its own config)
 TS = {}   # fixed timestamp of each active chat (if it changed on every poll the pet would say "another message arrived")
 
 
@@ -35,23 +35,37 @@ def chat(nombre, color, **kw):
     return d
 
 
+# fictional chat content in both languages (it is chat content, not pet UI: but a screenshot with Spanish chat text under an English UI looks like a mix)
+TXT = {
+    "en": {"proyecto": "My project", "tesis": "Thesis", "web": "Web",
+           "t_msg": "I'll review chapter 2 and tidy up the bibliography.", "t_haciendo": "editing chapter2.md",
+           "q": "Should I publish today's version or leave it for tomorrow?", "q_msg": "I reviewed everything and it is ready. ",
+           "p": "I need your OK to run: npm install --force", "p_msg": "\nDo you want me to run it?\n1. Allow once\n2. Always allow this\n3. Deny"},
+    "es": {"proyecto": "Mi proyecto", "tesis": "Tesis", "web": "Web",
+           "t_msg": "Voy a revisar el capitulo 2 y ordenar la bibliografia.", "t_haciendo": "editando capitulo2.md",
+           "q": "Publico la version de hoy o la dejo para manana?", "q_msg": "Revise todo y esta listo. ",
+           "p": "Necesito tu OK para ejecutar: npm install --force", "p_msg": "\nQuieres que lo ejecute?\n1. Permitir una vez\n2. Permitir siempre esto\n3. Denegar"},
+}
+
+
 def estado():
     e = ESC["esc"]
-    out = {"proyecto": chat("Mi proyecto", COLORES["proyecto"]), "tesis": chat("Tesis", COLORES["tesis"]), "web": chat("Web", COLORES["web"])}
+    T = TXT.get(ESC.get("lang"), TXT["en"])
+    out = {"proyecto": chat(T["proyecto"], COLORES["proyecto"]), "tesis": chat(T["tesis"], COLORES["tesis"]), "web": chat(T["web"], COLORES["web"])}
     t_tesis = marca("tesis", e == "trabajando", 40)
     t_preg = marca("proyecto", e == "pregunta", 2)
     t_perm = marca("web", e == "permiso", 2)
     if t_tesis:
-        out["tesis"].update(estado="trabajando", fase="ejecutando", fase_tipo="comando", haciendo="editando capitulo2.md", ultimo_ts=t_tesis,
-                            mensajes=[{"ts": t_tesis, "texto": "Voy a revisar el capitulo 2 y ordenar la bibliografia.", "yo": False}])
+        out["tesis"].update(estado="trabajando", fase="ejecutando", fase_tipo="comando", haciendo=T["t_haciendo"], ultimo_ts=t_tesis,
+                            mensajes=[{"ts": t_tesis, "texto": T["t_msg"], "yo": False}])
     if t_preg:
-        q = "Publico la version de hoy o la dejo para manana?"
+        q = T["q"]
         out["proyecto"].update(estado="termino", tipo="pregunta", n=1, linea=q, ultimo_ts=t_preg,
-                               mensajes=[{"ts": t_preg, "texto": "Revise todo y esta listo. " + q, "yo": False, "evento": "Stop"}])
+                               mensajes=[{"ts": t_preg, "texto": T["q_msg"] + q, "yo": False, "evento": "Stop"}])
     if t_perm:
-        q = "Necesito tu OK para ejecutar: npm install --force"
+        q = T["p"]
         out["web"].update(estado="termino", tipo="permiso", n=1, linea=q, ultimo_ts=t_perm, permiso={"id": "p-ci-1"},
-                          mensajes=[{"ts": t_perm, "texto": q + "\nQuieres que lo ejecute?\n1. Permitir una vez\n2. Permitir siempre esto\n3. Denegar", "yo": False, "evento": "PermissionRequest"}])
+                          mensajes=[{"ts": t_perm, "texto": q + T["p_msg"], "yo": False, "evento": "PermissionRequest"}])
     out["_seleccion"] = "personales"
     return out
 
@@ -102,6 +116,9 @@ class H(BaseHTTPRequestHandler):
         p = self.path.split("?")[0]
         if p == "/_set":
             ESC["esc"] = cuerpo.get("esc", "reposo")
+            if cuerpo.get("lang") in TXT:
+                ESC["lang"] = cuerpo["lang"]
+                TS.clear()   # the notices are rebuilt in the new language
             return self._json({"ok": True})
         if p == "/api/reglas":
             return self._json({"siempre": ["Bash: npm test", "Leer archivos del proyecto"], "tarea": []})

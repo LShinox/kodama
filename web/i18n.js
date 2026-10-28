@@ -371,7 +371,28 @@
       "✓ Enviado a": "✓ Sent to",
       "✗ No se pudo enviar a": "✗ Couldn't send to",
       "Reintentar": "Retry",
-      "Hay un mensaje más nuevo": "There's a newer message"
+      "Hay un mensaje más nuevo": "There's a newer message",
+      // ---- (28-oct, isla 2) lo que faltaba: la etiqueta del aviso salia en español con la interfaz en inglés ----
+      "Pregunta": "Question",
+      "Se atoró": "Got stuck",
+      "{0} preguntas": "{0} questions",
+      "{0} de {1}": "{0} of {1}",
+      "No": "No",
+      "Aviso de prueba: así se ve cuando un chat te hace una pregunta. Este texto es largo a propósito para ver cómo se corta en dos líneas y cómo se abre entero al pasar el mouse por encima del aviso.": "Test alert: this is how it looks when a chat asks you a question. This text is long on purpose, to see how it gets cut at two lines and how it opens in full when you hover over the alert.",
+      "De noche (1 a 5 h) y con la PC 30 min sin usar. Viene apagada.": "At night (1 to 5 am) and after the PC has been idle for 30 min. It comes turned off.",
+      "Negro": "Black",
+      "Naranja": "Orange",
+      "Blanco": "White",
+      "Gris azulado": "Blue-gray",
+      "Esmoquin": "Tuxedo",
+      "Chat anterior": "Previous chat",
+      "Chat siguiente": "Next chat",
+      "Aviso anterior": "Previous alert",
+      "Aviso siguiente": "Next alert",
+      "Que siga sin tu respuesta": "Carry on without your reply",
+      "Para APROBAR: abre el chat con tu texto copiado; pégalo con Ctrl+V y Enter": "To APPROVE: opens the chat with your text copied; paste it with Ctrl+V and Enter",
+      "Ajustes de Kodama": "Kodama settings",
+      "Adjuntos": "Attachments"
     }
   };
   var IDIOMA = "es";

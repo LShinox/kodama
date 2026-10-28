@@ -1,5 +1,5 @@
 # (c) 2026 LShinox - PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). See LICENSE.txt.
-# Screenshots of the desktop pet on a macOS runner: island mode (simulated notch, no notch) and the normal pet, in several states, against a FAKE hub.
+# Screenshots of the desktop pet on a macOS runner (light wallpaper): island mode (simulated notch, no notch), the normal pet and a Spanish run, in several states, against a FAKE hub.
 # No secrets, no releases. Runners may not allow capturing app windows (Screen Recording / TCC): then the images come out without the app and the job
 # summary says so (it is not bypassed). The page state and the window level/bounds are recorded either way.
 name: Captures (macOS)
@@ -14,6 +14,7 @@ on:
       - "pruebas/capturas_mac.py"
       - "pruebas/hub_falso_capturas.py"
       - "pruebas/ventanas_mac.swift"
+      - "pruebas/fondo_mac.swift"
       - ".github/workflows/capturas-mac.yml"
 
 permissions:

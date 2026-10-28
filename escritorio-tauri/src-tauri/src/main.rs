@@ -342,6 +342,11 @@ fn main() {
             let _ = (win, ev);
         })
         .setup(|app| {
+            // (28-oct, isla 2) SOLO macOS: app "accesoria" (sin icono en el Dock, sin menu de aplicacion arriba a la izquierda: antes la barra de menus decia
+            // "kodama  File  Edit  View  Window" mientras la mascota estaba activa). Vale para la isla y para la mascota normal. El icono de la barra de menus
+            // (bandeja) sigue andando. Teclear en la caja del globo no depende de esto: `escribir` hace set_focus (makeKeyAndOrderFront + activateIgnoringOtherApps).
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             let w = app.get_webview_window("main").expect("ventana main");
             // (27-oct) zona tactil fija: la ventana YA NO ignora el mouse (antes set_ignore_cursor_events(true) y el sondeo de 150 ms la
             // volvia interactiva: el lapiz tocaba antes y atravesaba la mascota). Lo que queda fuera de la region no existe para Windows.

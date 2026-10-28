@@ -248,29 +248,45 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
   body.caps #bacc { flex-direction:column; align-items:flex-start; gap:4px; } body.caps #bacc .chips, body.caps #bchips { max-height:none; overflow:visible; width:100%; flex:none; }
   body.caps #vertodo, body.caps #bacc #vertodo { align-self:flex-start; padding:2px 0; }
   body.caps #benv { font-size:0; width:44px; padding:0; } body.caps #benv::after { content:"➤"; font-size:16px; } body.caps #cuenta { left:26px; bottom:7px; border-radius:2px; max-width:calc(100% - 52px); }
-  /* ======== (28-oct) MODO ISLA (solo macOS; Kodama en la muesca del MacBook, como una Dynamic Island) ========
+  /* ======== (28-oct, v2) MODO ISLA (solo macOS; Kodama en la muesca del MacBook, como una Dynamic Island) ========
      Todo cuelga de body.isla, que SOLO pone el JS (islaActivar, al final) cuando el puente nativo avisa que la isla esta activa: en Windows ninguna de estas
-     reglas se aplica y el elemento #isla ni siquiera existe. La isla reutiliza los componentes de siempre: #pie (el gato, a escala chica), #otros (la
-     insignia con el numero), #asomo (el aviso), #burbuja (el globo con chips y caja), #lista y #ajpc (Ajustes) se MUEVEN dentro de #isla y toman el color
-     negro con las mismas variables que usa la capsula negra. Cerrada: una pastilla negra pegada a la muesca (gato a un lado, punto de estado o numero al
-     otro). Abierta: crece hacia abajo (rebote leve al abrir, sin rebote al cerrar). Sin muesca: pastilla redondeada justo debajo de la barra de menus. */
-  #isla { position:absolute; top:0; left:0; right:0; margin:0 auto; box-sizing:border-box; background:#000; overflow:hidden; z-index:5; border-radius:0 0 14px 14px;
+     reglas se aplica y el elemento #isla ni siquiera existe. La isla reutiliza los componentes de siempre: #pie (el gato), #otros (la insignia con el numero),
+     #asomo (el aviso), #burbuja (el globo con chips y caja) y #lista (chats que esperan) se MUEVEN dentro de #isla y toman el color negro con las mismas
+     variables que usa la capsula negra. Cerrada: una pastilla negra pegada a la muesca; el gato (cabeza entera, orejas arriba, un poco de la barbilla
+     asomando por debajo del borde) a la izquierda y el punto de estado o el numero a la derecha. Con el mouse encima la pastilla crece un poco y el gato
+     tambien (asomo). Abierta (aviso, globo o lista): crece hacia abajo y el gato pasa a ser GRANDE sobre una baldosa clara a la izquierda, como la
+     caratula en una Dynamic Island. Ajustes: opcion A = panel flotante de siempre bajo la pastilla; opcion B = la pastilla se agranda (ver islaAjustes).
+     El gato NO va dentro de la pastilla con overflow oculto: #isla deja ver lo que sobresale y solo #islaCuerpo (el contenido que crece) recorta. */
+  #isla { position:absolute; top:0; left:0; right:0; margin:0 auto; box-sizing:border-box; background:#000; overflow:visible; z-index:5; border-radius:0 0 14px 14px;
           --card:transparent; --tx:#f4efe8; --sub:#b8afa4; --btn:#2c2926; --sombra:none; --isla-ez:cubic-bezier(.4,0,.2,1); color:var(--tx);
-          transition:width .34s var(--isla-ez), height .34s var(--isla-ez), border-radius .34s var(--isla-ez); }
-  #isla.abierta { --isla-ez:cubic-bezier(.2,.9,.3,1.08); border-radius:0 0 26px 26px; }
+          transition:width .34s var(--isla-ez), height .34s var(--isla-ez), border-radius .34s var(--isla-ez), box-shadow .34s ease; }
+  #isla.hov { border-radius:0 0 18px 18px; }
+  #isla.abierta { --isla-ez:cubic-bezier(.2,.9,.3,1.08); border-radius:0 0 28px 28px; box-shadow:0 10px 26px rgba(0,0,0,.32); }
   body.isla-plano #isla { top:4px; border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.1); }
-  body.isla-plano #isla.abierta { border-radius:22px; }
+  body.isla-plano #isla.hov { border-radius:18px; } body.isla-plano #isla.abierta { border-radius:24px; }
   #islaCab { position:relative; height:var(--nh); cursor:pointer; }
   #islaDer { position:absolute; right:0; top:0; width:54px; height:var(--nh); display:flex; align-items:center; justify-content:center; }
   #islaPto { width:9px; height:9px; border-radius:50%; background:#6b645c; flex:none; }
   #islaPto.trabaja { background:#8fcf5f; animation:islaPulso 1.6s ease-in-out infinite; } #islaPto.dormido { background:#3d3935; }
   @keyframes islaPulso { 50% { opacity:.35; transform:scale(.8); } }
   @media (prefers-reduced-motion: reduce) { body:not(.anim-full) #islaPto.trabaja { animation:none; } }
-  body.isla #pie { position:absolute; right:auto; bottom:auto; left:calc(8px - 11px * var(--s)); top:calc((var(--nh) - 128px * var(--s)) / 2); width:150px;
-                   transform:scale(var(--s)); transform-origin:0 0; transition:none; z-index:1; clip-path:none; }
+  /* el gato: su caja de 128 px se escala (--s) y se coloca (--gl, --gt) desde islaGato(); transform-origin arriba a la izquierda */
+  body.isla #pie { position:absolute; right:auto; bottom:auto; left:var(--gl, 0px); top:var(--gt, 0px); width:128px; text-align:left; z-index:3; clip-path:none;
+                   transform:scale(var(--s, .4)); transform-origin:0 0; transition:left .34s var(--isla-ez), top .34s var(--isla-ez), transform .34s var(--isla-ez); }
+  /* sin baldosa el gato es oscuro sobre negro: un filo claro fino lo dibuja (sobre un fondo claro no se nota) */
+  #isla:not(.tile) #pj { filter:drop-shadow(0 0 .7px rgba(255,255,255,.95)) drop-shadow(0 0 1.5px rgba(255,255,255,.4)); }
+  /* la baldosa clara del gato cuando la pastilla esta abierta (gato blanco: baldosa oscura para que se lea) */
+  #islaTile { position:absolute; left:14px; top:calc(var(--nh) + 10px); width:80px; height:80px; border-radius:20px; z-index:2; pointer-events:none;
+              background:linear-gradient(160deg,#fbf7ef,#ece5d9); box-shadow:inset 0 0 0 1px rgba(0,0,0,.08); opacity:0; transform:scale(.6); transform-origin:50% 50%;
+              transition:opacity .25s ease, transform .34s var(--isla-ez); }
+  #isla.tile #islaTile { opacity:1; transform:none; }
+  body.isla-tile-osc #islaTile { background:linear-gradient(160deg,#5a544d,#413c37); }
   body.isla #otros { position:static; right:auto; bottom:auto; box-shadow:none; z-index:auto; transition:none; }
   body.isla #caps, body.isla #morph, body.isla #asa, body.isla #pborr { display:none !important; }
-  #islaCuerpo { position:relative; }
+  /* el contenido que crece: recortado a la pastilla (sin esto, mientras la pastilla crece el texto se veria fuera del negro) */
+  #islaCuerpo { position:absolute; left:0; right:0; top:var(--nh); bottom:0; overflow:hidden; border-radius:0 0 28px 28px; }
+  #islaIn { position:relative; }
+  #isla.tile #islaIn { padding-left:100px; }
   body.isla #asomo, body.isla #burbuja { position:relative; right:auto; bottom:auto; left:auto; width:auto; max-height:none; z-index:auto; background:none; box-shadow:none !important;
                                         border-radius:0; overflow:visible; color:var(--tx); transform-origin:50% 0; }
   body.isla #asomo::before, body.isla #asomo::after, body.isla #burbuja::before, body.isla #burbuja::after { display:none; }
@@ -278,29 +294,37 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
   body.isla #asomo .n { color:var(--tx); } body.isla #asomo .l { color:var(--tx); -webkit-line-clamp:3; } body.isla #asomo:hover .l { -webkit-line-clamp:6; }
   body.isla #ascerrar { position:absolute; top:4px; right:10px; }
   body.isla #burbuja { padding:6px 16px 14px 18px; max-height:540px; overflow-y:auto; scrollbar-width:thin; }
+  #isla.tile #asomo, #isla.tile #burbuja { padding-left:0; }
   body.isla #asnom::before, body.isla #paranom::before { content:""; display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--color, #999); margin-right:6px; }
   body.isla #lista { position:relative; right:auto; bottom:auto; width:auto; max-height:440px; z-index:auto; background:none; box-shadow:none; border-radius:0; margin:0 8px 10px; }
-  body.isla #ajpc { position:relative; left:auto; top:auto; width:auto; height:520px; z-index:auto; border-radius:14px; box-shadow:none; margin:4px 10px 10px; }
+  #isla.tile #lista { margin-left:0; }
+  /* Ajustes, opcion A (la de siempre en pantalla): el MISMO panel flotante de la mascota normal (380 x 560), centrado bajo la pastilla; la pastilla sigue cerrada */
+  body.isla #ajpc { z-index:30; }
+  body.isla #ajpc:not(.en-isla) { left:calc(50% - 190px); top:calc(var(--nh, 32px) + 12px); box-shadow:0 14px 34px rgba(0,0,0,.4), 0 0 0 1px rgba(0,0,0,.1); }
+  /* Ajustes, opcion B: la pastilla crece hasta ser una tarjeta grande y oscura; el panel va DENTRO, con los colores oscuros de siempre y sin marco propio */
+  body.isla #ajpc.en-isla { position:relative; left:auto; top:auto; width:auto; height:540px; z-index:auto; border-radius:0; box-shadow:none; margin:0 10px 12px;
+    --bg:transparent; --card:#1c1b1a; --tx:#f4efe8; --sub:#9b938a; --btn:#2a2826; --verde:#5cbf38; --rojo:#ff5a5f; --linea:rgba(255,245,230,.12); background:transparent; }
+  body.isla #ajpc.en-isla .sw { background:#3a3734; } body.isla #ajpc.en-isla .sg span.on { background:#3a3735; }
 </style>
 </head>
 <body>
 <div id="burbuja" role="dialog" data-t aria-label="Responder">
   <div id="cab"><div class="t"><div id="para"><b id="paranom"></b> <span id="btar" title=""></span> <span id="bhora"></span> <span id="bfase"></span></div><div id="estadoLn"></div></div>
-    <span id="bnav"><button type="button" class="fl" id="bant" title="Chat anterior" aria-label="Chat anterior">‹</button><button type="button" class="fl" id="bsig" title="Chat siguiente" aria-label="Chat siguiente">›</button></span>
+    <span id="bnav"><button type="button" class="fl" id="bant" data-t title="Chat anterior" aria-label="Chat anterior">‹</button><button type="button" class="fl" id="bsig" data-t title="Chat siguiente" aria-label="Chat siguiente">›</button></span>
     <button class="ib" id="bcerrar" data-t title="Cerrar (Esc)" aria-label="Cerrar">✕</button><button class="ib" id="bsel" data-t title="Cambiar de chat (Ctrl+↓)" aria-label="Cambiar de chat">▾</button><button class="ib" id="babrir" data-t title="Abrir este chat en Claude" aria-label="Abrir este chat en Claude">↗</button><button class="ib" id="blistap" data-t title="Chats que te esperan" aria-label="Chats que te esperan" aria-expanded="false" aria-controls="bpend"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b id="blistapn"></b></button></div>
     <div id="bpend" role="region" data-t aria-label="Chats que te esperan"><div id="bpendin"></div><div class="pfmas" id="bpendmas" role="button" tabindex="0"></div></div>
-  <div id="espera"><span id="esptxt"></span> <button type="button" id="esplib" title="Que siga sin tu respuesta">✕</button></div>
+  <div id="espera"><span id="esptxt"></span> <button type="button" id="esplib" data-t title="Que siga sin tu respuesta">✕</button></div>
   <button id="nuevo" data-t>Llegó otro mensaje ▸</button>
   <div id="resumen"></div><div id="todo"></div>
   <div id="bacc"><div class="chips" id="bchips"></div><button id="vertodo" data-t>Ver todo ▾</button></div>
-  <div id="badj"><div id="badjfoto"><img id="badjimg" alt=""><span id="badjtxt"></span><button type="button" class="ib" id="badjq" aria-label="Quitar">✕</button></div><div id="badjchips" role="list" aria-label="Adjuntos"></div></div>
-  <form id="bform"><textarea id="bin" rows="1"></textarea><button type="button" class="ib" id="bpegar" title="Para APROBAR: abre el chat con tu texto copiado; pégalo con Ctrl+V y Enter">📋</button><button id="benv" data-t>Enviar ➤</button></form>
+  <div id="badj"><div id="badjfoto"><img id="badjimg" data-t alt=""><span id="badjtxt"></span><button type="button" class="ib" id="badjq" data-t aria-label="Quitar">✕</button></div><div id="badjchips" data-t role="list" aria-label="Adjuntos"></div></div>
+  <form id="bform"><textarea id="bin" rows="1"></textarea><button type="button" class="ib" id="bpegar" data-t title="Para APROBAR: abre el chat con tu texto copiado; pégalo con Ctrl+V y Enter">📋</button><button id="benv" data-t>Enviar ➤</button></form>
   <div id="destino"></div>
   <button type="button" id="bcambiar" title="Cambiar de chat (Ctrl+↓)">⇄ <span id="bcambiartxt"></span></button>
   <div id="cuenta"></div>
 </div>
 <div id="asomo" role="status" aria-live="polite"><div class="t"><div class="cab"><span class="n" id="asnom"></span><span class="etq" id="aschip"></span>
-  <span class="nav" id="asnav"><button class="ib" id="asant" aria-label="Aviso anterior">‹</button><span id="asi"></span><button class="ib" id="assig" aria-label="Aviso siguiente">›</button></span></div><div class="l" id="aslin"></div></div>
+  <span class="nav" id="asnav"><button class="ib" id="asant" data-t aria-label="Aviso anterior">‹</button><span id="asi"></span><button class="ib" id="assig" data-t aria-label="Aviso siguiente">›</button></span></div><div class="l" id="aslin"></div></div>
   <button class="r" id="asresp" data-t title="Responder (Ctrl+Shift+F11)">Responder</button><button class="ib" id="ascerrar" data-t aria-label="Descartar aviso">✕</button></div>
 <div id="lista"></div>
 <div id="pborr" role="button" tabindex="0"></div>
@@ -310,8 +334,8 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
 <div id="aro" aria-hidden="true"></div><div id="arotxt" aria-hidden="true" data-t>Suéltalo aquí</div>
 <div id="asa" data-t title="Arrastrar"></div>
 <!-- (22-oct) Ajustes dentro de la mascota: lo abre "Ajustes…" del menu de la bandeja -->
-<div id="ajpc" role="dialog" aria-label="Ajustes de Kodama">
-  <div class="tb"><span>Kodama · <span data-t>Ajustes</span></span><button type="button" id="aj-x" aria-label="Cerrar">✕</button></div>
+<div id="ajpc" role="dialog" data-t aria-label="Ajustes de Kodama">
+  <div class="tb"><span>Kodama · <span data-t>Ajustes</span></span><button type="button" id="aj-x" data-t aria-label="Cerrar">✕</button></div>
   <div class="cu">
     <section class="pg on" data-p="inicio"><h2 data-t>Ajustes</h2>
       <div id="aj-lonuevo" hidden><h3 data-t>Lo nuevo en Kodama</h3><ul id="aj-lonuevo-lista"></ul><div class="est" id="aj-lonuevo-est"></div><button type="button" class="bt" id="aj-lonuevo-ok" data-t>Entendido</button></div>
@@ -1050,6 +1074,7 @@ function sobreEn(x, y) {
   const dentro = x >= 0 && y >= 0 && x < innerWidth && y < innerHeight;
   const el = dentro ? document.elementFromPoint(x, y) : null;
   const sobre = !!(el && el.closest("#pie, #otros, #caps, #burbuja, #lista, #asa, #asomo, #pborr, #ajpc, #isla"));
+  if (islaOn) islaHover(!!(el && el.closest("#isla")));   // (28-oct) isla: la pastilla crece con el mouse encima
   if (sobre !== window._sobre) { window._sobre = sobre; companero.interactivo(sobre); }
   if (sobre) tocada();
 }
@@ -1081,7 +1106,7 @@ function zonaTick(forzar) {
   const W = innerWidth, H = innerHeight, rs = [], act = {};
   for (const [id, ml, mt, mr, mb] of ZONA_IDS) {
     const el = $(id); if (!el) continue;
-    if (islaOn && id !== "isla" && id !== "aro" && id !== "arotxt") continue;   // (28-oct) isla: todo vive dentro de #isla
+    if (islaOn && id !== "isla" && id !== "aro" && id !== "arotxt" && id !== "ajpc") continue;   // (28-oct) isla: todo vive dentro de #isla (menos Ajustes en la opcion A)
     const c = zonaCaja(el); if (!c) continue;
     act[id] = c;
     const p = zonaPrev[id], u = p ? [Math.min(c[0], p[0]), Math.min(c[1], p[1]), Math.max(c[2], p[2]), Math.max(c[3], p[3])] : c;   // con la del cuadro anterior: cubre el movimiento entre dos mediciones
@@ -1362,6 +1387,7 @@ $("asomo").addEventListener("mouseleave", () => { if (asomoAct) tAsomo = setTime
 
 // atajos globales (companero-tauri.js): Ctrl+Shift+F10 abre/cierra el globo del chat que más te necesita; Ctrl+Shift+F11 responde al asomo
 companero.alAtajo(q => {
+  if (q === "hover" || q === "ajustes-a" || q === "ajustes-b") return;   // (28-oct) ordenes de prueba de la isla (las atiende el bloque de la isla)
   if (q === "prueba") { if (modoAviso && !enEscena) entrarEscena().then(asomoPrueba); else asomoPrueba(); return; }   // (28-oct) escondida (modo aviso): primero sale a escena
   if (q === "asomo") return responderAsomo();
   if (abierto) return cerrarUsuario();
@@ -1641,12 +1667,18 @@ if (ajP) {
   $("aj-act").onclick = async () => { if (!confirm(window.t("¿Actualizar ahora? Kodama se reinicia en la PC y vuelve en un minuto."))) return;
     $("aj-act").textContent = window.t("Actualizando…"); const r = await ajP.hub("/api/actualizar", {}); $("aj-act").textContent = r.ok ? tf("Instalando {0}…", r.version) : window.t("No se pudo: ") + (r.error || ""); };
 }
-// ======== (28-oct) MODO ISLA (solo macOS) ========
+// ======== (28-oct, v2) MODO ISLA (solo macOS) ========
 // El puente nativo (companero-tauri.js + main.rs/isla.rs) mide la pantalla, pone la ventana arriba al centro por encima de la barra de menus y llama a
 // islaActivar({notch, nw, nh, ...}) UNA vez, antes de mostrar la ventana. En Windows nunca se llama: este bloque queda inerte.
 // Ideas de diseño de Vibe Notch (Apache-2.0) y CodeIsland (MIT), leidas sin copiar codigo: pastilla negra que se funde con la muesca, apertura con rebote
-// leve y cierre sin rebote (aqui con curvas de CSS), todo el contenido dentro de una sola pastilla.
-const ISLA = { ala: 54, wx: 400, h0: 38, w0: 290 };
+// leve y cierre sin rebote (aqui con curvas de CSS), todo el contenido dentro de una sola pastilla, mascota/caratula grande al abrir.
+const ISLA = { ala: 54, wx: 420, h0: 38, w0: 290 };
+// Ajustes en modo isla: "a" = panel flotante de siempre bajo la pastilla (380x560); "b" = la pastilla se agranda y lo lleva dentro. Se elige aca; las capturas de
+// CI piden la otra con la orden fija `kodama:ajustes-b` (solo pruebas, solo macOS) para compararlas.
+const ISLA_AJ_DEFECTO = "a";
+let islaAj = ISLA_AJ_DEFECTO, islaHov = false, islaHovFijo = false, tIslaHov = 0;
+// la cabeza del gato (orejas incluidas) dentro de su caja de 128 x 128: ancho, alto y centro (medido sobre las capturas; el dibujo de Lottie es de 360 x 360)
+const GATO = { w: 90, h: 85, cx: 64, cy: 68 };
 function islaActivar(cfg) {
   if (islaOn || !cfg) return;
   islaOn = true; modoAviso = false;
@@ -1659,29 +1691,56 @@ function islaActivar(cfg) {
   const cab = document.createElement("div"); cab.id = "islaCab";
   const der = document.createElement("div"); der.id = "islaDer";
   const pto = document.createElement("span"); pto.id = "islaPto"; der.appendChild(pto);
+  const tile = document.createElement("div"); tile.id = "islaTile";
   const cu = document.createElement("div"); cu.id = "islaCuerpo";
+  const en = document.createElement("div"); en.id = "islaIn"; cu.appendChild(en);
   cab.appendChild($("pie")); cab.appendChild(der); der.insertBefore($("otros"), pto);
-  cu.appendChild($("asomo")); cu.appendChild($("burbuja")); cu.appendChild($("lista")); cu.appendChild($("ajpc"));
-  I.appendChild(cab); I.appendChild(cu); B.insertBefore(I, B.firstChild);
-  I.style.setProperty("--nh", h0 + "px"); I.style.setProperty("--s", ((h0 - (plano ? 6 : 8)) / 128).toFixed(4));
+  en.appendChild($("asomo")); en.appendChild($("burbuja")); en.appendChild($("lista"));   // Ajustes (#ajpc) se queda en el body (opcion A) o entra aca (opcion B)
+  I.appendChild(cab); I.appendChild(tile); I.appendChild(cu); B.insertBefore(I, B.firstChild);
+  I.style.setProperty("--nh", h0 + "px"); B.style.setProperty("--nh", h0 + "px");
   I.style.width = w0 + "px"; I.style.height = h0 + "px";
   // tocar la pastilla cerrada = tocar la mascota (abre el globo del chat que mas te necesita); la insignia y el gato tienen su propio clic
   cab.onpointerup = e => { if (e.target.closest("#pj, #otros")) return; if (panelAbierto) return cerrarPanel(); if (comp) comp.tocar(); tocarMascota(); };
-  if (window.ResizeObserver) new ResizeObserver(islaSync).observe(cu);
+  I.addEventListener("pointerenter", () => islaHover(true)); I.addEventListener("pointerleave", () => islaHover(false));
+  if (window.ResizeObserver) new ResizeObserver(islaSync).observe(en);
   // Ajustes: lo de la capsula y "Aparecer solo cuando me necesitan" no aplican a la isla
   const oculta = el => { if (el) el.style.display = "none"; };
   ["modo", "capsula"].forEach(k => { const w = document.querySelector('#ajpc .sw[data-k="' + k + '"]'); oculta(w && w.parentNode); });
   oculta($("aj-capcolfila")); oculta(document.querySelectorAll('#ajpc .pg[data-p="inicio"] .pie2')[1]);
   islaSync(); islaPintar(chats().filter(teNecesita).length);
 }
-// la pastilla se abre cuando hay contenido (aviso, globo, lista o Ajustes) y se cierra cuando ya no hay: el tamaño sale del contenido y se anima con CSS
+// el mouse encima de la pastilla cerrada: crece un poco (y el gato mas). Salir se retrasa 160 ms para que no parpadee en el borde.
+function islaHover(si) {
+  if (!islaOn) return;
+  clearTimeout(tIslaHov);
+  if (si) { if (!islaHov) { islaHov = true; islaSync(); } return; }
+  tIslaHov = setTimeout(() => { if (islaHov) { islaHov = false; islaSync(); } }, 160);
+}
+// el gato: tamaño de la cabeza (hh) y donde queda su centro (cx, cy) segun el estado de la pastilla. Cerrada: la cabeza llena el alto de la pastilla y la barbilla
+// asoma 4 px por debajo; con el mouse encima: mas grande; abierta: grande sobre la baldosa de la izquierda.
+function islaGato(modo) {
+  const P = $("pie"); if (!P) return;
+  const plano = document.body.classList.contains("isla-plano"), h0 = ISLA.h0;
+  let hh, cx, cy;
+  if (modo === "tile") { hh = 66; cx = 14 + 40; cy = h0 + 10 + 40; }
+  else {
+    hh = modo === "hover" ? (plano ? h0 - 2 : h0 + 10) : (plano ? h0 - 6 : h0 + 4);
+    cx = (plano ? 11 : 8) + GATO.w * hh / GATO.h / 2; cy = plano ? h0 / 2 : hh / 2;
+  }
+  const s = hh / GATO.h;
+  P.style.setProperty("--s", s.toFixed(4)); P.style.setProperty("--gl", (cx - GATO.cx * s).toFixed(1) + "px"); P.style.setProperty("--gt", (cy - GATO.cy * s).toFixed(1) + "px");
+}
+// la pastilla se abre cuando hay contenido (aviso, globo, lista o Ajustes en la opcion B) y se cierra cuando ya no hay: el tamaño sale del contenido y se anima con CSS
 function islaSync() {
   if (!islaOn) return;
-  const I = $("isla"), cu = $("islaCuerpo"); if (!I || !cu) return;
-  const hc = cu.offsetHeight, abierta = hc > 0;
-  I.classList.toggle("abierta", abierta);
-  I.style.width = (abierta ? Math.max(ISLA.wx, ISLA.w0) : ISLA.w0) + "px";
-  I.style.height = Math.min(ISLA.h0 + (abierta ? hc + 4 : 0), Math.max(ISLA.h0, innerHeight - 8)) + "px";
+  const I = $("isla"), en = $("islaIn"); if (!I || !en) return;
+  const hc = en.offsetHeight, abierta = hc > 0, tile = abierta && !panelAbierto, hov = !abierta && !panelAbierto && (islaHov || islaHovFijo);
+  I.classList.toggle("abierta", abierta); I.classList.toggle("tile", tile); I.classList.toggle("hov", hov);
+  document.body.classList.toggle("isla-tile-osc", /blanco/.test(pjTipo || ""));   // gato blanco: baldosa oscura
+  const w = abierta ? Math.max(ISLA.wx, ISLA.w0) : ISLA.w0 + (hov ? 16 : 0);
+  const h = abierta ? ISLA.h0 + Math.max(hc, tile ? 92 : 0) + 4 : ISLA.h0 + (hov ? 6 : 0);
+  I.style.width = w + "px"; I.style.height = Math.min(h, Math.max(ISLA.h0, innerHeight - 4)) + "px";
+  islaGato(tile ? "tile" : hov ? "hover" : "cerrada");
   zonaYa();
 }
 function islaPintar(nEsp) {   // punto de estado (verde si algun chat trabaja, gris, apagado si todo duerme); si hay chats esperando manda el numero de la insignia
@@ -1692,8 +1751,10 @@ function islaPintar(nEsp) {   // punto de estado (verde si algun chat trabaja, g
 function abrirPanelIsla() {
   try { cerrar(); } catch (e) {} $("lista").classList.remove("si"); ocultarAsomo();
   tocada(); dormirAnim(false);
+  const b = islaAj === "b", P = $("ajpc");
+  P.classList.toggle("en-isla", b); (b ? $("islaIn") : document.body).appendChild(P);   // B: dentro de la pastilla; A: flotante bajo ella
   document.body.classList.add("con-panel");
-  if (!RM) $("ajpc").animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200 });
+  if (!RM) P.animate(b ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: "translateY(-8px)" }, { opacity: 1, transform: "none" }], { duration: 200, easing: "ease-out" });
   companero.interactivo(true); window._sobre = true;
   islaSync();
 }
@@ -1719,6 +1780,13 @@ function ajIslaFila(c) {
   }
   document.querySelectorAll("#aj-isla span").forEach(x => x.classList.toggle("on", x.dataset.v === c.isla));
 }
+// ordenes FIJAS de prueba (solo macOS, las manda la CI por el archivo de diagnostico; no se evalua nada): "hover" fija/suelta el estado con el mouse encima,
+// "ajustes-a" / "ajustes-b" abren Ajustes con esa variante
+if (companero.alAtajo) companero.alAtajo(q => {
+  if (!islaOn) return;
+  if (q === "hover") { islaHovFijo = !islaHovFijo; islaSync(); }
+  else if (q === "ajustes-a" || q === "ajustes-b") { islaAj = q.slice(-1); if (panelAbierto) { cerrarPanel(); setTimeout(() => abrirPanel("inicio"), 450); } else abrirPanel("inicio"); }
+});
 if (companero.alIsla) companero.alIsla(islaActivar);
 </script>
 </body>

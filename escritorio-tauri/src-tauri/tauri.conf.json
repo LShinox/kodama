@@ -25,6 +25,7 @@
         "focus": false,
         "visible": false,
         "dragDropEnabled": false,
+        "acceptFirstMouse": true,
         "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,Translate,OptimizationHints,AutofillServerCommunication,MediaRouter --disable-background-networking --disable-component-update --disable-sync --no-first-run --renderer-process-limit=1 --disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows"
       }
     ],
