@@ -18,18 +18,24 @@ from kodama_cola import prender_pantalla
 
 
 def uso_plan():
-    """(15-oct) % del plan (5 h y semana). Lo calcula el hilo estimar_uso(): EXACTO si la statusLine de Claude Code lo
-    anoto hace poco (estado\\uso.json, ver uso_statusline) o hay un dato de menos de 20 min (app de Claude o chat
-    Medidor); si no, ESTIMADO con lo que gastaron los chats (sin gastar plan).
-    {"5h": {"pct", "estimado"?, "reinicia"?}, "semana": {...}, "ts", "base_ts"?, "exacto": bool, "fuente"?} o None.
-    "reinicia" = hora de reinicio de la ventana (epoch en segundos) y solo viene con el dato de la statusLine."""
+    """(15-oct) % del plan (5 h y semana). Lo calcula el hilo estimar_uso(): EXACTO si hay un dato de menos de 20 min de la
+    statusLine de Claude Code (estado\\uso.json, ver uso_statusline) o del historial de la propia app de Claude
+    (plan-usage-history.json, ver uso_app; manda el MAS NUEVO); si no, ESTIMADO con lo que gastaron los chats (sin gastar plan).
+    {"5h": {"pct", "estimado"?, "reinicia"?}, "semana": {...}, "ts", "base_ts"?, "exacto": bool,
+     "fuente": "statusline" | "app" | "medidor" | "estimado"} o None.
+    "reinicia" = hora de reinicio de la ventana (epoch en segundos): solo viene con el dato de la statusLine (el historial
+    de la app no trae la hora de reinicio)."""
     return _EST.get("v")
 
 
 _EST = {"v": None, "pedido5h": 0}
 
 USO_JSON = os.path.join(BASE, "uso.json")   # lo escribe companero_uso.py (statusLine de Claude Code)
-FRESCO_USO_S = 1200                          # el dato de la statusLine sirve si se escribio hace menos de 20 min
+FRESCO_USO_S = 1200                          # el dato de la statusLine / de la app sirve si es de hace menos de 20 min
+# (28-oct) historial de la propia app de Claude (la app de escritorio no ejecuta la statusLine). Muestras {"org","t" (ms),
+# "u": {"fh": % de 5 h, "sd": % de la semana}} cada ~15 min (mediana 900 s, p90 ~960 s) mientras la app esta abierta: 20 min
+# cubre un intervalo normal con margen. No trae hora de reinicio.
+HIST_APP = os.path.join(grupos_app.APP, "plan-usage-history.json")
 
 
 def _epoch(x):
@@ -72,13 +78,67 @@ def uso_statusline(ruta=None, ahora=None):
         out[k] = {"pct": max(0, min(100, pct)), "reinicia": int(rei)}
     if not out:
         return None
-    out["ts"] = ts
+    out["ts"], out["fuente"] = ts, "statusline"
     return out
 
 
+def _num(x):
+    return not isinstance(x, bool) and isinstance(x, (int, float)) and x == x and abs(x) != float("inf")
+
+
+def uso_app(ruta=None, ahora=None):
+    """(28-oct) Lectura EXACTA del historial de la propia app de Claude (plan-usage-history.json): la app de escritorio
+    no ejecuta la statusLine, pero anota ahi el % de 5 h ("fh") y de la semana ("sd") mientras esta abierta. Se toma la
+    muestra mas nueva ("t" en ms) y sirve solo si tiene menos de FRESCO_USO_S. Devuelve
+    {"5h": {"pct"}, "semana": {"pct"}, "ts", "fuente": "app"} (SIN "reinicia": la app no lo anota) o None."""
+    ruta, ahora = ruta or HIST_APP, time.time() if ahora is None else ahora
+    try:
+        muestras = json.load(open(ruta, encoding="utf-8-sig")).get("samples")
+    except (OSError, ValueError, AttributeError):
+        return None
+    mejor, t_mejor = None, None
+    for m in muestras if isinstance(muestras, list) else []:
+        try:
+            t, u = m["t"], m["u"]
+        except (TypeError, KeyError):
+            continue
+        if _num(t) and isinstance(u, dict) and (t_mejor is None or t > t_mejor):
+            mejor, t_mejor = u, t
+    if mejor is None:
+        return None
+    ts = t_mejor / 1000 if t_mejor > 1e11 else float(t_mejor)
+    if not (-5 <= ahora - ts <= FRESCO_USO_S):
+        return None
+    out = {}
+    for k, campo in (("5h", "fh"), ("semana", "sd")):
+        if _num(mejor.get(campo)):
+            out[k] = {"pct": max(0, min(100, mejor[campo]))}
+    if not out:
+        return None
+    out["ts"], out["fuente"] = ts, "app"
+    return out
+
+
+def elegir_exacto(statusline, app):
+    """El dato exacto fresco MAS NUEVO manda (empate: la statusLine, que trae la hora de reinicio). Si al ganador le falta
+    una ventana y la otra fuente fresca la trae, se completa con esa (sigue siendo exacta). None si ninguna esta fresca."""
+    if statusline and app:
+        prim, sec = (statusline, app) if statusline["ts"] >= app["ts"] else (app, statusline)
+    else:
+        prim, sec = statusline or app, None
+    if not prim:
+        return None
+    r = dict(prim)
+    for k in ("5h", "semana"):
+        if k not in r and sec and k in sec:
+            r[k] = sec[k]
+    return r
+
+
 def combinar_uso(exacto, estimado):
-    """Lo exacto de la statusLine manda en las ventanas que trae; lo que le falte sale del estimador (como antes).
-    Agrega "exacto": True si TODAS las ventanas del resultado son exactas, y "fuente": "statusline" si hay alguna."""
+    """Lo exacto (statusLine o app, ya elegido con elegir_exacto) manda en las ventanas que trae; lo que le falte sale del
+    estimador (como antes). "exacto": True si TODAS las ventanas del resultado son exactas. "fuente": la del dato exacto
+    ("statusline" | "app"); sin dato exacto, "medidor" si el estimador devolvio una lectura fresca tal cual o "estimado"."""
     if not exacto and estimado is None:
         return None
     r = dict(estimado or {})
@@ -86,19 +146,21 @@ def combinar_uso(exacto, estimado):
         for k in ("5h", "semana"):
             if k in exacto:
                 r[k] = exacto[k]
-        r["ts"], r["fuente"] = exacto["ts"], "statusline"
+        r["ts"], r["fuente"] = exacto["ts"], exacto.get("fuente", "statusline")
     r["exacto"] = not any(isinstance(r.get(k), dict) and r[k].get("estimado") for k in ("5h", "semana"))
     if r["exacto"]:
         r.pop("base_ts", None)
+    if not exacto:
+        r["fuente"] = "medidor" if r["exacto"] else "estimado"
     return r
 
 
 def _ciclo_estimar():
-    """Una vuelta del hilo estimar_uso() (aparte para poder probarla). Con la statusLine fresca el dato es exacto y NO se
-    pide lectura al Medidor; sin ella (o vieja) todo sigue como antes."""
+    """Una vuelta del hilo estimar_uso() (aparte para poder probarla). Con un dato fresco de la statusLine o del historial
+    de la app (el mas nuevo manda) el dato es exacto y NO se pide lectura al Medidor; sin ninguno todo sigue como antes."""
     import estimador
     estimador.actualizar()
-    exacto = uso_statusline()
+    exacto = elegir_exacto(uso_statusline(), uso_app())
     v = combinar_uso(exacto, estimador.estimar(grupos_app.APP))
     _EST["v"] = v
     p5 = ((v or {}).get("5h") or {})
@@ -112,7 +174,7 @@ def _ciclo_estimar():
 def estimar_uso():
     """Cada 60 s: lee lo nuevo de los transcripts y recalcula. Si el estimado de 5 h pasa de 80 % y no estas en la PC,
     pide UNA lectura exacta al chat Medidor (una sola vez por ventana de 5 h): es lo unico que gasta plan.
-    (28-oct) Si la statusLine de Claude Code dio el dato hace poco, ese es el exacto y no se pide nada."""
+    (28-oct) Si la statusLine de Claude Code o el historial de la app dieron el dato hace poco, ese es el exacto y no se pide nada."""
     while True:
         try:
             _ciclo_estimar()

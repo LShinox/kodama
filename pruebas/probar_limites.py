@@ -6,6 +6,8 @@ Cubre:
   2) uso.json viejo, ausente, roto o con la ventana ya reiniciada -> el estimador, como siempre (y el Medidor sale si toca);
   3) companero_uso.py encadena la statusLine anterior (mismo stdin, su salida tal cual) y sin anterior imprime lo de siempre;
   4) instalar.py: sin statusLine pone la de Kodama; con una propia la guarda en config.json, la encadena y al quitar la devuelve.
+  5) (L2) historial de la app (plan-usage-history.json, SINTETICO en carpeta temporal): fresco = exacto con fuente "app" y sin
+     reinicio; ambos frescos = el mas nuevo manda; el de la app viejo = se ignora; ninguno fresco = estimador.
 No imprime claves ni textos de mensajes. Uso: python probar_limites.py"""
 import json, os, shutil, sys, tempfile, time
 
@@ -66,13 +68,64 @@ try:
     c = km.combinar_uso({"ts": ahora - 5, "5h": {"pct": 20, "reinicia": rei5}}, est)
     ok("combinar: una ventana exacta y otra estimada -> exacto False", c["exacto"] is False and c["semana"]["estimado"] and c["5h"]["pct"] == 20, str(c))
     c = km.combinar_uso(None, est)
-    ok("combinar: sin exacto = el estimador, marcado estimado", c["exacto"] is False and c["5h"]["pct"] == 90 and "fuente" not in c, str(c))
+    ok("combinar: sin exacto = el estimador, marcado estimado", c["exacto"] is False and c["5h"]["pct"] == 90 and c["fuente"] == "estimado", str(c))
+    c = km.combinar_uso({"ts": ahora - 5, "fuente": "app", "5h": {"pct": 20}, "semana": {"pct": 61}}, est)
+    ok("combinar: dato de la app = exacto, fuente app, sin reinicio", c["exacto"] is True and c["fuente"] == "app" and "reinicia" not in c["5h"], str(c))
     ok("combinar: nada de nada = None", km.combinar_uso(None, None) is None)
 
     # ---------- hilo: el Medidor solo sale sin dato fresco ----------
     pedidos, avisos = [], []
     resp = {"5h": {"pct": 90, "estimado": True}, "semana": {"pct": 50, "estimado": True}, "ts": ahora, "base_ts": ahora - 9999}
-    orig = {n: getattr(km, n) for n in ("pedir_medicion", "segundos_sin_uso", "lectura_exacta_activa", "log", "USO_JSON")}
+    f_app = os.path.join(TMP, "plan-usage-history.json")   # SINTETICO (nunca el archivo real de la app)
+
+    def escribir_app(muestras):
+        json.dump({"version": 1, "samples": [{"org": "o", "t": int(t * 1000), "u": {"fh": fh, "sd": sd}} for t, fh, sd in muestras]},
+                  open(f_app, "w", encoding="utf-8"))
+
+    # ---------- 5a) uso_app: historial de la app ----------
+    escribir_app([(ahora - 3000, 5, 50), (ahora - 60, 44, 70), (ahora - 1800, 9, 51)])   # fuera de orden a proposito
+    a = km.uso_app(f_app, ahora)
+    ok("app fresca: toma la muestra mas nueva, 5 h y semana exactas", bool(a) and a["5h"] == {"pct": 44} and a["semana"] == {"pct": 70}
+       and a["fuente"] == "app" and abs(a["ts"] - (ahora - 60)) < 1, str(a))
+    ok("app fresca: sin hora de reinicio (el archivo no la trae)", bool(a) and "reinicia" not in a["5h"] and "reinicia" not in a["semana"], str(a))
+    escribir_app([(ahora - 1500, 44, 70)])
+    ok("app vieja (25 min): None", km.uso_app(f_app, ahora) is None)
+    escribir_app([(ahora - 1100, 44, 70)])
+    ok("app a 18 min: todavia fresca", km.uso_app(f_app, ahora) is not None)
+    escribir_app([(ahora + 600, 44, 70)])
+    ok("app con hora en el futuro: None", km.uso_app(f_app, ahora) is None)
+    open(f_app, "w").write("{no es json")
+    ok("app rota: None", km.uso_app(f_app, ahora) is None)
+    ok("app ausente: None", km.uso_app(os.path.join(TMP, "no-existe.json"), ahora) is None)
+    json.dump({"samples": [{"t": int(ahora * 1000), "u": {"fh": "x", "sd": True}}, {"t": "ya", "u": {"fh": 1, "sd": 2}}, 7]}, open(f_app, "w"))
+    ok("app con campos mal formados: None", km.uso_app(f_app, ahora) is None)
+    json.dump({"samples": [{"t": int(ahora * 1000), "u": {"fh": 130, "sd": 20}}]}, open(f_app, "w"))
+    a = km.uso_app(f_app, ahora)
+    ok("app: una sola ventana valida y % recortado a 100", bool(a) and a["5h"]["pct"] == 100 and a["semana"]["pct"] == 20, str(a))
+    json.dump({"samples": [{"t": int(ahora * 1000), "u": {"fh": 12}}]}, open(f_app, "w"))
+    a = km.uso_app(f_app, ahora)
+    ok("app: solo 5 h", bool(a) and a["5h"]["pct"] == 12 and "semana" not in a, str(a))
+
+    # ---------- 5b) elegir_exacto: el mas nuevo y fresco manda ----------
+    sl = {"ts": ahora - 300, "fuente": "statusline", "5h": {"pct": 31, "reinicia": rei5}, "semana": {"pct": 62, "reinicia": rei7}}
+    ap = {"ts": ahora - 60, "fuente": "app", "5h": {"pct": 40}, "semana": {"pct": 66}}
+    e = km.elegir_exacto(sl, ap)
+    ok("ambos frescos, la app es mas nueva: gana la app", e["fuente"] == "app" and e["5h"]["pct"] == 40 and e["semana"]["pct"] == 66, str(e))
+    ap["ts"] = ahora - 900
+    e = km.elegir_exacto(sl, ap)
+    ok("ambos frescos, la statusLine es mas nueva: gana la statusLine (con su reinicio)", e["fuente"] == "statusline"
+       and e["5h"] == {"pct": 31, "reinicia": rei5}, str(e))
+    e = km.elegir_exacto(None, ap)
+    ok("solo la app fresca", e["fuente"] == "app" and e["5h"]["pct"] == 40, str(e))
+    e = km.elegir_exacto(sl, None)
+    ok("solo la statusLine fresca", e["fuente"] == "statusline", str(e))
+    ok("ninguna fresca: None", km.elegir_exacto(None, None) is None)
+    e = km.elegir_exacto({"ts": ahora - 10, "fuente": "statusline", "semana": {"pct": 62, "reinicia": rei7}},
+                         {"ts": ahora - 100, "fuente": "app", "5h": {"pct": 40}, "semana": {"pct": 66}})
+    ok("al ganador le falta la 5 h: se completa con la otra fuente fresca", e["fuente"] == "statusline" and e["semana"]["pct"] == 62
+       and e["5h"] == {"pct": 40}, str(e))
+
+    orig = {n: getattr(km, n) for n in ("pedir_medicion", "segundos_sin_uso", "lectura_exacta_activa", "log", "USO_JSON", "HIST_APP")}
     o_act, o_est = estimador.actualizar, estimador.estimar
     try:
         km.pedir_medicion = lambda *a, **k: pedidos.append(1)
@@ -80,6 +133,9 @@ try:
         km.lectura_exacta_activa = lambda: True
         km.log = lambda m: avisos.append(m)
         km.USO_JSON = f_uso
+        km.HIST_APP = f_app
+        if os.path.exists(f_app):
+            os.remove(f_app)   # (L2) por omisión sin historial de la app; cada caso lo escribe si lo necesita
         estimador.actualizar = lambda: None
         estimador.estimar = lambda app: dict(resp)
 
@@ -102,6 +158,39 @@ try:
         pedidos.clear(); os.remove(f_uso)
         km._ciclo_estimar()
         ok("hilo, sin uso.json: igual que antes (estimador + Medidor)", km.uso_plan()["5h"]["estimado"] and pedidos == [1])
+
+        # (L2) historial de la app en el hilo (sin uso.json: usuario de escritorio)
+        km._EST.update(v=None, pedido5h=0); pedidos.clear()
+        escribir_app([(time.time() - 120, 47, 71)])
+        km._ciclo_estimar()
+        v = km.uso_plan()
+        ok("hilo, app fresca: uso_plan exacto, fuente app, sin reinicio", v["5h"]["pct"] == 47 and v["semana"]["pct"] == 71 and v["exacto"] is True
+           and v["fuente"] == "app" and "estimado" not in v["5h"] and "reinicia" not in v["5h"] and "base_ts" not in v, str(v))
+        ok("hilo, app fresca: NO se pide lectura al Medidor (aunque el estimado pase de 80 %)", pedidos == [], str(pedidos))
+
+        km._EST.update(v=None, pedido5h=0)
+        escribir_app([(time.time() - 120, 47, 71)])
+        escribir({"ts": time.time() - 20, "5h": {"pct": 31, "reinicia": rei5}, "semana": {"pct": 62, "reinicia": rei7}})
+        km._ciclo_estimar()
+        v = km.uso_plan()
+        ok("hilo, ambos frescos, statusLine mas nueva: gana la statusLine (con reinicio)", v["fuente"] == "statusline" and v["5h"]["pct"] == 31
+           and v["5h"]["reinicia"] == rei5 and v["exacto"] is True, str(v))
+        km._EST.update(v=None, pedido5h=0)
+        escribir_app([(time.time() - 5, 47, 71)])
+        escribir({"ts": time.time() - 600, "5h": {"pct": 31, "reinicia": rei5}, "semana": {"pct": 62, "reinicia": rei7}})
+        km._ciclo_estimar()
+        v = km.uso_plan()
+        ok("hilo, ambos frescos, app mas nueva: gana la app", v["fuente"] == "app" and v["5h"]["pct"] == 47 and v["semana"]["pct"] == 71
+           and v["exacto"] is True and pedidos == [], str(v))
+
+        km._EST.update(v=None, pedido5h=0)
+        escribir_app([(time.time() - 3600, 47, 71)])   # app vieja y sin uso.json fresco: estimador + Medidor
+        os.remove(f_uso)
+        km._ciclo_estimar()
+        v = km.uso_plan()
+        ok("hilo, app vieja: se ignora, vuelve al estimador (estimado, fuente estimado)", v["5h"]["pct"] == 90 and v["5h"]["estimado"]
+           and v["exacto"] is False and v["fuente"] == "estimado", str(v))
+        ok("hilo, app vieja: el Medidor se pide como antes", pedidos == [1], str(pedidos))
     finally:
         for n, f in orig.items():
             setattr(km, n, f)
