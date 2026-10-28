@@ -11,7 +11,6 @@ Hook Stop (NO async, timeout ~9 min, config global). Cuando un chat termina su t
   respondas despues va por el buzon de siempre (con el parrafo).
 Si algo falla, sale con 0 sin imprimir nada: nunca deja un chat trabado.
 """
-import ctypes
 import json
 import os
 import sys
@@ -20,6 +19,7 @@ import time
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 import config
+import kodama_plataforma as plataforma
 from kodama_comun import celular_abierto, va_al_celular  # noqa: E402,F401
 BASE = config.ESTADO
 PUENTE = os.path.join(BASE, "puente")
@@ -35,11 +35,7 @@ SIN_USO_MIN = 120         # solo si la PC lleva 2 min sin uso
 
 
 def sin_uso():
-    class LII(ctypes.Structure):
-        _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
-    lii = LII(); lii.cbSize = ctypes.sizeof(LII)
-    ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii))
-    return (ctypes.windll.kernel32.GetTickCount() - lii.dwTime) / 1000.0
+    return float(plataforma.segundos_sin_uso())   # (Mac-F2) por plataforma
 
 
 def main():
@@ -134,11 +130,7 @@ def mirando_este(sid):
     try:
         if sin_uso() > 30:
             return False
-        u, k = ctypes.windll.user32, ctypes.windll.kernel32
-        pid = ctypes.c_ulong(); u.GetWindowThreadProcessId(u.GetForegroundWindow(), ctypes.byref(pid))
-        h = k.OpenProcess(0x1000, False, pid.value); buf = ctypes.create_unicode_buffer(520); n = ctypes.c_ulong(520)
-        k.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(n)); k.CloseHandle(h)
-        if os.path.basename(buf.value).lower() != "claude.exe":
+        if plataforma.app_al_frente() != plataforma.NOMBRE_APP_CLAUDE:   # (Mac-F2) por plataforma
             return False
         import grupos_app
         return grupos_app.chat_enfocado() == sid

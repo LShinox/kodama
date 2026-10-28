@@ -1,7 +1,9 @@
 # © 2026 LShinox — PolyForm Noncommercial 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0). Ver LICENCIA.txt.
 """Arranca (si no estan corriendo) el Tailscale del companero y el hub. Lo llama la tarea
 programada "Kodama" al iniciar sesion y cada 10 min (vigilante). Sin ventanas.
-Procesos desprendidos y fuera del job del que lanza, para que nada se los lleve al cerrarse."""
+Procesos desprendidos y fuera del job del que lanza, para que nada se los lleve al cerrarse.
+(Mac-F2) En macOS lo mismo, con kodama_plataforma: lo lanza el LaunchAgent app.kodama (ver arrancar_mac.py) al iniciar
+sesion y cada 10 min; python del venv (.venv/bin/python, no hay pythonw) y el binario kodama de la mascota."""
 import os
 import sys
 import time
@@ -23,8 +25,10 @@ corriendo = plataforma.pids_por_linea
 lanzar = plataforma.lanzar_desprendido
 
 
-if not corriendo("companero-tailscaled", plataforma.nombre_proceso_tailscaled()):
-    pid = lanzar(plataforma.comando_tailscaled(TS_DIR), TS_DIR, os.path.join(TS_DIR, "tailscaled.pid"))
+# (Mac-F2) en macOS Kodama no levanta un tailscaled propio: usa el Tailscale del sistema (comando_tailscaled devuelve None)
+_cmd_ts = plataforma.comando_tailscaled(TS_DIR)
+if _cmd_ts and not corriendo("companero-tailscaled", plataforma.nombre_proceso_tailscaled()):
+    pid = lanzar(_cmd_ts, TS_DIR, os.path.join(TS_DIR, "tailscaled.pid"))
     log(f"tailscaled arrancado pid={pid}")
     time.sleep(8)
 

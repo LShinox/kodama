@@ -18,6 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
+import kodama_plataforma as plataforma  # noqa: E402
 from kodama_comun import lineas_finales  # noqa: E402
 
 BASE = config.ESTADO
@@ -90,7 +91,7 @@ def main():
     # (21-oct) la cadena de padres no siempre llega a claude.exe (salieron 6 "Antigravity · agy" en el celular): toda
     # sesion del CLI agy.exe queda afuera; LShinox usa la APP de Antigravity, el CLI lo usan los chats.
     ps = __import__("companero_codex").padres()
-    if ("claude.exe" in ps or "agy.exe" in ps) and os.environ.get("COMPANERO_AG_PRUEBA") != "1":
+    if (plataforma.NOMBRE_APP_CLAUDE in ps or plataforma.NOMBRE_AGY in ps) and os.environ.get("COMPANERO_AG_PRUEBA") != "1":
         return
     sid = str(d.get("conversationId") or "")
     if not sid or ev not in ("SessionStart", "PreInvocation", "Stop"):

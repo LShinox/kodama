@@ -85,6 +85,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: python pruebas/probar_punto5.py
 
+      - name: Test - probar_plataforma_mac
+        if: ${{ !cancelled() }}
+        run: python pruebas/probar_plataforma_mac.py
+
   windows:
     name: Windows (build + tests)
     runs-on: windows-latest

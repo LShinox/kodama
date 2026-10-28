@@ -18,6 +18,7 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
+import kodama_plataforma as plataforma  # noqa: E402
 
 BASE = config.ESTADO
 LOGS = [("hub.log", 400), ("arrancar.log", 120), ("antigravity_hook.log", 60), ("actualizar.log", 120)]
@@ -28,9 +29,7 @@ CONF_FUERA = ("token_telegram", "nombres", "url_publica", "chats", "raices_perso
 def _vivo(pidfile, texto):
     try:
         pid = int(open(os.path.join(BASE, pidfile)).read().strip())
-        out = subprocess.run(["powershell", "-NoProfile", "-Command",
-                              f"(Get-CimInstance Win32_Process -Filter 'ProcessId={pid}').CommandLine"],
-                             capture_output=True, text=True, timeout=20, creationflags=0x08000000).stdout
+        out = plataforma.linea_de_comando(pid, timeout=20)   # (Mac-F2) por plataforma (en Windows, la misma consulta de antes)
         return "si" if any(t in out for t in ((texto,) if isinstance(texto, str) else texto)) else "no"
     except Exception:
         return "?"
@@ -52,9 +51,8 @@ def _hooks():
 
 
 def _app_claude():
-    try:   # WindowsApps no se puede listar sin permisos de administrador: se pregunta a Windows por el paquete
-        return subprocess.run(["powershell", "-NoProfile", "-Command", "(Get-AppxPackage -Name Claude).Version"],
-                              capture_output=True, text=True, timeout=20, creationflags=0x08000000).stdout.strip() or "?"
+    try:   # por plataforma (Windows: se pregunta por el paquete MSIX porque WindowsApps no se puede listar; macOS: Info.plist de Claude.app)
+        return plataforma.version_app_claude()
     except Exception:
         return "?"
 
@@ -66,7 +64,7 @@ def resumen(salud):
         "python": platform.python_version(),
         "app_claude": _app_claude(),
         "hub_vivo": _vivo("hub.pid", "companero_hub.py"),
-        "mascota_viva": _vivo("escritorio.pid", ("kodama.exe", "companero.exe")),
+        "mascota_viva": _vivo("escritorio.pid", plataforma.NOMBRES_EXE_MASCOTA),
         "salud": [t for _, t in salud] or ["sin problemas detectados"],
         "hooks": _hooks(),
         "fecha": time.strftime("%Y-%m-%d %H:%M"),
@@ -114,6 +112,6 @@ def url_issue(r, archivo):
 def reportar(salud, redactar):
     """Arma el .zip, lo muestra en el Explorador y abre el formulario del issue. Devuelve la ruta del .zip."""
     ruta, r = armar(salud, redactar)
-    subprocess.Popen(["explorer", "/select,", ruta])
-    os.startfile(url_issue(r, ruta))
+    plataforma.mostrar_en_carpeta(ruta)
+    plataforma.abrir(url_issue(r, ruta))
     return ruta

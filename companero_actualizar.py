@@ -115,6 +115,9 @@ def descargar(info):
 
 def lanzar_aplicar(ruta_zip):
     """El hub no puede reemplazarse a si mismo: lanza este archivo aparte, sin ventana, y ese proceso hace el resto."""
+    if not plataforma.actualizacion_automatica():   # (Mac-F2) macOS: actualizacion manual, no se instala nada solo
+        log("actualización manual en macOS: no se aplica nada")
+        return
     pyw = plataforma.python_del_venv(APP, sin_consola=True)
     subprocess.Popen([pyw, os.path.abspath(__file__), "--aplicar", ruta_zip], cwd=APP,
                      close_fds=True, **plataforma.desprendido(grupo=True))   # desprendido, en su propio grupo de procesos
@@ -138,6 +141,9 @@ def _miembros_tamizados(z):
 
 
 def aplicar(ruta_zip):
+    if not plataforma.actualizacion_automatica():   # (Mac-F2) macOS: actualizacion manual (el zip trae el programa de Windows)
+        log("actualización manual en macOS: no se aplica nada")
+        return
     bandera = os.path.join(EST, "no-relanzar")
     open(bandera, "w").close()   # que arrancar.pyw no lo relance a mitad
     respaldo = os.path.join(config.RESPALDOS, f"programa-{config.VERSION}-{time.strftime('%Y%m%d-%H%M')}.zip")
@@ -185,6 +191,8 @@ def aplicar(ruta_zip):
 
 if __name__ == "__main__":
     if "--aplicar" in sys.argv:
+        if not plataforma.actualizacion_automatica():
+            print("actualización manual en macOS")
         aplicar(sys.argv[sys.argv.index("--aplicar") + 1])
     else:
         print(json.dumps(buscar(), ensure_ascii=False, indent=1) or "sin version nueva (o sin repo/releases)")

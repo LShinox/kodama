@@ -14,8 +14,6 @@ Doc: developers.openai.com/codex/hooks y /codex/config-advanced (lo confirmo el 
 - "terminó" sale de `notify` (trae el ultimo mensaje); los permisos van por el hook PermissionRequest.
 - Responder un mensaje a una sesion de Codex abierta: todavia NO (no hay forma confirmada de escribirle a la TUI).
 """
-import ctypes
-import ctypes.wintypes as w
 import io
 import json
 import os
@@ -24,6 +22,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
+import kodama_plataforma as plataforma  # noqa: E402
 from kodama_comun import lineas_finales  # noqa: E402
 
 BASE = config.ESTADO
@@ -31,28 +30,9 @@ EXTRA = os.path.join(BASE, "sesiones_extra.json")
 
 
 def padres():
-    """Nombres de los procesos padre (hasta 8 niveles), con la API de Windows (sin PowerShell: el hook debe ser rapido)."""
-    class PE(ctypes.Structure):
-        _fields_ = [("dwSize", w.DWORD), ("cntUsage", w.DWORD), ("th32ProcessID", w.DWORD), ("th32DefaultHeapID", ctypes.c_size_t),
-                    ("th32ModuleID", w.DWORD), ("cntThreads", w.DWORD), ("th32ParentProcessID", w.DWORD),
-                    ("pcPriClassBase", ctypes.c_long), ("dwFlags", w.DWORD), ("szExeFile", ctypes.c_wchar * 260)]
-    k = ctypes.windll.kernel32
-    snap = k.CreateToolhelp32Snapshot(0x2, 0)
-    tabla, e = {}, PE()
-    e.dwSize = ctypes.sizeof(PE)
-    ok = k.Process32FirstW(snap, ctypes.byref(e))
-    while ok:
-        tabla[e.th32ProcessID] = (e.th32ParentProcessID, e.szExeFile.lower())
-        ok = k.Process32NextW(snap, ctypes.byref(e))
-    k.CloseHandle(snap)
-    out, pid = [], os.getpid()
-    for _ in range(8):
-        if pid not in tabla:
-            break
-        pid, _n = tabla[pid]
-        if pid in tabla:
-            out.append(tabla[pid][1])
-    return out
+    """Nombres de los procesos padre (hasta 8 niveles), sin PowerShell (el hook debe ser rapido). (Mac-F2) Por plataforma:
+    en Windows la API Toolhelp (igual que antes); en macOS `ps`."""
+    return plataforma.nombres_padres(8)
 
 
 def titulo_hilo(sid):
@@ -75,7 +55,7 @@ def es_exec(sid, ruta=None):
         if not ruta:
             raiz = os.path.join(os.path.expanduser("~"), ".codex", "sessions")
             for dias in (0, 1):   # sessions\AAAA\MM\DD\rollout-...-<sid>.jsonl: hoy y ayer alcanzan
-                carpeta = os.path.join(raiz, time.strftime("%Y\\%m\\%d", time.localtime(time.time() - dias * 86400)))
+                carpeta = os.path.join(raiz, *time.strftime("%Y %m %d", time.localtime(time.time() - dias * 86400)).split())   # AAAA\MM\DD (antes con "\\": en macOS no hallaba nada)
                 hallado = [f for f in (os.listdir(carpeta) if os.path.isdir(carpeta) else []) if sid in f]
                 if hallado:
                     ruta = os.path.join(carpeta, hallado[0])
@@ -102,7 +82,7 @@ def anotar(sid, cwd, ruta=None):
         if not titulo or x[sid][1] == f"Codex · {titulo}":
             return True
         x[sid][1] = f"Codex · {titulo}"
-    elif (es_exec(sid, ruta) or "claude.exe" in padres()) and os.environ.get("COMPANERO_CODEX_PRUEBA") != "1":
+    elif (es_exec(sid, ruta) or plataforma.NOMBRE_APP_CLAUDE in padres()) and os.environ.get("COMPANERO_CODEX_PRUEBA") != "1":
         return False
     else:
         carpeta = os.path.basename(os.path.normpath(cwd or "")) or "Codex"

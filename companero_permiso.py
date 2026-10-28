@@ -9,7 +9,6 @@ issues de la competencia). Hook PermissionRequest (config global, NO async, time
 - Si no respondes o estas en la PC: sale sin decidir y aparece el dialogo normal de Claude Code.
 Doc: code.claude.com/docs/en/hooks ("PermissionRequest decision control").
 """
-import ctypes
 import json
 import os
 import secrets
@@ -18,6 +17,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
+import kodama_plataforma as plataforma  # noqa: E402
 from kodama_comun import celular_abierto, va_al_celular  # noqa: E402,F401
 
 BASE = config.ESTADO
@@ -26,11 +26,7 @@ ESPERA = 110
 
 
 def sin_uso():
-    class LII(ctypes.Structure):
-        _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
-    lii = LII(); lii.cbSize = ctypes.sizeof(LII)
-    ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii))
-    return (ctypes.windll.kernel32.GetTickCount() - lii.dwTime) / 1000.0
+    return float(plataforma.segundos_sin_uso())   # (Mac-F2) por plataforma
 
 
 def _responder(dec):

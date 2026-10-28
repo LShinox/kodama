@@ -18,15 +18,20 @@ import time
 import urllib.request
 
 import config
+import kodama_plataforma as plataforma
 
-TS_EXE = r"C:\Program Files\Tailscale\tailscale.exe"
-SOCKET = r"\\.\pipe\companero-tailscaled"
-SIN_VENTANA = 0x08000000
+# (Mac-F2) Rutas y banderas por plataforma. Windows: el tailscale.exe y la tuberia del tailscaled propio de Kodama.
+# macOS: la app de Tailscale del sistema, sin --socket (usa su socket por defecto).
+TS_EXE = plataforma.ruta_tailscale_cli()
+SOCKET = plataforma.socket_tailscale()
+
+
+def _ts_base():
+    return [TS_EXE] + ([f"--socket={SOCKET}"] if SOCKET else [])
 
 
 def _ts(*args, timeout=20):
-    return subprocess.run([TS_EXE, f"--socket={SOCKET}", *args], capture_output=True, text=True, timeout=timeout,
-                          creationflags=SIN_VENTANA)
+    return subprocess.run(_ts_base() + [*args], capture_output=True, text=True, timeout=timeout, **plataforma.sin_ventana())
 
 
 def estado_tailscale():
@@ -52,9 +57,13 @@ def estado_tailscale():
 
 
 def iniciar_sesion_tailscale():
-    """Lanza `up` sin esperar (se queda esperando el login) y devuelve la URL de inicio de sesion en cuanto aparece."""
-    subprocess.Popen([TS_EXE, f"--socket={SOCKET}", "up", "--hostname=kodama", "--unattended"],
-                     creationflags=SIN_VENTANA, close_fds=True)
+    """Lanza `up` sin esperar (se queda esperando el login) y devuelve la URL de inicio de sesion en cuanto aparece.
+    (Mac-F2) En macOS no se toca el Tailscale de la persona (`up` cambiaria su nombre y sus ajustes): ella inicia sesion
+    en la app de Tailscale y aqui solo se lee el estado."""
+    if not plataforma.tailscale_propio():
+        return estado_tailscale()
+    subprocess.Popen(_ts_base() + ["up", "--hostname=kodama", "--unattended"],
+                     close_fds=True, **plataforma.sin_ventana())
     for _ in range(20):
         time.sleep(1)
         e = estado_tailscale()

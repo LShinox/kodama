@@ -87,6 +87,8 @@ def actualizar_sola():
 
 
 def actualizar_ahora():
+    if not plataforma.actualizacion_automatica():   # (Mac-F2) el zip de la version trae el programa de Windows: en macOS es manual
+        return {"ok": False, "error": "actualización manual en macOS"}
     import companero_actualizar as ca
     info = ca.buscar()
     if not info:

@@ -23,6 +23,8 @@ def vigilar_tailscale():
     """(14-oct) el Tailscale propio del companero (el que conecta el celular) se cae a veces con cambios de red; la
     tarea programada lo levanta cada 10 min. Este vigilante mira cada 30 s si su PID sigue vivo y, si no, corre
     arrancar.pyw (que solo arranca lo que falta). Mirar un PID no gasta nada."""
+    if not plataforma.tailscale_propio():   # (Mac-F2) en macOS se usa el Tailscale del sistema: no hay tailscaled propio que vigilar
+        return
     pidf = os.path.join(config.TS_DIR, "tailscaled.pid")
     lanz = os.path.join(config.APP_DIR, "arrancar.pyw")
     pyw = plataforma.python_del_venv(config.APP_DIR, sin_consola=True)
@@ -54,6 +56,13 @@ def permitido(login):
 
 TS_EXE = plataforma.ruta_tailscale_cli()
 TS_SOCKET = plataforma.socket_tailscale()
+
+
+def _ts_base():
+    """Comienzo de cada llamada al CLI de Tailscale: [programa, --socket=...] ((Mac-F2) sin --socket si se usa el del sistema)."""
+    return [TS_EXE] + ([f"--socket={TS_SOCKET}"] if TS_SOCKET else [])
+
+
 _WHOIS = {}     # ip -> (vence, id estable, nombre)
 _ALARMAS = {}   # clave -> ultima alarma
 
@@ -95,7 +104,7 @@ def _whois(ip):
     if c and c[0] > time.time():
         return c[1], c[2]
     try:
-        r = subprocess.run([TS_EXE, f"--socket={TS_SOCKET}", "whois", "--json", ip], capture_output=True, text=True,
+        r = subprocess.run(_ts_base() + ["whois", "--json", ip], capture_output=True, text=True,
                            timeout=6, **plataforma.sin_ventana())
         n = json.loads(r.stdout).get("Node") or {}
         sid, nombre = n.get("StableID", ""), n.get("ComputedName") or n.get("Name", "")
@@ -156,7 +165,7 @@ def repuntar_tailscale(puerto):
     para que el celular siga entrando cuando el hub no quedo en el 8787. En un hilo aparte: tarda unos segundos."""
     def hacer():
         try:
-            r = subprocess.run([TS_EXE, f"--socket={TS_SOCKET}", "serve", "--bg", str(puerto)], capture_output=True, text=True,
+            r = subprocess.run(_ts_base() + ["serve", "--bg", str(puerto)], capture_output=True, text=True,
                                timeout=40, **plataforma.sin_ventana())
             log(f"tailscale serve -> {puerto}: {'ok' if r.returncode == 0 else 'fallo ' + (r.stderr or r.stdout).strip()[:200]}")
         except Exception as e:
