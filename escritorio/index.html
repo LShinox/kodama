@@ -1220,7 +1220,7 @@ async function entrarEscena() {
     { duration: 650, easing: "cubic-bezier(.2,.9,.3,1.1)" }); }
   await new Promise(r => setTimeout(r, RM ? 0 : 520));
 }
-function salirEscena(ya) {
+function salirEscena(ya, demora) {   // (28-oct) demora: ms hasta retirarse (por defecto 1500); "Mostrar" de la bandeja le da mas tiempo al usuario
   if (!modoAviso) return;
   clearTimeout(tSalir);
   tSalir = setTimeout(async () => {
@@ -1236,14 +1236,22 @@ function salirEscena(ya) {
     enEscena = false; companero.ventana(false);
     $("pie").getAnimations().forEach(a => a.cancel());   // escondida: la proxima entrada arranca desde abajo
     $("caps").getAnimations().forEach(a => a.cancel());
-  }, ya ? 0 : 1500);
+  }, ya ? 0 : (demora || 1500));
 }
 if (companero.alModo) companero.alModo(m => {
   modoAviso = m === "aviso";
   if (modoAviso) salirEscena(true); else { clearTimeout(tSalir); enEscena = true; companero.ventana(true); if (comp && comp.oculto && comp.aparecer) comp.aparecer(); }
 });
 // pantalla completa u otra cosa la volvio a mostrar estando en modo aviso sin nada que avisar: se esconde de nuevo
-companero.alVisible(v => { if (modoAviso && v && !enEscena) companero.ventana(false); });
+// (28-oct) "Mostrar" de la bandeja es una accion explicita: el gato entra a escena (en vez de esconderse al instante) y se retira
+// despues de un rato con el mismo salirEscena de siempre. manual === "panel": Ajustes trae la ventana el mismo (abrirPanel la muestra).
+let ventanaForzada = false;   // (28-oct) abrirPanel muestra la ventana estando escondida: el oyente de abajo no debe volver a esconderla
+companero.alVisible((v, manual) => {
+  if (!modoAviso || !v || ventanaForzada || manual === "panel") return;
+  if (manual === true) { (enEscena ? Promise.resolve() : entrarEscena()).then(() => salirEscena(false, 20000)); return; }
+  if (enEscena) return;
+  companero.ventana(false);
+});
 async function quizaAsomar() {
   const ahora = Date.now();
   if (buscando || asomoAct || (!visibleVen && !modoAviso) || ahora < noMolestarHasta || bloqueado() || chats().some(c => borrador(c))) return;
@@ -1316,7 +1324,7 @@ $("asomo").addEventListener("mouseleave", () => { if (asomoAct) tAsomo = setTime
 
 // atajos globales (main.js): Ctrl+Shift+F10 abre/cierra el globo del chat que más te necesita; Ctrl+Shift+F11 responde al asomo
 companero.alAtajo(q => {
-  if (q === "prueba") return asomoPrueba();
+  if (q === "prueba") { if (modoAviso && !enEscena) entrarEscena().then(asomoPrueba); else asomoPrueba(); return; }   // (28-oct) escondida (modo aviso): primero sale a escena
   if (q === "asomo") return responderAsomo();
   if (abierto) return cerrarUsuario();
   if (asomoAct) return responderAsomo();
@@ -1351,7 +1359,7 @@ async function abrirPanel(pag) {
   try { cerrar(); } catch (e) {} $("lista").classList.remove("si"); ocultarAsomo();
   tocada(); dormirAnim(false); clearTimeout(tSalir);   // (26-oct) abrir Ajustes cuenta como interaccion: despierta y reinicia el reloj del sueño
   const escondida = modoAviso && !enEscena;
-  if (escondida) { companero.ventana(true); visibleVen = true; }
+  if (escondida) { ventanaForzada = true; companero.ventana(true); ventanaForzada = false; visibleVen = true; }   // (28-oct) sin ventanaForzada alVisible la escondia al instante
   const g = await ajP.geometria(), A = g.area, PE = $("pie"), pr = PE.getBoundingClientRect();
   // (27-oct) la caja de #pie SIN la escala .72 de la capsula (con la escala, el rect se achica hacia el centro): mismas medidas de siempre
   const cw = PE.offsetWidth, ch = PE.offsetHeight, pieL = pr.left + pr.width / 2 - cw / 2, pieT = pr.top + pr.height / 2 - ch / 2;

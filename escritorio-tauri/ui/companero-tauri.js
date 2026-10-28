@@ -295,9 +295,11 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
     "Volver a la esquina": "Back to the corner", "Reportar un problema": "Report a problem", "Bloquear celular": "Lock phone", "Desbloquear celular": "Unlock phone", "Conectar celular": "Connect phone", "Aparecer solo cuando me necesitan": "Only show up when I'm needed", "Actualizar a": "Update to", "Ojos siguen el mouse": "Eyes follow the mouse", "Salir": "Quit", "Ajustes…": "Settings…", "Editar animaciones": "Edit animations", "Mostrar aviso de prueba": "Show a test notice" };
   const L = s => (conf.idioma === "en" && EN[s]) || s;
   let bandeja = null, itemVisible = null;
-  async function alternar() {
+  // (28-oct) en modo "Aparecer solo cuando me necesitan" la pagina escondia la ventana al instante: "Mostrar" es explicito, asi que se
+  // avisa con manual=true (la pagina hace entrar al gato a escena) o "panel" (Ajustes: abrirPanel muestra la ventana el mismo)
+  async function alternar(paraAjustes) {
     conf.visible = conf.visible === false; guardar();
-    inv("visible", { si: conf.visible }); avisar("visible", conf.visible);
+    inv("visible", { si: conf.visible }); avisar("visible", conf.visible, conf.visible ? (paraAjustes === true ? "panel" : true) : undefined);
     // (21-oct, LShinox: "siempre sale Ocultar, nunca Mostrar") el menu nuevo de setMenu no siempre se refleja en
     // Windows: se cambia el texto del item que ya esta en la bandeja y despues se rearma igual
     try { if (itemVisible) await itemVisible.setText(L(conf.visible === false ? "Mostrar" : "Ocultar")); } catch (e) {}
@@ -330,7 +332,7 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
           guardar(); avisar("noMolestar", conf.noMolestarHasta); menu(); }),
         await M.PredefinedMenuItem.new({ item: "Separator" }),
         ...(nueva ? [await it("● " + L("Actualizar a") + " " + nueva, () => hub("/api/actualizar", {}).catch(() => {}))] : []),
-        await it(L("Ajustes…"), () => { if (conf.visible === false) alternar(); avisar("ajustes"); }),
+        await it(L("Ajustes…"), () => { if (conf.visible === false) alternar(true); avisar("ajustes"); }),
         await it(L("Volver a la esquina"), () => { conf.x = conf.y = null; guardar(); esquina(); }),   // (26-oct, LShinox) tambien en el menu corto
         // (26-oct) bloqueo de emergencia del celular (app y Telegram); desbloquear solo se puede aqui
         await it(celBloqueado ? "🔒 " + L("Desbloquear celular") : L("Bloquear celular"), async () => {
@@ -392,7 +394,7 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
       try { await G.register(k, e => { if (!e || e.state === "Pressed") avisar("atajo", que); }); } catch (e) { console.log("atajo ocupado", k); }
     }
     // (22-oct) Ctrl+Shift+F12 abre/cierra Ajustes (atajo; tambien sirve para probarlo)
-    try { await G.register("Control+Shift+F12", e => { if (!e || e.state === "Pressed") { if (conf.visible === false) alternar(); avisar("ajustes"); } }); } catch (e) {}
+    try { await G.register("Control+Shift+F12", e => { if (!e || e.state === "Pressed") { if (conf.visible === false) alternar(true); avisar("ajustes"); } }); } catch (e) {}
   }
 
   // arranque: conf, posicion, idioma de la pagina, bandeja y atajos
