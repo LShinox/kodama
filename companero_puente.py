@@ -147,11 +147,11 @@ def mirando_este(sid):
 
 
 def es_pregunta(texto):
-    """¿El turno termino pidiendo una decision / OK? Usa el mismo clasificador que los avisos (companero_hub)."""
+    """¿El turno termino pidiendo una decision / OK? Usa el mismo clasificador que los avisos (kodama_texto)."""
     if not texto.strip():
         return False
     try:
-        from companero_hub import clasificar
+        from kodama_texto import clasificar   # (28-oct) antes importaba el hub entero
         return clasificar("Stop", texto)[0] in ("pregunta", "permiso")
     except BaseException:           # sin hub importable (p. ej. sin token de Telegram): lo minimo
         return texto.rstrip().endswith("?")

@@ -14,10 +14,11 @@ config.json:
   "colores": {"instalaciones": "#2F7FC1"}                     # color de chats agregados por sesion (opcional)
 }
 """
-import glob
 import json
 import os
 import re
+
+import kodama_plataforma
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 ESTADO = os.path.join(APP_DIR, "estado")
@@ -127,13 +128,5 @@ def es_personal(clave_proyecto):
 
 
 def dir_app_claude():
-    """La app de Claude en Windows es MSIX: su %APPDATA%\\Claude real vive en el paquete (ver grupos_app.py)."""
-    local = os.environ.get("LOCALAPPDATA") or os.path.join(HOME, "AppData", "Local")
-    # (20-oct) la app mudo sus datos a %LOCALAPPDATA%\Claude-Data\claude_<id>\ (README.txt ahi; en el paquete quedo
-    # solo ".user-data-left"): sin esto no se encontraban los chats (enlaces, grupos, Medidor).
-    nuevo = [d for d in glob.glob(os.path.join(local, "Claude-Data", "claude_*"))
-             if os.path.isdir(os.path.join(d, "claude-code-sessions"))]
-    if nuevo:
-        return max(nuevo, key=os.path.getmtime)
-    real = glob.glob(os.path.join(local, "Packages", "Claude_*", "LocalCache", "Roaming", "Claude"))
-    return real[0] if real else os.path.join(os.environ.get("APPDATA") or os.path.join(HOME, "AppData", "Roaming"), "Claude")
+    """Carpeta de datos de la app de Claude. (28-oct) Lo propio de cada sistema vive en kodama_plataforma."""
+    return kodama_plataforma.dir_datos_app_claude(HOME)

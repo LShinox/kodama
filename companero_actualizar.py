@@ -25,6 +25,7 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
+import kodama_plataforma as plataforma  # noqa: E402
 
 APP = config.APP_DIR
 EST = config.ESTADO
@@ -114,9 +115,9 @@ def descargar(info):
 
 def lanzar_aplicar(ruta_zip):
     """El hub no puede reemplazarse a si mismo: lanza este archivo aparte, sin ventana, y ese proceso hace el resto."""
-    pyw = os.path.join(APP, ".venv", "Scripts", "pythonw.exe")
+    pyw = plataforma.python_del_venv(APP, sin_consola=True)
     subprocess.Popen([pyw, os.path.abspath(__file__), "--aplicar", ruta_zip], cwd=APP,
-                     creationflags=0x00000008 | 0x00000200, close_fds=True)   # DETACHED | NEW_PROCESS_GROUP
+                     close_fds=True, **plataforma.desprendido(grupo=True))   # desprendido, en su propio grupo de procesos
 
 
 def _parar(pidfile, texto):
@@ -125,11 +126,9 @@ def _parar(pidfile, texto):
         pid = int(open(os.path.join(EST, pidfile)).read().strip())
     except (OSError, ValueError):
         return
-    out = subprocess.run(["powershell", "-NoProfile", "-Command",
-                          f"(Get-CimInstance Win32_Process -Filter 'ProcessId={pid}').CommandLine"],
-                         capture_output=True, text=True, timeout=30, creationflags=0x08000000).stdout
+    out = plataforma.linea_de_comando(pid)
     if any(t in out for t in ((texto,) if isinstance(texto, str) else texto)):
-        subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, creationflags=0x08000000)
+        plataforma.terminar_pid(pid, arbol=True)   # por PID (el anotado en su pidfile), nunca por nombre
         log(f"parado PID {pid} ({texto})")
 
 
@@ -145,7 +144,7 @@ def aplicar(ruta_zip):
     try:
         time.sleep(2)   # que el hub termine de responder
         _parar("hub.pid", "companero_hub.py")
-        _parar("escritorio.pid", ("kodama.exe", "companero.exe"))
+        _parar("escritorio.pid", plataforma.NOMBRES_EXE_MASCOTA)
         time.sleep(2)
         req_viejo = open(os.path.join(APP, "requirements.txt"), "rb").read() if os.path.exists(os.path.join(APP, "requirements.txt")) else b""
         with zipfile.ZipFile(ruta_zip) as z:
@@ -163,8 +162,8 @@ def aplicar(ruta_zip):
                     shutil.copyfileobj(src, dst)
                 os.replace(destino + ".nuevo", destino)
         if open(os.path.join(APP, "requirements.txt"), "rb").read() != req_viejo:
-            subprocess.run([os.path.join(APP, ".venv", "Scripts", "python.exe"), "-m", "pip", "install", "-q", "-r",
-                            os.path.join(APP, "requirements.txt")], capture_output=True, timeout=600, creationflags=0x08000000)
+            subprocess.run([plataforma.python_del_venv(APP), "-m", "pip", "install", "-q", "-r",
+                            os.path.join(APP, "requirements.txt")], capture_output=True, timeout=600, **plataforma.sin_ventana())
         log(f"instalada {open(os.path.join(APP, 'VERSION')).read().strip()} (respaldo: {os.path.basename(respaldo)})")
         os.remove(ruta_zip)
     except Exception as e:
@@ -180,8 +179,8 @@ def aplicar(ruta_zip):
             os.remove(bandera)
         except OSError:
             pass
-        subprocess.Popen([os.path.join(APP, ".venv", "Scripts", "pythonw.exe"), os.path.join(APP, "arrancar.pyw")], cwd=APP,
-                         creationflags=0x00000008, close_fds=True)
+        subprocess.Popen([plataforma.python_del_venv(APP, sin_consola=True), os.path.join(APP, "arrancar.pyw")], cwd=APP,
+                         close_fds=True, **plataforma.desprendido())
 
 
 if __name__ == "__main__":
