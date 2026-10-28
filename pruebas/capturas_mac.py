@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 import urllib.request
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -30,6 +31,12 @@ NOTAS = []
 
 def log(*a):
     print(*a, flush=True)
+
+
+def anotar(nivel, titulo, texto):
+    """GitHub annotation (visible on the run page and through the public API without logging in): ::notice / ::warning / ::error."""
+    t = str(texto)[:3800].replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    print("::%s title=%s::%s" % (nivel, titulo, t), flush=True)
 
 
 def hub_set(esc):
@@ -168,6 +175,7 @@ def main():
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     out = os.path.abspath(a.out)
+    a.bin = os.path.abspath(a.bin)   # the pet is started with cwd = work folder: a relative path would not be found
     os.makedirs(out, exist_ok=True)
     work = tempfile.mkdtemp(prefix="kodama-capturas-")
     log("work folder:", work)
@@ -183,6 +191,8 @@ def main():
         NOTAS.append("swiftc not available: %s" % e)
         exe_v = ""
 
+    if not os.path.exists(a.bin):
+        anotar("error", "capturas_mac", "binary not found: " + a.bin)
     hub = subprocess.Popen([sys.executable, os.path.join(AQUI, "hub_falso_capturas.py"), str(PUERTO)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     pet = None
     try:
@@ -274,6 +284,9 @@ def main():
         d, ok = esperar(work, lambda d: d.get("asomo"), 40, "C: question notice")
         time.sleep(1.2)
         foto(out, "C2-normal-aviso-pregunta", "no (mascota normal)", pedir(work) or d, pet.pid, exe_v, base_sha)
+    except Exception:
+        anotar("error", "capturas_mac exception", traceback.format_exc())
+        raise
     finally:
         if pet is not None:
             pet.parar()
@@ -288,6 +301,13 @@ def main():
         for n in os.listdir(work):
             if n.startswith("pet-") and n.endswith(".log"):
                 shutil.copy(os.path.join(work, n), os.path.join(out, n))
+                try:
+                    with open(os.path.join(work, n), encoding="utf-8", errors="replace") as lf:
+                        cola = lf.read()[-700:].strip()
+                    if cola:
+                        anotar("warning", "pet log " + n, cola)
+                except OSError:
+                    pass
         shutil.rmtree(work, ignore_errors=True)
         resumen(out)   # also when something failed above: whatever was captured is reported
 
@@ -328,6 +348,19 @@ def resumen(out):
         f.write(texto)
     with open(os.path.join(out, "resumen.json"), "w", encoding="utf-8") as f:
         json.dump({"veredicto": veredicto, "fotos": fotos, "notas": NOTAS}, f, indent=1, default=str)
+    comp = [veredicto]
+    for x in fotos:
+        d = x["pagina"] or {}
+        w = ""
+        for v in ((x["ventanas"] or {}).get("windows") or []):
+            b = v.get("bounds") or {}
+            w += "L%s@(%s,%s)%sx%s on=%s " % (v.get("layer"), b.get("X"), b.get("Y"), b.get("Width"), b.get("Height"), v.get("onscreen"))
+        comp.append("%s | isla=%s | %s| %sB | =fondo:%s | rc=%s" % (x["nombre"], json.dumps(d.get("isla")) if d else "sin respuesta", w, x["bytes"], x["igual_al_fondo"], x["rc"]))
+    if scr:
+        comp.append("screens: " + json.dumps(scr))
+    anotar("notice", "Kodama island screenshots", "\n".join(comp))
+    if NOTAS:
+        anotar("warning", "Kodama island notes", "\n".join(NOTAS))
     gs = os.environ.get("GITHUB_STEP_SUMMARY")
     if gs:
         with open(gs, "a", encoding="utf-8") as f:
