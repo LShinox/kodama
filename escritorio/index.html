@@ -301,7 +301,16 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
   #isla.tile #lista { margin-left:0; }
   /* Ajustes, opcion A (la de siempre en pantalla): el MISMO panel flotante de la mascota normal (380 x 560), centrado bajo la pastilla; la pastilla sigue cerrada */
   body.isla #ajpc { z-index:30; }
-  body.isla #ajpc:not(.en-isla) { left:calc(50% - 190px); top:calc(var(--nh, 32px) + 12px); box-shadow:0 14px 34px rgba(0,0,0,.4), 0 0 0 1px rgba(0,0,0,.1); }
+  /* (29-oct) la sombra DEBE caber en la ventana (440 x 640, panel 380 x 560 a 30 px de cada lado y 24 px del fondo): con 0 14px 34px la ventana la cortaba en seco y se veia un rectangulo gris alrededor */
+  body.isla #ajpc:not(.en-isla) { left:calc(50% - 190px); top:calc(var(--nh, 32px) + 12px); box-shadow:0 6px 18px rgba(0,0,0,.34), 0 0 0 1px rgba(0,0,0,.1); }
+  @media (prefers-color-scheme: dark) { body.isla #ajpc:not(.en-isla) { box-shadow:0 6px 18px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.1); } }
+  /* (29-oct) el gato en la fila del titulo de Ajustes (solo opcion A): a la derecha, centrado en la linea del titulo, ~60 px; el titulo no se parte y la X de arriba queda libre */
+  body.isla .ajtit { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:60px; margin:2px 0 4px; }
+  body.isla #ajpc .ajtit h2 { margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; flex:1 1 auto; }
+  body.isla .ajgato { display:none; }
+  body.isla #ajpc:not(.en-isla) .ajgato { display:block; flex:none; position:relative; width:64px; height:60px; margin-right:2px; cursor:pointer; }
+  body.isla .ajgato > div { position:absolute; left:-13.2px; top:-18px; width:128px; height:128px; transform:scale(.706); transform-origin:0 0; }
+  @media (prefers-color-scheme: dark) { body.isla .ajgato { filter:drop-shadow(0 0 .7px rgba(255,255,255,.95)) drop-shadow(0 0 1.5px rgba(255,255,255,.4)); } }
   /* Ajustes, opcion B: la pastilla crece hasta ser una tarjeta grande y oscura; el panel va DENTRO, con los colores oscuros de siempre y sin marco propio */
   body.isla #ajpc.en-isla { position:relative; left:auto; top:auto; width:auto; height:540px; z-index:auto; border-radius:0; box-shadow:none; margin:0 10px 12px;
     --bg:transparent; --card:#1c1b1a; --tx:#f4efe8; --sub:#9b938a; --btn:#2a2826; --verde:#5cbf38; --rojo:#ff5a5f; --linea:rgba(255,245,230,.12); background:transparent; }
@@ -415,7 +424,7 @@ const SUB = { pregunta: window.t("te pregunta algo"), permiso: window.t("te pide
 const TXT = { reposo: window.t("esperando"), trabajando: window.t("trabajando…"), escribio: window.t("te escribió"), dormido: window.t("durmiendo"), enviado: window.t("recibió tu mensaje"), atascado: window.t("algo falló") };
 const PRIO = { error: 0, permiso: 1, pregunta: 2, termino: 3 };
 let islaOn = false;   // (28-oct) MODO ISLA (solo macOS): lo pone islaActivar() al final; en Windows siempre false
-let pjTipo = "gatoPro", datos = {}, comp = null, chat = null, fijado = false, abierto = false, vistos = {}, ultEnvio = 0, mostrado = null, saludado = false;
+let pjTipo = "gatoPro", datos = {}, comp = null, comp2 = null, ho2 = null, tipo2 = null, chat = null, fijado = false, abierto = false, vistos = {}, ultEnvio = 0, mostrado = null, saludado = false;
 // (27-oct, 4.a vuelta) color de la capsula: lo elige el usuario (Blanca por defecto | Negra); sin regla por color del gato (ver --caps-fill en el CSS)
 const aplicarCapsulaColor = v => document.body.classList.toggle("caps-negra", v === "negra");
 if (window.companero && companero.alCapsulaColor) companero.alCapsulaColor(aplicarCapsulaColor);
@@ -526,6 +535,7 @@ function montar(c) {
   const cambio = chat && chat !== c; chat = c;
   comp = Companero.crear(cont, pjTipo, null); comp.ir(estadoDe(c)); if (animDormida && comp.pausar) comp.pausar(true, visibleVen && !document.hidden);   // sin adorno: los adornos van a ser personalizables (pendiente)
   if (!pintadoAvisado) vigilarGato();
+  if (islaOn && comp2) islaGatoTit(true);   // (29-oct) isla: el gato del titulo de Ajustes se rehace con el personaje/color nuevo
   // (27-oct) saludo: al abrir la mascota (una vez) guiña un ojo; no en modo aviso (escondida), con Ajustes abiertos ni si esta ocupada/dormida
   if (!saludado) { saludado = true; setTimeout(() => { try { if (comp && comp.gesto && !modoAviso && !panelAbierto && !animDormida && ["reposo", "trabajando", null, undefined].includes(comp.estado)) comp.gesto("guino"); } catch (e) {} }, 900); }
   // cambio de chat visible: la pastilla destella con el color del chat y el personaje entra con un pequeño rebote
@@ -1062,6 +1072,10 @@ document.addEventListener("keydown", e => {
 // "siempre" se activa desde el icono de la bandeja (Ojos siguen el mouse)
 let ojosSiempre = false, ojosActivos = false, ojosForzados = false;
 function ojosHacia(x, y, forzar) {
+  if (comp2 && ho2 && comp2.mirarA) {   // (29-oct) isla: el gato del titulo de Ajustes mira igual (encima de el, o siempre con "Ojos siguen al mouse")
+    const r2 = ho2.getBoundingClientRect(), cx2 = r2.left + r2.width / 2, cy2 = r2.top + r2.height * .45;
+    if (forzar || ojosSiempre || (x >= r2.left - 20 && x <= r2.right + 20 && y >= r2.top - 20 && y <= r2.bottom + 20)) comp2.mirarA((x - cx2) / (forzar ? 70 : 220), (y - cy2) / (forzar ? 70 : 220)); else comp2.mirarA(null);
+  }
   if (!comp || !comp.mirarA) return;
   const r = $("pj").getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height * .45;
   const encima = x >= r.left - 20 && x <= r.right + 20 && y >= r.top - 20 && y <= r.bottom + 20;
@@ -1069,7 +1083,7 @@ function ojosHacia(x, y, forzar) {
   if (forzar || ojosSiempre || encima) { ojosActivos = true; const rg = forzar ? 70 : 220; comp.mirarA((x - cx) / rg, (y - cy) / rg); }
   else if (ojosActivos) { ojosActivos = false; comp.mirarA(null); }
 }
-if (companero.alOjos) companero.alOjos(v => { ojosSiempre = !!v; if (!v && comp && comp.mirarA) { ojosActivos = false; comp.mirarA(null); } });
+if (companero.alOjos) companero.alOjos(v => { ojosSiempre = !!v; if (!v && comp2 && comp2.mirarA) comp2.mirarA(null); if (!v && comp && comp.mirarA) { ojosActivos = false; comp.mirarA(null); } });
 function sobreEn(x, y) {
   if (!ojosForzados) ojosHacia(x, y, false);
   const dentro = x >= 0 && y >= 0 && x < innerWidth && y < innerHeight;
@@ -1415,7 +1429,7 @@ let panelAbierto = false, ajTl = null, ajGeo = null;
 const AJ = { W: 380, H: 560 };
 const ajP = companero.panel;
 function ajIr(p) { document.querySelectorAll("#ajpc .pg").forEach(s => s.classList.toggle("on", s.dataset.p === p));
-  if (p === "uso") ajLectura(); if (p === "reglas") ajReglas(); if (p === "conexion") ajHooks(); if (p === "actualiz") ajActualiz(); if (p === "personaje") ajPersonaje(); }
+  if (p === "uso") ajLectura(); if (p === "reglas") ajReglas(); if (p === "conexion") ajHooks(); if (p === "actualiz") ajActualiz(); if (p === "personaje") ajPersonaje(); if (islaOn) islaGatoTit(); }
 async function abrirPanel(pag) {
   if (!ajP) return;
   ajIr(pag || "inicio"); ajPintar(); ajLoNuevo();
@@ -1708,6 +1722,9 @@ function islaActivar(cfg) {
   const oculta = el => { if (el) el.style.display = "none"; };
   ["modo", "capsula"].forEach(k => { const w = document.querySelector('#ajpc .sw[data-k="' + k + '"]'); oculta(w && w.parentNode); });
   oculta($("aj-capcolfila")); oculta(document.querySelectorAll('#ajpc .pg[data-p="inicio"] .pie2')[1]);
+  // (29-oct) fila del titulo de cada pagina de Ajustes: [titulo | hueco del gato]. El h2 se deja tal cual (la traduccion le cambia el texto), el hueco va aparte
+  document.querySelectorAll("#ajpc .pg h2").forEach(h => { const f = document.createElement("div"); f.className = "ajtit"; h.parentNode.insertBefore(f, h); f.appendChild(h);
+    const g = document.createElement("div"); g.className = "ajgato"; g.setAttribute("aria-hidden", "true"); f.appendChild(g); });
   islaSync(); islaPintar(chats().filter(teNecesita).length);
 }
 // el mouse encima de la pastilla cerrada: crece un poco (y el gato mas). Salir se retrasa 160 ms para que no parpadee en el borde.
@@ -1749,18 +1766,30 @@ function islaPintar(nEsp) {   // punto de estado (verde si algun chat trabaja, g
   const ch = chats(), trabaja = ch.some(c => estadoDe(c) === "trabajando"), todoDuerme = ch.length > 0 && ch.every(c => estadoDe(c) === "dormido");
   P.className = trabaja ? "trabaja" : todoDuerme ? "dormido" : ""; P.style.display = nEsp ? "none" : "";
 }
+// (29-oct) el gato grande del titulo de Ajustes: otra instancia del MISMO personaje y color (pjTipo), en reposo; la pastilla cerrada conserva el suyo chico.
+// Existe solo con Ajustes abiertos (opcion A); al cambiar de pagina se muda de hueco, al cambiar personaje/color (montar) se rehace.
+function islaGatoTit(forzar) {
+  const hoy = islaOn && panelAbierto && islaAj !== "b" ? document.querySelector("#ajpc .pg.on .ajgato") : null;
+  if (!hoy || !window.Companero) { if (comp2) { try { comp2.destruir(); } catch (e) {} comp2 = null; } if (ho2) ho2.textContent = ""; ho2 = null; tipo2 = null; return; }
+  if (comp2 && !forzar && tipo2 === pjTipo) { if (ho2 !== hoy) { const h = ho2.firstChild; ho2.textContent = ""; hoy.appendChild(h); ho2 = hoy; hoy.onpointerup = () => { if (comp2 && comp2.tocar) comp2.tocar(); }; } return; }
+  if (comp2) { try { comp2.destruir(); } catch (e) {} comp2 = null; }
+  if (ho2 && ho2 !== hoy) ho2.textContent = "";
+  hoy.textContent = ""; const h = document.createElement("div"); hoy.appendChild(h); ho2 = hoy; tipo2 = pjTipo;
+  try { comp2 = Companero.crear(h, pjTipo, null); comp2.ir("reposo"); } catch (e) { comp2 = null; }
+  hoy.onpointerup = () => { if (comp2 && comp2.tocar) comp2.tocar(); };
+}
 function abrirPanelIsla() {
   try { cerrar(); } catch (e) {} $("lista").classList.remove("si"); ocultarAsomo();
   tocada(); dormirAnim(false);
   const b = islaAj === "b", P = $("ajpc");
   P.classList.toggle("en-isla", b); (b ? $("islaIn") : document.body).appendChild(P);   // B: dentro de la pastilla; A: flotante bajo ella
-  document.body.classList.add("con-panel");
+  document.body.classList.add("con-panel"); islaGatoTit();
   if (!RM) P.animate(b ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: "translateY(-8px)" }, { opacity: 1, transform: "none" }], { duration: 200, easing: "ease-out" });
   companero.interactivo(true); window._sobre = true;
   islaSync();
 }
 function cerrarPanelIsla(despues) {
-  panelAbierto = false; document.body.classList.remove("con-panel");
+  panelAbierto = false; document.body.classList.remove("con-panel"); islaGatoTit();
   window._sobre = false; companero.interactivo(false);
   islaSync(); if (despues) despues();
 }

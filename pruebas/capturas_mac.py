@@ -21,6 +21,7 @@ import hashlib
 import http.client
 import json
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -278,6 +279,26 @@ def R_ISLA(alto):
     return (292, 0, 440, alto)
 
 
+def solo_previews():
+    """Which shots get a preview crop: env KODAMA_PREVIEW_SOLO (A08,D04), or a `[solo:A08,D04]` tag in the commit message of the run; empty = all."""
+    v = os.environ.get("KODAMA_PREVIEW_SOLO", "")
+    if not v:
+        try:
+            with open(os.environ["GITHUB_EVENT_PATH"]) as fh:
+                m = re.search(r"\[solo:([A-Za-z0-9,]+)\]", (json.load(fh).get("head_commit") or {}).get("message", ""))
+            v = m.group(1) if m else ""
+        except Exception:
+            v = ""
+    return [x.strip() for x in v.split(",") if x.strip()]
+
+
+def detalle(out, nombre, nombre_png, region, zoom=1.5):
+    """Extra zoomed crop of a shot that was already taken (the pill + the Settings title row)."""
+    f = os.path.join(out, nombre_png + ".png")
+    if os.path.exists(f):
+        previsualizar(out, nombre, f, region, zoom)
+
+
 def foto(out, nombre, modo, d, pid, exe_ventanas, base_sha, region=None, zoom=1):
     f = os.path.join(out, nombre + ".png")
     try:
@@ -286,7 +307,7 @@ def foto(out, nombre, modo, d, pid, exe_ventanas, base_sha, region=None, zoom=1)
     except Exception as e:
         rc, err = -1, str(e)
     tam = os.path.getsize(f) if os.path.exists(f) else 0
-    solo = [x.strip() for x in os.environ.get("KODAMA_PREVIEW_SOLO", "").split(",") if x.strip()]   # empty = all the shots that have a region
+    solo = solo_previews()   # empty = all the shots that have a region
     if tam and region and (not solo or nombre.split("-")[0] in solo):
         previsualizar(out, nombre, f, region, zoom)
     wi = ventanas(exe_ventanas, pid)
@@ -450,7 +471,8 @@ def main():
             pedir(work, "kodama:ajustes-a")
             d, ok = esperar(work, lambda d: d.get("panel"), 20, "A: Settings open (option A)")
             time.sleep(1.4)
-            foto(out, "A08-settings-optionA-floating-panel-en", "auto + simulated notch: Settings as a floating panel under the pill", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(610))
+            foto(out, "A08-settings-optionA-floating-panel-en", "auto + simulated notch: Settings as a floating panel under the pill", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(660))
+            detalle(out, "A08z-pill-and-title-row-en", "A08-settings-optionA-floating-panel-en", (292, 0, 440, 150))
             pedir(work, "kodama:ajustes-b")   # closes the panel and opens it again with option B (the island grows into a settings card)
             time.sleep(0.8)
             d, ok = esperar(work, lambda d: d.get("panel") and abierta(d), 20, "A: Settings open (option B)")
@@ -515,7 +537,8 @@ def main():
             pedir(work, "kodama:ajustes-a")
             d, ok = esperar(work, lambda d: d.get("panel"), 20, "D: Settings open")
             time.sleep(1.4)
-            foto(out, "D04-settings-floating-panel-es", "auto + simulated notch, Spanish", pedir(work) or d, pet.pid, exe_v, base_sha, None)
+            foto(out, "D04-settings-floating-panel-es", "auto + simulated notch, Spanish", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(660))
+            detalle(out, "D04z-pill-and-title-row-es", "D04-settings-floating-panel-es", (292, 0, 440, 150))
             pet.parar()
             pet = None
 
