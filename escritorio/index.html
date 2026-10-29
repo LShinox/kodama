@@ -307,6 +307,7 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
   /* (29-oct) el gato en la fila del titulo de Ajustes (solo opcion A): a la derecha, centrado en la linea del titulo, ~60 px; el titulo no se parte y la X de arriba queda libre */
   body.isla .ajtit { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:60px; margin:2px 0 4px; }
   body.isla #ajpc .ajtit h2 { margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; flex:1 1 auto; }
+  body.isla #ajpc .cu { overflow-x:hidden; }   /* el lienzo del Lottie (150 %) se sale de la caja del gato: sin esto aparecia una barra horizontal abajo */
   body.isla .ajgato { display:none; }
   body.isla #ajpc:not(.en-isla) .ajgato { display:block; flex:none; position:relative; width:64px; height:60px; margin-right:2px; cursor:pointer; }
   body.isla .ajgato > div { position:absolute; left:-13.2px; top:-18px; width:128px; height:128px; transform:scale(.706); transform-origin:0 0; }
