@@ -252,10 +252,13 @@ def _historial():
                     out[cmd]["fase_tipo"] = ft
             # (26-oct) progreso "3 de 7" (lo escribe companero_hook.py con TaskCreate/TaskUpdate): solo conteos y el asunto de la
             # tarea en curso. Una lista ya terminada hace >30 min, o sin tocar hace >6 h, no se muestra.
+            # (30-oct) Regla: se muestra SI el chat esta "trabajando" y la lista se toco hace <6 h, O SI la lista esta completa
+            # (h >= t) y se toco hace <=30 min, sea cual sea el estado (un destello "lista"). Cualquier otro caso se oculta:
+            # una lista a medias en un chat que ya termino (Claude no marco sus tareas) no queda "0/2" para siempre.
             tz = s.get("tareas")
             if isinstance(tz, dict) and isinstance(tz.get("t"), int) and tz["t"] > 0:
                 edad = time.time() - float(tz.get("ts") or 0)
-                if edad < 6 * 3600 and not (tz.get("h", 0) >= tz["t"] and edad > 1800):
+                if (s.get("estado") == "trabajando" and edad < 6 * 3600) or (tz.get("h", 0) >= tz["t"] and edad <= 1800):
                     out[cmd]["tareas"] = {"h": int(tz.get("h") or 0), "t": tz["t"], "a": _SECRETOS.sub("[clave oculta]", str(tz.get("a") or ""))[:80]}
     for cmd, d in out.items():   # "trabajando" sin ningun evento en 90 min: probablemente se interrumpio el turno (Stop no corre)
         if d.get("estado") == "trabajando" and time.time() - (d.get("visto") or 0) > 5400:

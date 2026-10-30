@@ -77,6 +77,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: python pruebas/probar_limites.py
 
+      - name: Test - probar_tareas
+        if: ${{ !cancelled() }}
+        run: python pruebas/probar_tareas.py
+
       - name: Test - probar_cola
         if: ${{ !cancelled() }}
         run: python pruebas/probar_cola.py
@@ -159,6 +163,10 @@ jobs:
       - name: Test - probar_limites
         if: ${{ !cancelled() }}
         run: python pruebas/probar_limites.py
+
+      - name: Test - probar_tareas
+        if: ${{ !cancelled() }}
+        run: python pruebas/probar_tareas.py
 
       - name: Test - probar_cola
         if: ${{ !cancelled() }}
