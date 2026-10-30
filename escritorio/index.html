@@ -252,24 +252,37 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
      Todo cuelga de body.isla, que SOLO pone el JS (islaActivar, al final) cuando el puente nativo avisa que la isla esta activa: en Windows ninguna de estas
      reglas se aplica y el elemento #isla ni siquiera existe. La isla reutiliza los componentes de siempre: #pie (el gato), #otros (la insignia con el numero),
      #asomo (el aviso), #burbuja (el globo con chips y caja) y #lista (chats que esperan) se MUEVEN dentro de #isla y toman el color negro con las mismas
-     variables que usa la capsula negra. Cerrada: una pastilla negra pegada a la muesca; el gato (cabeza entera, orejas arriba, un poco de la barbilla
-     asomando por debajo del borde) a la izquierda y el punto de estado o el numero a la derecha. Con el mouse encima la pastilla crece un poco y el gato
+     variables que usa la capsula negra. Cerrada (isla 3): un ALA negra a la derecha de la muesca (entra 14 pt en ella); en el ala, el gato (cabeza entera, orejas arriba, un
+     poco de la barbilla asomando por debajo del borde) y a su derecha el punto de estado o el numero. A la izquierda de la muesca no sale nada. Con el mouse encima la pastilla crece un poco y el gato
      tambien (asomo). Abierta (aviso, globo o lista): crece hacia abajo y el gato pasa a ser GRANDE sobre una baldosa clara a la izquierda, como la
      caratula en una Dynamic Island. Ajustes: opcion A = panel flotante de siempre bajo la pastilla; opcion B = la pastilla se agranda (ver islaAjustes).
      El gato NO va dentro de la pastilla con overflow oculto: #isla deja ver lo que sobresale y solo #islaCuerpo (el contenido que crece) recorta. */
-  #isla { position:absolute; top:0; left:0; right:0; margin:0 auto; box-sizing:border-box; background:#000; overflow:visible; z-index:5; border-radius:0 0 14px 14px;
+  #isla { position:absolute; top:0; left:0; margin:0; box-sizing:border-box; background:#000; overflow:visible; z-index:5; border-radius:0 0 14px 0; --isla-r:9px;
           --card:transparent; --tx:#f4efe8; --sub:#b8afa4; --btn:#2c2926; --sombra:none; --isla-ez:cubic-bezier(.4,0,.2,1); color:var(--tx);
-          transition:width .34s var(--isla-ez), height .34s var(--isla-ez), border-radius .34s var(--isla-ez), box-shadow .34s ease; }
-  #isla.hov { border-radius:0 0 18px 18px; }
+          transition:width .34s var(--isla-ez), height .34s var(--isla-ez), left .34s var(--isla-ez), border-radius .34s var(--isla-ez), box-shadow .34s ease; }
+  #isla.hov { border-radius:0 0 18px 0; }
   #isla.abierta { --isla-ez:cubic-bezier(.2,.9,.3,1.08); border-radius:0 0 28px 28px; box-shadow:0 10px 26px rgba(0,0,0,.32); }
   body.isla-plano #isla { top:4px; border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.1); }
   body.isla-plano #isla.hov { border-radius:18px; } body.isla-plano #isla.abierta { border-radius:24px; }
   #islaCab { position:relative; height:var(--nh); cursor:pointer; }
-  #islaDer { position:absolute; right:0; top:0; width:54px; height:var(--nh); display:flex; align-items:center; justify-content:center; }
+  #islaDer { position:absolute; right:0; top:0; width:var(--der, 54px); height:var(--nh); display:flex; align-items:center; justify-content:center; }
   #islaPto { width:9px; height:9px; border-radius:50%; background:#6b645c; flex:none; }
   #islaPto.trabaja { background:#8fcf5f; animation:islaPulso 1.6s ease-in-out infinite; } #islaPto.dormido { background:#3d3935; }
   @keyframes islaPulso { 50% { opacity:.35; transform:scale(.8); } }
   @media (prefers-reduced-motion: reduce) { body:not(.anim-full) #islaPto.trabaja { animation:none; } }
+  /* (30-oct, isla 3) ESQUINAS CONCAVAS de arriba: dos filetes de --isla-r (9 px: cabe en los 10 px que sobran a cada lado de la pastilla abierta de 420 en la ventana de 440) que
+     abren la forma hacia afuera donde toca el borde de arriba de la pantalla, como la Dynamic Island del iPhone: la pastilla se funde con el borde de la pantalla y con la muesca en vez
+     de terminar en una esquina recta. Cada filete es un cuadrado de R x R pegado al costado de la pastilla, relleno de negro FUERA de un circulo de radio R centrado en su esquina de
+     abajo y de afuera (tangente al borde de arriba y a la pared de la pastilla). Pastilla cerrada = un ala a la DERECHA de la muesca (ver ISLA en el JS): solo se ve el filete derecho; el
+     izquierdo queda dentro de la muesca real y aparece solo con la pastilla abierta (que se extiende bajo la muesca). Abajo siguen las esquinas redondas. Sin muesca (isla-plano) no hay filetes. */
+  body.isla:not(.isla-plano) #isla::before, body.isla:not(.isla-plano) #isla::after { content:""; position:absolute; top:0; height:var(--isla-r); width:calc(var(--isla-r) + .5px); pointer-events:none; }
+  body.isla:not(.isla-plano) #isla::before { right:calc(100% - .5px); opacity:0; transition:opacity .2s ease;
+    background:radial-gradient(circle at 0 100%, transparent calc(var(--isla-r) - .6px), #000 calc(var(--isla-r) + .4px)); }
+  body.isla:not(.isla-plano) #isla.abierta::before { opacity:1; }
+  body.isla:not(.isla-plano) #isla::after { left:calc(100% - .5px);
+    background:radial-gradient(circle at 100% 100%, transparent calc(var(--isla-r) - .6px), #000 calc(var(--isla-r) + .4px)); }
+  /* SOLO pruebas de CI (Rust avisa sim:true cuando la muesca es simulada): una muesca falsa negra debajo de la pastilla, para que las capturas muestren como se funde con ella */
+  #islaSim { position:absolute; top:0; z-index:1; background:#000; border-radius:0 0 9px 9px; pointer-events:none; }
   /* el gato: su caja de 128 px se escala (--s) y se coloca (--gl, --gt) desde islaGato(); transform-origin arriba a la izquierda */
   body.isla #pie { position:absolute; right:auto; bottom:auto; left:var(--gl, 0px); top:var(--gt, 0px); width:128px; text-align:left; z-index:3; clip-path:none;
                    transform:scale(var(--s, .4)); transform-origin:0 0; transition:left .34s var(--isla-ez), top .34s var(--isla-ez), transform .34s var(--isla-ez); }
@@ -1688,19 +1701,28 @@ if (ajP) {
 // islaActivar({notch, nw, nh, ...}) UNA vez, antes de mostrar la ventana. En Windows nunca se llama: este bloque queda inerte.
 // Ideas de diseño de Vibe Notch (Apache-2.0) y CodeIsland (MIT), leidas sin copiar codigo: pastilla negra que se funde con la muesca, apertura con rebote
 // leve y cierre sin rebote (aqui con curvas de CSS), todo el contenido dentro de una sola pastilla, mascota/caratula grande al abrir.
-const ISLA = { ala: 54, wx: 420, h0: 38, w0: 290 };
+// (30-oct, isla 3) UN SOLO ALA a la DERECHA de la muesca (idea de Claude Pet, sin copiar codigo): cerrada, la forma negra empieza `sol` (14) pt DENTRO del borde derecho de la muesca
+// (para tapar la union) y se extiende a la derecha lo justo para la cara del gato + el punto de estado o el numero; a la izquierda de la muesca no sale nada, asi los menus de las apps
+// siguen visibles en pantallas chicas. Ancho cerrado = sol + pad + cara del gato + pad + der + pad (~96 pt con una muesca de 32 pt de alto; NO depende del ancho de la muesca: el ala
+// arranca en su borde derecho). Abierta: la tarjeta de siempre, centrada bajo la muesca (wexp). Sin muesca: pastilla compacta centrada bajo la barra de menus.
+const ISLA = { sol: 14, pad: 6, der: 28, wx: 420, h0: 38, w0: 96, wexp: 420, nw: 190, plano: false };
 // Ajustes en modo isla: "a" = panel flotante de siempre bajo la pastilla (380x560); "b" = la pastilla se agranda y lo lleva dentro. Se elige aca; las capturas de
 // CI piden la otra con la orden fija `kodama:ajustes-b` (solo pruebas, solo macOS) para compararlas.
 const ISLA_AJ_DEFECTO = "a";
 let islaAj = ISLA_AJ_DEFECTO, islaHov = false, islaHovFijo = false, tIslaHov = 0;
 // la cabeza del gato (orejas incluidas) dentro de su caja de 128 x 128: ancho, alto y centro (medido sobre las capturas; el dibujo de Lottie es de 360 x 360)
 const GATO = { w: 90, h: 85, cx: 64, cy: 68 };
+// ancho de la ventana de la isla (Rust la centra en la MUESCA: el centro de la muesca cae en la mitad de este ancho) y x de la pastilla: cerrada con muesca = el ala sale del borde
+// derecho de la muesca (14 pt adentro); abierta o sin muesca = centrada
+const islaAncho = () => document.documentElement.clientWidth || innerWidth || 440;
+function islaX(w, abierta) { const cw = islaAncho(); return Math.round(ISLA.plano || abierta ? (cw - w) / 2 : cw / 2 + ISLA.nw / 2 - ISLA.sol); }
 function islaActivar(cfg) {
   if (islaOn || !cfg) return;
   islaOn = true; modoAviso = false;
   const B = document.body, plano = !cfg.notch;
-  const h0 = plano ? 32 : Math.max(24, Math.round(cfg.nh)), w0 = plano ? 168 : Math.round(cfg.nw + 2 * ISLA.ala);
-  ISLA.h0 = h0; ISLA.w0 = w0;
+  const h0 = plano ? 32 : Math.max(24, Math.round(cfg.nh)), cara = hh => GATO.w * hh / GATO.h;   // cara = ancho de la cabeza del gato con ese alto
+  const w0 = plano ? Math.round(11 + cara(h0 - 6) + ISLA.pad + ISLA.der + 8) : Math.round(ISLA.sol + ISLA.pad + cara(h0 + 4) + ISLA.pad + ISLA.der + ISLA.pad);
+  ISLA.h0 = h0; ISLA.w0 = w0; ISLA.nw = cfg.nw; ISLA.plano = plano; ISLA.wexp = Math.max(ISLA.wx, Math.round(cfg.nw + 2 * 54));
   if (capsula) capsReset();
   B.classList.remove("caps"); B.classList.add("isla"); B.classList.toggle("isla-plano", plano);
   const I = document.createElement("div"); I.id = "isla"; I.setAttribute("role", "group");
@@ -1713,8 +1735,10 @@ function islaActivar(cfg) {
   cab.appendChild($("pie")); cab.appendChild(der); der.insertBefore($("otros"), pto);
   en.appendChild($("asomo")); en.appendChild($("burbuja")); en.appendChild($("lista"));   // Ajustes (#ajpc) se queda en el body (opcion A) o entra aca (opcion B)
   I.appendChild(cab); I.appendChild(tile); I.appendChild(cu); B.insertBefore(I, B.firstChild);
-  I.style.setProperty("--nh", h0 + "px"); B.style.setProperty("--nh", h0 + "px");
-  I.style.width = w0 + "px"; I.style.height = h0 + "px";
+  I.style.setProperty("--nh", h0 + "px"); B.style.setProperty("--nh", h0 + "px"); I.style.setProperty("--der", ISLA.der + "px");
+  I.style.width = w0 + "px"; I.style.height = h0 + "px"; I.style.left = islaX(w0, false) + "px";
+  if (cfg.sim && !plano) { const sm = document.createElement("div"); sm.id = "islaSim"; sm.style.width = Math.round(cfg.nw) + "px"; sm.style.height = h0 + "px";
+    sm.style.left = Math.round(islaAncho() / 2 - cfg.nw / 2) + "px"; B.insertBefore(sm, B.firstChild); }   // solo pruebas de CI: muesca falsa
   // tocar la pastilla cerrada = tocar la mascota (abre el globo del chat que mas te necesita); la insignia y el gato tienen su propio clic
   cab.onpointerup = e => { if (e.target.closest("#pj, #otros")) return; if (panelAbierto) return cerrarPanel(); if (comp) comp.tocar(); tocarMascota(); };
   I.addEventListener("pointerenter", () => islaHover(true)); I.addEventListener("pointerleave", () => islaHover(false));
@@ -1744,7 +1768,7 @@ function islaGato(modo) {
   if (modo === "tile") { hh = 66; cx = 14 + 40; cy = h0 + 10 + 40; }
   else {
     hh = modo === "hover" ? (plano ? h0 - 2 : h0 + 10) : (plano ? h0 - 6 : h0 + 4);
-    cx = (plano ? 11 : 8) + GATO.w * hh / GATO.h / 2; cy = plano ? h0 / 2 : hh / 2;
+    cx = (plano ? 11 : ISLA.sol + ISLA.pad) + GATO.w * hh / GATO.h / 2; cy = plano ? h0 / 2 : hh / 2;   // con muesca la cara empieza `pad` despues del borde de la muesca (la pastilla entra `sol` en ella)
   }
   const s = hh / GATO.h;
   P.style.setProperty("--s", s.toFixed(4)); P.style.setProperty("--gl", (cx - GATO.cx * s).toFixed(1) + "px"); P.style.setProperty("--gt", (cy - GATO.cy * s).toFixed(1) + "px");
@@ -1756,9 +1780,9 @@ function islaSync() {
   const hc = en.offsetHeight, abierta = hc > 0, tile = abierta && !panelAbierto, hov = !abierta && !panelAbierto && (islaHov || islaHovFijo);
   I.classList.toggle("abierta", abierta); I.classList.toggle("tile", tile); I.classList.toggle("hov", hov);
   document.body.classList.toggle("isla-tile-osc", /blanco/.test(pjTipo || ""));   // gato blanco: baldosa oscura
-  const w = abierta ? Math.max(ISLA.wx, ISLA.w0) : ISLA.w0 + (hov ? 16 : 0);
+  const w = abierta ? Math.max(ISLA.wexp, ISLA.w0) : ISLA.w0 + (hov ? 16 : 0);   // hover: el ala crece 16 a la derecha y 6 hacia abajo
   const h = abierta ? ISLA.h0 + Math.max(hc, tile ? 92 : 0) + 4 : ISLA.h0 + (hov ? 6 : 0);
-  I.style.width = w + "px"; I.style.height = Math.min(h, Math.max(ISLA.h0, innerHeight - 4)) + "px";
+  I.style.width = w + "px"; I.style.height = Math.min(h, Math.max(ISLA.h0, innerHeight - 4)) + "px"; I.style.left = islaX(w, abierta) + "px";
   islaGato(tile ? "tile" : hov ? "hover" : "cerrada");
   zonaYa();
 }

@@ -49,6 +49,15 @@ jobs:
         working-directory: escritorio-tauri
         run: node preparar-ui.js
 
+      - name: Notch geometry unit tests (measurement, screen choice, screen signature)
+        run: |
+          rustc --edition 2021 --test escritorio-tauri/src-tauri/src/isla_geom.rs -o "$RUNNER_TEMP/isla_geom_tests"
+          rc=0
+          out=$("$RUNNER_TEMP/isla_geom_tests" 2>&1) || rc=$?
+          echo "$out"
+          echo "::notice title=isla_geom unit tests::rc=$rc $(echo "$out" | tail -3 | tr '\n' ' ')"
+          exit $rc
+
       - name: Build the pet (tauri build --no-bundle)
         working-directory: escritorio-tauri
         run: npx tauri build --no-bundle

@@ -16,6 +16,9 @@ use tauri::LogicalSize;
 // (28-oct) MODO ISLA (solo macOS): lo de AppKit (muesca, nivel de la ventana, Spaces) vive en isla.rs.
 #[cfg(target_os = "macos")]
 mod isla;
+// (30-oct, isla 3) geometria pura de la muesca y firma de pantallas: solo en macOS (y en las pruebas); Windows no la compila
+#[cfg(any(target_os = "macos", test))]
+mod isla_geom;
 
 static ESCRIBIENDO: AtomicBool = AtomicBool::new(false);
 // (27-oct, soltar 2) ARRASTRAR ARCHIVOS: lo maneja WebView2 (dragDropEnabled:false en tauri.conf.json, AllowExternalDrop:true aca) y la pagina
@@ -218,7 +221,9 @@ fn isla_directo(window: &WebviewWindow, poner: bool, activa: bool, w: f64, h: f6
             }
         }
     }
-    serde_json::json!({ "mac": true, "notch": m.notch, "nw": m.nw, "nh": m.nh, "barra": m.barra,
+    // (30-oct, isla 3) `cx` = centro de la muesca desde el borde izquierdo de la pantalla; `sim` = muesca simulada (pruebas); `sig` = firma de las pantallas
+    // (la pagina la compara cada 2 s con isla_info{poner:false} para saber cuando cambiaron y volver a acoplar la isla)
+    serde_json::json!({ "mac": true, "notch": m.notch, "nw": m.nw, "nh": m.nh, "barra": m.barra, "cx": m.cx, "sim": m.sim, "sig": m.sig,
         "ancho": m.marco.size.width, "alto": m.marco.size.height }).to_string()
 }
 #[cfg(not(target_os = "macos"))]

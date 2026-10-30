@@ -19,9 +19,34 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
   async function islaColocar() {
     try {
       const m = JSON.parse(await inv("isla_info", { poner: true, activa: true, w: ISLA_W, h: ISLA_H }));
-      if (m && m.mac && !m.error) { islaMedida = m; islaCfg = { notch: !!m.notch, nw: m.nw, nh: m.nh, barra: m.barra, w: ISLA_W, h: ISLA_H, modo: islaModo() }; }
+      if (m && m.mac && !m.error) { islaMedida = m; islaSig = m.sig || null; islaCfg = { notch: !!m.notch, nw: m.nw, nh: m.nh, cx: m.cx, sim: !!m.sim, barra: m.barra, w: ISLA_W, h: ISLA_H, modo: islaModo() }; }
     } catch (e) {}
   }
+  // (30-oct, isla 3) SOLO macOS: volver a acoplar la isla cuando cambia la configuracion de pantallas (tapa cerrada/abierta, monitor enchufado/sacado, pantalla
+  // principal, resolucion). Se eligio SONDEAR cada 2 s (Rust da una firma barata en isla_info{poner:false}) y no suscribirse a
+  // NSApplicationDidChangeScreenParametersNotification porque no necesita bloques de objc2 ni hilo ni evento nuevo, tambien ve la simulacion de las pruebas
+  // y reutiliza el mismo comando y la misma cadencia que `reafirmar`. Al cambiar se vuelve a medir (regla: sin areas auxiliares = sin muesca) tras 600 ms
+  // (las pantallas tardan en asentarse) y: si cambia lo que la isla decide o su medida -> se recarga la pagina (rearma la isla o el modo normal); si no, solo se coloca.
+  let islaSig = null, islaSondeando = false;
+  async function islaMedir() { try { const m = JSON.parse(await inv("isla_info", { poner: false, activa: false, w: 0, h: 0 })); return m && m.mac && !m.error ? m : null; } catch (e) { return null; } }
+  async function islaSondear() {
+    if (!ES_MAC || islaSondeando || islaModo() === "no") return;
+    islaSondeando = true;
+    try {
+      let m = await islaMedir();
+      if (!m || islaSig === null || m.sig === islaSig) { if (m && islaSig === null) islaSig = m.sig; return; }
+      await new Promise(r => setTimeout(r, 600));
+      m = await islaMedir(); if (!m) return;
+      islaSig = m.sig;
+      const antes = islaMedida; islaMedida = m;
+      const mismaMuesca = !!antes && !!antes.notch === !!m.notch && Math.abs((antes.nw || 0) - m.nw) < 0.5 && Math.abs((antes.nh || 0) - m.nh) < 0.5;
+      if (islaDecidir() !== islaOn || (islaOn && !mismaMuesca)) {
+        if (islaOn && !islaDecidir()) { try { await inv("isla_info", { poner: true, activa: false, w: 400, h: 600 }); } catch (e) {} }
+        location.reload();
+      } else if (islaOn) { await islaColocar(); repintar(); }
+    } catch (e) {} finally { islaSondeando = false; }
+  }
+  if (ES_MAC) setInterval(islaSondear, 2000);
   const oyentes = { pj: [], visible: [], atajo: [], noMolestar: [], sonido: [], cursor: [], ojos: [], modo: [], ajustes: [], sueno: [], capsula: [], capsulaColor: [], animCompletas: [], isla: [] };
   const avisar = (k, ...a) => oyentes[k].forEach(f => { try { f(...a); } catch (e) {} });
   const clave = async () => KEY || (KEY = await inv("clave"));
@@ -183,7 +208,9 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
         enCursor: (() => { const c = window.__ultCursor; if (!c) return null; const el = document.elementFromPoint(c[0], c[1]);
           return el ? (el.id || el.tagName) + " < " + ((el.closest("[id]") || {}).id || "") : "nada"; })(),
         // (28-oct) solo macOS: estado de la isla (clase, ancho, alto de la pastilla), aviso, globo y Ajustes abiertos; lo lee pruebas/capturas_mac.py
-        ...(ES_MAC ? { isla: (() => { const i = document.getElementById("isla"); if (!i) return null; const r = i.getBoundingClientRect(); return [i.className, Math.round(r.width), Math.round(r.height), Math.round(r.top)]; })(),
+        ...(ES_MAC ? { isla: (() => { const i = document.getElementById("isla"); if (!i) return null; const r = i.getBoundingClientRect(); return [i.className, Math.round(r.width), Math.round(r.height), Math.round(r.top), Math.round(r.left)]; })(),
+          // (30-oct, isla 3) lo que midio Rust la ultima vez (muesca si/no, ancho, alto, centro X, simulada, modo) y la firma de pantallas con la que se acoplo la isla
+          islaMed: islaMedida ? { notch: !!islaMedida.notch, nw: islaMedida.nw, nh: islaMedida.nh, cx: islaMedida.cx, sim: !!islaMedida.sim, on: islaOn, sig: islaSig } : null,
           asomo: typeof asomoAct !== "undefined" ? !!asomoAct : null, globo: typeof abierto !== "undefined" ? !!abierto : null, panel: typeof panelAbierto !== "undefined" ? !!panelAbierto : null,
           nombres: typeof datos !== "undefined" ? Object.keys(datos).filter(k => !k.startsWith("_")).length : null,
           // (28-oct, isla 2) idioma de la pagina y los rotulos visibles de la interfaz (para comprobar que no se mezclan idiomas)
@@ -440,7 +467,7 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
     // (14-oct) la posicion guardada solo vale si cae dentro de alguna pantalla (si no, a la esquina)
     // la mascota vive en la esquina de abajo a la derecha de su ventana (400x600): esa esquina tiene que verse entera
     // (28-oct) macOS: se mide la pantalla y se decide si hay isla (conf.isla); en Windows ES_MAC es false y esta rama no corre
-    if (ES_MAC) { try { islaMedida = JSON.parse(await inv("isla_info", { poner: false, activa: false, w: 0, h: 0 })); } catch (e) {} islaOn = islaDecidir(); if (islaOn) await islaColocar(); if (!islaCfg) islaOn = false; }
+    if (ES_MAC) { try { islaMedida = JSON.parse(await inv("isla_info", { poner: false, activa: false, w: 0, h: 0 })); islaSig = islaMedida.sig || null; } catch (e) {} islaOn = islaDecidir(); if (islaOn) await islaColocar(); if (!islaCfg) islaOn = false; }
     const dentro = conf.x != null && conf.y != null && await enPantalla(conf.x, conf.y);
     if (islaOn) { /* la ventana ya esta arriba al centro */ }
     else if (dentro) await yo.setPosition(new T.dpi.LogicalPosition(conf.x, conf.y)); else { conf.x = conf.y = null; await esquina(); }

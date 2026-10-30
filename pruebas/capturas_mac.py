@@ -274,7 +274,7 @@ def previsualizar(out, nombre, f, region, zoom):
 
 
 # crops (x, y, w, h in points) used for the previews; the island window is 440 wide, centered on a 1024-wide screen (x = 292)
-R_PILL = (342, 0, 340, 56)
+R_PILL = (400, 0, 320, 52)   # (isla 3) the simulated notch (190 wide, centered at x=512) + the single right wing
 def R_ISLA(alto):
     return (292, 0, 440, alto)
 
@@ -295,7 +295,8 @@ def solo_previews():
 def detalle(out, nombre, nombre_png, region, zoom=1.5):
     """Extra zoomed crop of a shot that was already taken (the pill + the Settings title row)."""
     f = os.path.join(out, nombre_png + ".png")
-    if os.path.exists(f):
+    solo = solo_previews()   # (isla 3) the detail crops follow the same [solo:...] filter as the shots (by the shot code, e.g. A01 for A01c-...)
+    if os.path.exists(f) and (not solo or nombre[:3] in solo):
         previsualizar(out, nombre, f, region, zoom)
 
 
@@ -429,6 +430,8 @@ def main():
             time.sleep(2.5)
             d = pedir(work) or d
             foto(out, "A01-island-collapsed-en", "auto + simulated notch", d, pet.pid, exe_v, base_sha, R_PILL, 2)
+            # (isla 3) zoomed top corner of the single right wing (x1 = 10): the concave fillet where the wing meets the top edge of the screen
+            detalle(out, "A01c-right-wing-top-corner-en", "A01-island-collapsed-en", (668, 0, 40, 20), 10)
 
             pedir(work, "kodama:hover")
             d, ok = esperar(work, lambda d: "hov" in clase(d), 15, "A: hover state")
@@ -446,6 +449,8 @@ def main():
             d, ok = esperar(work, lambda d: d.get("asomo") and abierta(d), 40, "A: question notice expanded")
             time.sleep(1.0)
             foto(out, "A04-island-question-expanded-en", "auto + simulated notch", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(170))
+            detalle(out, "A04l-expanded-left-top-corner-en", "A04-island-question-expanded-en", (285, 0, 40, 20), 10)
+            detalle(out, "A04r-expanded-right-top-corner-en", "A04-island-question-expanded-en", (705, 0, 40, 20), 10)
             pedir(work, "kodama:globo")
             d, ok = esperar(work, lambda d: d.get("globo"), 20, "A: bubble open (question)")
             time.sleep(1.4)
@@ -542,7 +547,46 @@ def main():
             pet.parar()
             pet = None
 
-        for nom, fn in (("A", sec_A), ("B", sec_B), ("C", sec_C), ("D", sec_D)):
+        def sec_E():
+            nonlocal pet
+            # ---------- E: SIMULATED screen changes (the runner cannot unplug a monitor or close a lid): the simulated notch comes from a FILE the script
+            # rewrites while the pet runs (KODAMA_ISLA_PRUEBA_ARCHIVO), so the real code path runs: the 2 s poll sees the new screen signature, re-measures
+            # and re-docks (notch <-> no notch switches between island and normal pet, a different notch size rebuilds the island) ----------
+            arch = os.path.join(work, "prueba-pantallas.txt")
+
+            def poner(txt):
+                with open(arch, "w", encoding="utf-8") as fh:
+                    fh.write(txt)
+
+            def med(d):
+                return (d or {}).get("islaMed") or {}
+            escribir_conf(work, "auto", "en")
+            hub_set("reposo", "en")
+            poner("190x32")
+            pet = Pet(a.bin, work, {"KODAMA_ISLA_PRUEBA_ARCHIVO": arch}, "E")
+            d, ok = esperar(work, lambda d: lista(d) and d.get("estado") is not None, 60, "E: island up (notch 190x32)")
+            time.sleep(2.5)
+            d = pedir(work) or d
+            foto(out, "E01-screens-before-notch-190x32-en", "auto + simulated notch 190x32 (file)", d, pet.pid, exe_v, base_sha, R_PILL, 2)
+            NOTAS.append("E01 measured: %s island=%s" % (json.dumps(med(d)), json.dumps((d or {}).get("isla"))))
+            # change 1: the display "loses" the notch (lid closed / external monitor only) -> auto mode leaves the island
+            t1 = time.time()
+            poner("sin")
+            d, ok = esperar(work, lambda d: d.get("isla") is None and d.get("estado") is not None and med(d).get("notch") is False and med(d).get("on") is False, 60, "E: re-docked to no notch (normal pet)")
+            NOTAS.append("E re-dock notch -> no notch: %s after %.1f s (measured %s)" % ("OK" if ok else "NOT seen", time.time() - t1, json.dumps(med(d))))
+            time.sleep(2.5)
+            foto(out, "E02-screens-after-no-notch-normal-pet-en", "auto, simulated screen change: no notch", pedir(work) or d, pet.pid, exe_v, base_sha, (780, 540, 244, 180))
+            # change 2: a notched display appears again, with a DIFFERENT notch (214 x 36) -> the island comes back with the new measure
+            t2 = time.time()
+            poner("214x36")
+            d, ok = esperar(work, lambda d: lista(d) and d.get("estado") is not None and med(d).get("nw") == 214 and med(d).get("on") is True, 60, "E: re-docked to notch 214x36 (island)")
+            NOTAS.append("E re-dock no notch -> notch 214x36: %s after %.1f s (measured %s, island=%s)" % ("OK" if ok else "NOT seen", time.time() - t2, json.dumps(med(d)), json.dumps((d or {}).get("isla"))))
+            time.sleep(2.5)
+            foto(out, "E03-screens-after-notch-214x36-en", "auto, simulated screen change: notch 214x36", pedir(work) or d, pet.pid, exe_v, base_sha, R_PILL, 2)
+            pet.parar()
+            pet = None
+
+        for nom, fn in (("A", sec_A), ("B", sec_B), ("C", sec_C), ("D", sec_D), ("E", sec_E)):
             try:
                 fn()
             except Exception:
