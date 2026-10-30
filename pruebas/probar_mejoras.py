@@ -65,7 +65,7 @@ finally:
 
 # el hub: _historial() expone solo {h, t, a} del chat (con la lista de la sesion mas reciente de cada chat, inyectada en memoria)
 real = h.sesiones()
-h.sesiones = lambda: [dict(s, tareas={"h": 3, "t": 7, "a": "armando la mascota", "ts": time.time(), "items": {"1": ["h", "SECRETO"]}}) for s in real]
+h.sesiones = lambda: [dict(s, estado="trabajando", visto=time.time(), tareas={"h": 3, "t": 7, "a": "armando la mascota", "ts": time.time(), "items": {"1": ["h", "SECRETO"]}}) for s in real]   # (30-oct) la lista se muestra solo con el chat trabajando
 h._HIST["v"] = None
 salida = h._historial()
 con = {c: d["tareas"] for c, d in salida.items() if isinstance(d, dict) and "tareas" in d}
