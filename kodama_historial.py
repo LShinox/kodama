@@ -99,7 +99,9 @@ def contexto_chat(cmd):
     tokens = n("input_tokens") + n("cache_creation_input_tokens") + n("cache_read_input_tokens")
     modelo = (list(_re.finditer(r'"model"\s*:\s*"([^"]+)"', cola)) or [None])[-1]
     modelo = modelo.group(1) if modelo else ""
-    maximo = 1_000_000 if ("1m" in modelo.lower() or tokens > 200_000) else 200_000
+    # (30-oct) los modelos actuales (4.6 en adelante, 5.x) traen 1M y el transcript no lo marca: 200k solo para los viejos
+    viejo = _re.search(r"claude-(?:instant|2|3)|(?:opus|sonnet|haiku)-4-[0-5](?!\d)", modelo.lower())
+    maximo = 200_000 if (viejo and "1m" not in modelo.lower() and tokens <= 200_000) else 1_000_000
     return {"tokens": tokens, "max": maximo, "pct": round(tokens * 100 / maximo, 1), "modelo": modelo}
 
 
