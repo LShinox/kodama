@@ -126,7 +126,7 @@ def por_puente(s, texto):
     sid = s.get("session_id") or ""
     esp, resp = os.path.join(PUENTE, sid + ".esperando"), os.path.join(PUENTE, sid + ".respuesta")
     try:
-        if not sid or time.time() - os.path.getmtime(esp) > 540:
+        if not sid or time.time() - os.path.getmtime(esp) > 1860:   # (04-nov) antes 540: tras 9 min una respuesta a un chat que aun esperaba (hasta 30 min) se iba al buzon
             return False
     except OSError:
         return False

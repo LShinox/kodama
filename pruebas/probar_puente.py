@@ -25,6 +25,31 @@ try:
     env = dict(os.environ, COMPANERO_PUENTE_PRUEBA="1")
     r = subprocess.run([PY, APP + r"\companero_puente.py"], input=entrada.encode(), capture_output=True, env=env, timeout=60)
     print(f"espero {time.time() - t0:.1f} s | salida: {r.stdout.decode('utf-8', 'replace')[:300]}")
+    ver_espera = 3.5 < time.time() - t0 < 15 and "additionalContext" in r.stdout.decode("utf-8", "replace")
+    print("OK  " if ver_espera else "FALLA", "turno normal: espera y entrega por el hook")
+
+    # (06-nov) turno cerrado con el cuadro con pregunta: no espera, para que el hub use el buzon
+    cuadro = os.path.join(EST, "wrapup", SID + ".json")
+    os.makedirs(os.path.dirname(cuadro), exist_ok=True)
+    json.dump({"ts": time.time(), "recap": "r", "ask": "¿Sigo?", "acciones": []}, open(cuadro, "w", encoding="utf-8"))
+    try:
+        t0 = time.time()
+        r = subprocess.run([PY, APP + r"\companero_puente.py"], input=entrada.encode(), capture_output=True, env=env, timeout=60)
+        ok = time.time() - t0 < 3 and not r.stdout and not os.path.exists(os.path.join(EST, "puente", SID + ".esperando"))
+        print("OK  " if ok else "FALLA", f"cuadro con pregunta: sale sin esperar ({time.time() - t0:.1f} s), sin salida y sin .esperando")
+    finally:
+        os.remove(cuadro)
+
+    # cuadro viejo (mas de 2 min): vuelve el comportamiento normal
+    json.dump({"ts": time.time() - 300, "recap": "r", "ask": "¿Sigo?", "acciones": []}, open(cuadro, "w", encoding="utf-8"))
+    try:
+        threading.Thread(target=responder).start()
+        t0 = time.time()
+        r = subprocess.run([PY, APP + r"\companero_puente.py"], input=entrada.encode(), capture_output=True, env=env, timeout=60)
+        print("OK  " if b"additionalContext" in r.stdout else "FALLA", "cuadro viejo: espera normal")
+    finally:
+        if os.path.exists(cuadro):   # el hook lo borra al entregar
+            os.remove(cuadro)
 finally:
     x = json.load(open(extra, encoding="utf-8")); x.pop(SID, None)
     json.dump(x, open(extra, "w", encoding="utf-8"), ensure_ascii=False, indent=1)

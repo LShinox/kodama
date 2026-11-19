@@ -4,9 +4,9 @@
 
 # Kodama
 
-**Un gato gratis para el escritorio de Windows que te avisa cuando Claude Code, Codex o Antigravity te esperan,** y te deja aprobar permisos y responder desde el celular.
+**Un gato gratis para el escritorio de Windows que te avisa cuando Claude Code, Codex, OpenCode o Antigravity te esperan,** y te deja aprobar permisos y responder desde el celular.
 
-Funciona con la app de escritorio de Claude. La parte del celular es una app web (PWA): no hay nada que instalar desde una tienda de apps, ni cuenta de Kodama.
+Funciona con la IA que ya usas: Claude, ChatGPT (Codex), DeepSeek o modelos gratis (OpenCode). Mira [¿Qué IA usas?](#qué-ia-usas). La parte del celular es una app web (PWA): no hay nada que instalar desde una tienda de apps, ni cuenta de Kodama.
 
 **Gratis.** El código fuente se publica aquí con la licencia **PolyForm Noncommercial 1.0.0** (código disponible: gratis
 para uso no comercial, no es código abierto). También puedes **descargar las versiones, reportar problemas y proponer ideas**. Míralo en acción en la **[página del proyecto](https://lshinox.github.io/kodama/)**.
@@ -15,6 +15,16 @@ para uso no comercial, no es código abierto). También puedes **descargar las v
 |:---:|:---:|:---:|
 | <img src="docs/img/mascota.gif" width="240" alt="El gato en su cápsula: trabaja, pregunta, lista de chats que te esperan y soltar un archivo"> | <img src="docs/img/celular.gif" width="190" alt="La app del celular: chats, un permiso con Permitir y Denegar, y el bloqueo"> | <img src="docs/img/ajustes.gif" width="240" alt="La ventana de Ajustes sale de la mascota, con Lo nuevo"> |
 | El gato cambia con tu chat. En la cápsula están el aviso, el globo y las respuestas rápidas. | Lista de chats, respuestas rápidas y permisos con Permitir / Denegar. | La ventana de Ajustes sale de la mascota y te cuenta qué hay de nuevo. |
+
+## Novedades (noviembre 2026)
+- **Compatible con OpenCode:** avisos, permisos y respuestas desde el celular, con tu plan de ChatGPT, DeepSeek o modelos gratis.
+- **Responde a Codex desde el celular** mientras te espera.
+- **Claude Code dentro de WSL** se detecta y funciona igual que en Windows.
+- **El celular te dice por qué un mensaje está esperando** (por ejemplo, «tu PC está en uso; lo entrego cuando la dejes 2 min»).
+- **Si Telegram se cae, tus avisos ya no se atrasan.**
+- **Avisos del límite del plan** al 80, 95 y 100 % de tu plan de Claude.
+- **PDF y varias fotos** en el mismo mensaje desde el celular.
+- **Ventana más estable:** «Salir» del menú de la bandeja funciona aunque la página se cuelgue, la mascota se recupera si su WebView se cae, y el globo ya no se corta si el gato arranca en otro monitor.
 
 ## Qué hace
 - **Un gato animado a mano** que vive junto al reloj y cambia con tu chat: espera, trabaja, te escribe, recibe tu respuesta, duerme o se atora. Eliges color (negro, naranja, blanco, gris azulado o esmoquin) y tipo de ojos. Brote sigue disponible como alternativa.
@@ -31,18 +41,36 @@ para uso no comercial, no es código abierto). También puedes **descargar las v
 ## Instalar (Windows)
 **Requisitos**
 - Windows 10 u 11.
-- La **app de escritorio de Claude**.
+- Al menos una IA de código: **Claude Code, Codex, OpenCode o Antigravity** (mira la tabla de abajo). Instálala y ábrela una vez **antes** de Kodama: el instalador conecta las que encuentra. Si agregas una después, vuelve a correr el instalador.
 - Python 3.10 o más nuevo. Si te falta, el instalador te ofrece instalarlo (Python 3.12 con winget, ~30 MB).
 - Opcional, para el celular: Telegram (un bot tuyo) o Tailscale.
 - La app del celular es una **app web (PWA)**: la abres en el navegador del celular y la añades a la pantalla de inicio. No hay nada que instalar desde la App Store ni Google Play.
 - Para desinstalar, mira [Desinstalar](#desinstalar).
 
+### ¿Qué IA usas?
+Kodama se conecta a las IA de código de tu PC, no a las páginas de chat: no ve los chats de claude.ai, chatgpt.com ni de la app de DeepSeek.
+
+| Si usas… | Conéctala con | Qué tienes |
+|---|---|---|
+| Claude Pro o Max | **Claude Code** (pestaña Code de la app de Claude, o la CLI) | Todo |
+| ChatGPT (Codex viene incluido en los planes de ChatGPT) | **Codex** (app de escritorio o CLI) | Avisos, permisos desde el celular y respuestas mientras el chat te espera |
+| ChatGPT Plus o Pro, en otra herramienta | **OpenCode**, con tu plan de ChatGPT | Igual que Codex |
+| DeepSeek | **OpenCode** con una clave de API de DeepSeek (`DEEPSEEK_API_KEY`, pago por uso) | Igual que Codex |
+| Ningún plan pagado | **OpenCode** con sus modelos gratis | Igual que Codex |
+| Gemini | **Antigravity** | Avisos |
+
+- El plan gratis de Claude no incluye Claude Code. Si tienes Claude gratis y pagas ChatGPT o DeepSeek, usa la fila de Codex u OpenCode.
+- El medidor de uso y "Sincronizar grupos" solo existen con Claude Code; sin él, Kodama los oculta.
+- **Codex:** después de instalar Kodama, abre Codex y revisa los hooks una vez con `/hooks` (o Ajustes › Hooks en la app).
+- **OpenCode y privacidad:** OpenCode también lee `~\.claude\CLAUDE.md` y se lo manda al modelo. Si no quieres eso, pon `OPENCODE_DISABLE_CLAUDE_CODE=1` antes de usarlo.
+- El agente propio de DeepSeek (DeepSeek Harness) todavía no es compatible; para DeepSeek usa OpenCode.
+
 Dos formas de instalar, elige una:
 
-**A. Díselo a tu Claude.** En un chat de la pestaña Code escribe:
+**A. Díselo a tu Claude** (solo si usas Claude Code). En un chat de la pestaña Code escribe:
 > Instala Kodama desde github.com/LShinox/kodama
 
-**B. Una línea en PowerShell:**
+**B. Una línea en PowerShell** (sirve para todos, con cualquier IA):
 ```powershell
 irm https://raw.githubusercontent.com/LShinox/kodama/main/instalar.ps1 | iex
 ```
@@ -57,7 +85,7 @@ todavía puede mostrar sus propios avisos.
 
 ### Desinstalar
 Desde la carpeta `Kodama`, ejecuta `python instalar.py --quitar`. Quita los hooks de Kodama y la línea de estado de uso de
-`~\.claude\settings.json`, los hooks de Codex y Antigravity, y la tarea de Windows. Tus datos quedan en `Kodama\estado`;
+`~\.claude\settings.json` (si tienes Claude Code), los hooks de Codex y Antigravity, el complemento de OpenCode y la tarea de Windows. Tus datos quedan en `Kodama\estado`;
 añade `--borrar-datos` para borrarlos también, y `--restaurar` para dejar `settings.json` exactamente como estaba antes de
 instalar. Después borra la carpeta `Kodama`.
 
@@ -70,7 +98,7 @@ tarjetas no aparecen, pregunta lo mismo en texto. **Nunca le pidas una clave o u
    Codex y Antigravity; Python con winget si falta). Opciones: *Acepto e instalo* / *No, gracias*.
 2. **Tarjeta "Celular":** cómo quiere los avisos en el celular. Opciones: *Solo Telegram (sin instalar nada más)* /
    *App del celular (con Tailscale, la completa)* / *Las dos* / *Por ahora solo la PC*.
-3. **Tarjeta "Otros agentes"** (solo si existen `~\.codex` o `~\.gemini`): *Conectar Codex y Antigravity* / *Solo Claude*.
+3. **Tarjeta "Otros agentes"** (solo si existen `~\.codex`, `~\.gemini` o `~\.config\opencode`): *Conectar Codex, OpenCode y Antigravity* / *Solo Claude*.
 4. Con esas respuestas, baja `instalar.ps1` de este repo y córrelo con
    `powershell -NoProfile -ExecutionPolicy Bypass -File instalar.ps1 -Acepto -Si` (+ `-SoloClaude` si eligió *Solo Claude*).
 5. Si el script corta, muéstrale el mensaje tal cual. No lo saltes ni lo "arregles": si dice que la firma no es
@@ -81,8 +109,8 @@ tarjetas no aparecen, pregunta lo mismo en texto. **Nunca le pidas una clave o u
 
 ## Privacidad: qué toca Kodama y qué envía
 **Qué toca en tu PC**
-- **Hooks de Claude:** añade sus propios hooks (y una línea de estado de uso, solo si no tienes una) a `~\.claude\settings.json`, unidos sin pisar los tuyos. Antes hace una copia de respaldo con fecha y hora, al lado.
-- **Otros agentes:** si tienes Codex o Antigravity, añade sus hooks a `~\.codex\hooks.json` y `~\.gemini\config\hooks.json`, también con respaldo.
+- **Hooks de Claude** (solo si Claude Code está en tu PC): añade sus propios hooks (y una línea de estado de uso, solo si no tienes una) a `~\.claude\settings.json`, unidos sin pisar los tuyos. Antes hace una copia de respaldo con fecha y hora, al lado.
+- **Otros agentes:** si tienes Codex o Antigravity, añade sus hooks a `~\.codex\hooks.json` y `~\.gemini\config\hooks.json`, también con respaldo. Si tienes OpenCode, añade un complemento en `~\.config\opencode\plugins\kodama.js`.
 - **Una tarea de Windows** llamada "Kodama" que arranca Kodama cuando inicias sesión y, cada 10 minutos, comprueba que siga corriendo.
 - Sus archivos viven en la carpeta `Kodama` de tu perfil de usuario, con un entorno de Python propio (`.venv`).
 

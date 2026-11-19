@@ -36,7 +36,8 @@
   // "guino" (gesto_guino.json, hecho con herramientas\lottie_guino.py desde gesto_ladeo): NO entra en el sorteo del director; se usa
   // como variante de "enviado" (1 de cada 3) y como saludo al abrir la mascota / la app del celular.
   // "agarrar" (gesto_agarrar.json, 27-oct: las PATITAS pata-d/pata-i salen, agarran el archivo y lo abrazan): tampoco entra en el sorteo; lo dispara index.html al SOLTAR un archivo.
-  const TODOS = new Set([...LISTA.reposo, ...LISTA.trabajando, "guino", "agarrar"]);
+  // "patita" (gesto_patita.json, 05-nov, con herramientas\lottie_patita.py desde gesto_agarrar): levanta una pata y saluda cuando un chat te necesita; lo dispara index.html.
+  const TODOS = new Set([...LISTA.reposo, ...LISTA.trabajando, "guino", "agarrar", "patita"]);
   const PROB_GUINO_ENVIADO = 1 / 3;
   // animaciones que tienen variante _b2; b3 = b2 en espejo (sin archivo nuevo)
   const CON_B2 = new Set(["estado_escribio", "estado_enviado", "gesto_leer", "gesto_pensar", "gesto_sonrisa"]);
@@ -174,7 +175,7 @@
 
   function nuevo(host, tipoOriginal, color, conPupila) {
     let estado = null, visual = null, vivo = true, oculto = false, enGesto = false, muerto = false, viejo = null;
-    let act = null, cola = null, ultCola = "", tok = 0, tokCola = 0, timers = [], ultGesto = "", ultVar = {}, caricia = false, toques = [], zzTok = 0;
+    let act = null, cola = null, ultCola = "", tok = 0, tokCola = 0, timers = [], ultGesto = "", ultVar = {}, caricia = false, racha = 0, ultToque = -1e9, zzTok = 0;
     let faseG = null;   // (27-oct, idea de clawd #1018) gesto de la fase del chat: "teclear" (ejecutando) | "pensar" (pensando) | null. El estado sigue siendo "trabajando".
     const later = (fn, ms) => { const t = setTimeout(fn, ms); timers.push(t); return t; };
     // (5.a vuelta) "Animaciones completas" (encendido por defecto, por aparato): encendido ignora prefers-reduced-motion; apagado lo respeta. Se mira en cada uso.
@@ -379,6 +380,44 @@
     const A = C.adornos || {};
     function zetas() { const mi = ++zzTok; const zz = () => { if (mi !== zzTok || estado !== "dormido" || !vivo || muerto) return; A.zeta && A.zeta(host); later(zz, 1700); }; zz(); }
 
+    // ---- animo de la PC (04-nov): carga de la PC, lo fija index.html con animo(tipo); "cpu" suda, "mem" se infla, "cansado"/"agotado" bostezan
+    const GOTA = "M0 -9 C4 -3 6 0 6 3 A6 6 0 0 1 -6 3 C-6 0 -4 -3 0 -9 Z";   // (04-nov) gota de agua (punta arriba, centro en 0,0)
+    const ANIMO_CADA = { cpu: 1600, cansado: 40000, agotado: 20000, uso80: 60000 };   // (04-nov) cada cuanto se repite el gesto o la gota; "mem" no tiene bucle; (05-nov) uso80 = el plan va por el 80 %
+    let animoAct = null, animoTok = 0, animoLado = false, animoN = 0;
+    function animoGota(derecha) {   // (04-nov) una gota que sale de la cabeza hacia afuera y abajo, 800 ms, y se borra al terminar
+      const sv = document.createElementNS(NS, "svg"); sv.setAttribute("viewBox", "0 0 120 120");
+      sv.style.cssText = "position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:5";
+      host.appendChild(sv);
+      const g = document.createElementNS(NS, "g"), p = document.createElementNS(NS, "path");
+      p.setAttribute("d", GOTA); p.setAttribute("fill", "#6CB8F0"); g.appendChild(p); sv.appendChild(g);
+      const x0 = derecha ? 92 : 28, dx = derecha ? 14 : -14;
+      try {
+        const an = g.animate([{ transform: `translate(${x0}px, 36px)`, opacity: 1 }, { transform: `translate(${x0 + dx}px, 62px)`, opacity: 0 }],
+          { duration: 800, easing: "ease-in" });
+        an.onfinish = () => sv.remove();
+      } catch (e) { sv.remove(); }
+    }
+    function animoLoop(tok) {   // (04-nov) un bucle por cada animo(); si cambia el tipo, el token deja morir al viejo
+      if (tok !== animoTok || viejo || !animoAct || muerto) return;
+      const tipo = animoAct;
+      const listo = !(pocoMov() || oculto || !vivo || enGesto) && (estado === "reposo" || estado === "trabajando");
+      if (listo) {
+        if (tipo === "cpu") { animoLado = !animoLado; animoGota(animoLado); }
+        else if (tipo === "uso80") jugar("ladeo");
+        else if (tipo === "cansado") jugar("bostezo");
+        else if (tipo === "agotado") { animoN++; jugar(animoN % 2 ? "bostezo" : "parpadeoLento"); }
+      }
+      if (ANIMO_CADA[tipo]) later(() => animoLoop(tok), ANIMO_CADA[tipo]);
+    }
+    function animo(tipo) {   // (04-nov) tipo: "cpu" | "mem" | "cansado" | "agotado" | null (normal). Con el motor viejo no hace nada
+      if (viejo || muerto) return;
+      animoAct = tipo || null;
+      const tok = ++animoTok;
+      pj.style.transition = "scale .8s ease";
+      pj.style.scale = animoAct === "mem" ? "1.07" : "";
+      if (animoAct && ANIMO_CADA[animoAct]) later(() => animoLoop(tok), ANIMO_CADA[animoAct]);
+    }
+
     // ---- API ----
     function ir(e) {
       if (viejo) return viejo.ir(e);
@@ -396,8 +435,9 @@
       vivo = !si; pj.classList.toggle("lt-pausa", si);
       seguirRespirando = !!(si && respira && window.KODAMA_RESPIRA_EN_SUENO !== false && estado === "dormido");
       if (act && act.resp) { try { if (si && !seguirRespirando) act.resp.pause(); else act.resp.play(); } catch (x) {} }   // la respiracion del dormido se pausa con el gato (salvo que la ventana siga visible)
+      if (si && reaccFin) reaccFin();
       if (si) { timers.forEach(clearTimeout); timers = []; parar(); }
-      else { arrancar(); later(director, R(1500, 3000)); if (estado === "dormido") zetas(); }
+      else { arrancar(); later(director, R(1500, 3000)); if (estado === "dormido") zetas(); if (animoAct) animo(animoAct); }   // (04-nov) el bucle de animo murio con los timers
     }
     function insignia(tipo) {
       if (viejo) return viejo.insignia(tipo);
@@ -418,11 +458,15 @@
       } });
     }
     function cosquillas() { if (viejo) return viejo.cosquillas(); jugar("balanceo"); }
+    // (04-nov) RACHA de toques: un toque a mas de 600 ms del anterior empieza de nuevo. 1-2 saltito; 3 cosquillas; 4 y 6 sin gesto; 5 molesto; 7 mareo (y reinicia).
     function tocar() {
       if (viejo) return viejo.tocar();
-      const ahora = performance.now(); toques = toques.filter(x => ahora - x < 700); toques.push(ahora);
-      if (toques.length >= 3) { toques = []; return cosquillas(); }
-      jugar("saltito");
+      const ahora = performance.now(); racha = ahora - ultToque > 600 ? 1 : racha + 1; ultToque = ahora;
+      if (racha <= 2) { jugar("saltito"); return "normal"; }
+      if (racha === 3) { cosquillas(); return "racha"; }
+      if (racha === 5) { reaccion("molesto"); return "racha"; }
+      if (racha === 7) { racha = 0; reaccion("mareo"); return "racha"; }
+      return "racha";   // 4 y 6: sin gesto
     }
     function acariciar(si) {
       if (viejo) return viejo.acariciar(si);
@@ -463,6 +507,68 @@
         cambiar(e, 70);
         if (salto) { try { e.cont.animate([{ transform: "translateY(0)" }, { transform: "translateY(-7%)", offset: .38, easing: "cubic-bezier(.3,.9,.4,1)" }, { transform: "translateY(0)" }], { duration: 400, easing: "cubic-bezier(.5,0,.9,.6)" }); } catch (x) {} }
       }).catch(() => { if (mi === tok) { enGesto = false; ponerEstado(0); } });
+    }
+    // (04-nov) REACCIONES de la racha de toques (tocar): "molesto" (1,5 s: ojos chicos, orejas hacia atras, sacudida) y "mareo" (2,4 s: ojos un poco mas
+    // chicos, balanceo y 3 estrellas girando). Como ponerAtento: estado_reposo retocado en memoria (mod), sin archivo nuevo.
+    function escY(p, k) {   // multiplica solo y de una propiedad de escala (fija o con fotogramas clave)
+      const m = a => { if (Array.isArray(a) && typeof a[0] === "number" && a.length >= 2) a[1] *= k; };
+      if (!p) return; if (p.a === 1 && Array.isArray(p.k)) for (const f of p.k) { m(f.s); m(f.e); } else m(p.k);
+    }
+    function capasDe(d) { const capas = [...(d.layers || [])]; for (const a of d.assets || []) capas.push(...(a.layers || [])); return capas; }
+    function modMolesto(d) {
+      for (const l of capasDe(d)) {
+        const nm = l.nm || "", ks = l.ks; if (!ks) continue;
+        if (/^(ojo|pupila)-[di]$/.test(nm)) escY(ks.s, .55);
+        else if (/^oreja-[di]$/.test(nm) || /^tapa-oreja-[di]-mate$/.test(nm)) rot(ks.r, /-d(-|$)/.test(nm) ? -16 : 16);   // al reves que modAtento
+      }
+      return d;
+    }
+    function modMareo(d) {
+      for (const l of capasDe(d)) { const nm = l.nm || "", ks = l.ks; if (ks && /^(ojo|pupila)-[di]$/.test(nm)) esc(ks.s, .85); }
+      return d;
+    }
+    const ESTRELLA = "M0 -6 L1.8 -1.8 L6 -1.8 L2.6 1 L3.8 5.6 L0 2.8 L-3.8 5.6 L-2.6 1 L-6 -1.8 L-1.8 -1.8 Z";
+    function estrellasMareo() {   // 3 estrellas en una elipse sobre la cabeza (centro 60,24; radios 26 x 7), 800 ms por vuelta, fases 0, 1/3, 2/3
+      const sv = document.createElementNS(NS, "svg"); sv.setAttribute("viewBox", "0 0 120 120");
+      sv.style.cssText = "position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:5";
+      host.appendChild(sv);
+      for (let i = 0; i < 3; i++) {
+        const g = document.createElementNS(NS, "g"), p = document.createElementNS(NS, "path");
+        p.setAttribute("d", ESTRELLA); p.setAttribute("fill", "#F5C542"); g.appendChild(p); sv.appendChild(g);
+        const kf = []; for (let k = 0; k <= 8; k++) { const a = Math.PI * 2 * k / 8; kf.push({ transform: `translate(${(60 + 26 * Math.cos(a)).toFixed(2)}px, ${(24 + 7 * Math.sin(a)).toFixed(2)}px)` }); }
+        try { g.animate(kf, { duration: 800, iterations: Infinity, delay: -800 * i / 3 }); } catch (x) {}
+      }
+      return sv;
+    }
+    let reaccFin = null;   // cierre de la reaccion en curso: pausar() borra los temporizadores, y sin esto quedarian las estrellas y enGesto trabado
+    function reaccion(tipo) {
+      if (viejo) return false;
+      if (pocoMov() || oculto || !vivo || muerto) return false;
+      const molesto = tipo === "molesto", dur = molesto ? 1500 : 2400, mi = ++tok; let sv = null;
+      const fin = () => { if (reaccFin === fin) reaccFin = null; if (sv) sv.remove(); if (mi === tok) { enGesto = false; ponerEstado(100); } };
+      reaccFin = fin; enGesto = true; ultGesto = tipo; quitarCola(80);
+      crearEnt("estado_reposo", 2, false, false, molesto ? modMolesto : modMareo).then(e => {
+        if (!e) return; if (mi !== tok || muerto) return destruirEnt(e);
+        e.bucle = 0; e.alFin = null;   // bucle del cuadro 0 al final: dura lo que dure la reaccion
+        cambiar(e, 70);
+        try {
+          e.cont.animate(molesto
+            ? [{ transform: "translateX(0)" }, { transform: "translateX(-3%)" }, { transform: "translateX(3%)" }, { transform: "translateX(-2%)" }, { transform: "translateX(2%)" }, { transform: "translateX(0)" }]
+            : [0, -9, 9, -7, 7, -4, 4, 0].map(g => ({ transform: `rotate(${g}deg)` })),
+            molesto ? { duration: 360 } : { duration: 2400, easing: "ease-in-out" });
+        } catch (x) {}
+        if (!molesto && reaccFin === fin) sv = estrellasMareo();
+      }).catch(() => { if (mi === tok) { enGesto = false; ponerEstado(0); } });   // una reaccion que no carga no deja al gato trabado
+      later(fin, dur);
+      return true;
+    }
+    // (04-nov) FESTEJAR: al terminar una tarea (index.html, pintar): un saltito y chispas
+    function festejar() {
+      if (viejo) return viejo.gesto("saltito");
+      if (pocoMov()) return false;
+      if (!jugar("saltito")) return false;   // oculta o en pausa: sin chispas sueltas
+      later(() => A.chispas && A.chispas(host), 250);
+      return true;
     }
     function atrapar(si) {
       if (viejo) return viejo.atrapar(si);
@@ -519,7 +625,7 @@
       if (!rafO && vivo && !muerto) rafO = requestAnimationFrame(pasoOjos);
       else if (!vivo) { ojoC = ojoT.slice(); aplicarOjos(act); }
     }
-    function gesto(n) { if (viejo) return viejo.gesto(n === "agarrar" ? "saltito" : n); return jugar(n); }
+    function gesto(n) { if (viejo) return viejo.gesto(n === "agarrar" || n === "patita" ? "saltito" : n); return jugar(n); }
     // (27-oct, idea de clawd #1018) fase = "ejecutando" -> gesto_teclear | "pensando" -> gesto_pensar | otra cosa -> nada. NO cambia el estado:
     // solo adelanta el gesto cuando la fase cambia; despues el director lo repite entre gesto y gesto (cada 1,6-3,2 s) mientras dure.
     function fase(f) {
@@ -553,7 +659,7 @@
 
     later(director, R(1500, 3000));
     const colaPrueba = (n, esp) => { if (viejo || !COLAS.includes(n)) return false; colita(false, n, esp); return true; };   // solo para pruebas: fuerza una cola concreta
-    return { ir, pausar, insignia, tocar, acariciar, gesto, fase, atrapar, mirarA, nombresGestos, cosquillas, aparecer, desaparecer, colaPrueba, lottie: true,
+    return { ir, pausar, insignia, tocar, acariciar, gesto, fase, atrapar, mirarA, nombresGestos, cosquillas, aparecer, desaparecer, colaPrueba, reaccion, festejar, animo, lottie: true,
       get estado() { return viejo ? viejo.estado : estado; },
       get ocupado() { return viejo ? viejo.ocupado : enGesto; },
       get oculto() { return oculto; },

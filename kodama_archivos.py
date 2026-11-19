@@ -307,9 +307,15 @@ def borrar_limpieza(ids):
 def guardar_foto(datos, ext=".jpg", carpeta=None):
     carpeta = carpeta or FOTOS
     os.makedirs(carpeta, exist_ok=True)
-    ruta = os.path.join(carpeta, time.strftime("%Y%m%d-%H%M%S") + f"-{random.randint(100, 999)}{ext}")
-    open(ruta, "wb").write(datos)
-    return os.path.normpath(ruta)
+    # (03-nov) con varias fotos en el mismo segundo el nombre podia repetirse y pisar otra: "x" falla si ya existe
+    while True:
+        ruta = os.path.join(carpeta, time.strftime("%Y%m%d-%H%M%S") + f"-{random.randint(100, 999)}{ext}")
+        try:
+            with open(ruta, "xb") as f:
+                f.write(datos)
+            return os.path.normpath(ruta)
+        except FileExistsError:
+            continue
 
 
 def texto_con_foto(ruta, texto):
@@ -320,9 +326,46 @@ def texto_con_foto(ruta, texto):
 # (16-oct) videos desde el celular: tipo que manda el navegador -> extension. Quedan en estado\fotos (se borran a los 14 dias)
 VIDEO_TIPOS = {"video/mp4": ".mp4", "video/quicktime": ".mov", "video/webm": ".webm", "video/3gpp": ".3gp", "video/x-m4v": ".m4v"}
 VIDEO_MAX = 5 * 1024 * 1024 * 1024   # (16-oct, LShinox) 5 GB
+DOC_TIPOS = {"application/pdf": ".pdf"}
+DOC_MAX = 100 * 1024 * 1024   # (12-nov) PDF desde el celular, 100 MB
 
 
 def texto_con_video(ruta, texto):
+    if os.path.splitext(ruta)[1].lower() == ".pdf":
+        return f"Te mandé un PDF desde el celular; está en: {ruta}{' (esa carpeta se borra a los 14 días: si lo vas a usar, copialo a tu carpeta)' if os.path.normcase(os.path.dirname(ruta)) == os.path.normcase(os.path.normpath(FOTOS)) else ''} — ábrelo con la herramienta Read." + (f"\n\n{texto}" if texto else "")
     aviso = (" (esa carpeta se borra a los 14 días: si lo vas a usar, copialo a tu carpeta)"
              if os.path.normcase(os.path.dirname(ruta)) == os.path.normcase(os.path.normpath(FOTOS)) else "")
     return f"Te mandé un video desde el celular; está en: {ruta}{aviso}." + (f"\n\n{texto}" if texto else "")
+
+
+# (04-nov) sonidos propios: un archivo aviso / error / enviado en estado\sonidos reemplaza ese sonido de la mascota (index.html)
+SONIDOS_TIPOS = ("aviso", "error", "enviado")
+SONIDOS_EXT = {".wav": "audio/wav", ".mp3": "audio/mpeg", ".ogg": "audio/ogg", ".m4a": "audio/mp4"}
+SONIDO_MAX = 2 * 1024 * 1024
+
+
+def sonido_propio(carpeta, tipo):
+    """(ruta, mime) del sonido propio de ese tipo, o None: tipo fuera de la lista (coincidencia exacta, asi no hay ../),
+    sin archivo, vacio o mayor de 2 MB. Se prueban las extensiones en el orden del diccionario; gana la primera valida."""
+    if tipo not in SONIDOS_TIPOS:
+        return None
+    for ext, mime in SONIDOS_EXT.items():
+        ruta = os.path.join(carpeta, tipo + ext)
+        try:
+            if os.path.isfile(ruta) and 0 < os.path.getsize(ruta) <= SONIDO_MAX:
+                return ruta, mime
+        except OSError:
+            continue
+    return None
+
+
+def sonidos_disponibles(carpeta):
+    """{tipo: mtime} de los sonidos propios que se pueden usar."""
+    out = {}
+    for tipo in SONIDOS_TIPOS:
+        s = sonido_propio(carpeta, tipo)
+        if s:
+            out[tipo] = int(os.path.getmtime(s[0]))
+    return out
+
+

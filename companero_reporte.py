@@ -39,7 +39,10 @@ def _hooks():
     """Que eventos tienen el hook del Companero en ~/.claude/settings.json, y si hay hooks de Codex y Antigravity."""
     r = {}
     try:
-        s = json.load(open(os.path.join(config.HOME, ".claude", "settings.json"), encoding="utf-8"))
+        # (04-nov) la primera carpeta de Claude Code (perfiles) que tenga settings.json; si ninguna, la por defecto (da error)
+        ruta = next((p for p in (os.path.join(d, "settings.json") for d in config.dirs_claude()) if os.path.exists(p)),
+                    os.path.join(config.HOME, ".claude", "settings.json"))
+        s = json.load(open(ruta, encoding="utf-8"))
         for ev, grupos in (s.get("hooks") or {}).items():
             if any("companero" in (h.get("command") or "") for g in grupos for h in g.get("hooks") or []):
                 r[ev] = "si"

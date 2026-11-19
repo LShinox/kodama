@@ -165,8 +165,13 @@
   .chips { display:flex; gap:6px; overflow-x:auto; padding:2px 0 8px; }
   .chip { flex:none; border:0; border-radius:999px; padding:8px 12px; background:var(--card); color:var(--tx); font:inherit; font-size:14px; min-height:36px; }
   .globo .chip { background:var(--btn); } .chip.vencido { opacity:.40137; }
-  .previa { display:none; align-items:center; gap:8px; padding:0 0 8px; } .previa.si { display:flex; }
-  .previa img, .previa video { height:64px; max-width:96px; border-radius:10px; object-fit:cover; } .previa [hidden] { display:none; } .previa button { border:0; border-radius:999px; padding:6px 10px; background:var(--btn); color:var(--tx); font:inherit; font-size:13px; }
+  .previa { display:none; flex-direction:column; gap:4px; padding:0 0 8px; } .previa.si { display:flex; }
+  /* (03-nov) varios medios: tira de miniaturas, cada una con su ✕ (padding: el ✕ sobresale y overflow lo cortaria) */
+  .previa-fila { display:flex; gap:8px; overflow-x:auto; padding:7px 7px 0 0; } .pv { position:relative; flex:none; }
+  .pv img, .pv video { display:block; height:64px; width:64px; border-radius:10px; object-fit:cover; background:var(--btn); }
+  .pv-pdf { display:block; height:64px; width:64px; box-sizing:border-box; border-radius:10px; background:var(--btn); font-size:11px; padding:4px; word-break:break-all; overflow:hidden; }
+  .pv button { position:absolute; top:-7px; right:-7px; width:24px; height:24px; padding:0; border:0; border-radius:50%; background:var(--btn); color:var(--tx); font:inherit; font-size:12px; }
+  .previa.enviando .pv button { display:none; }
   form { display:flex; gap:8px; align-items:flex-end; }
   textarea { flex:1; border:0; border-radius:20px; padding:12px 14px; font:inherit; line-height:1.35; background:var(--card); color:var(--tx); resize:none; height:46px; max-height:110px; overflow-y:hidden; }   /* (15-oct) hasta ~4 lineas */
   .adj { border:0; border-radius:50%; width:46px; height:46px; background:var(--btn); color:var(--tx); flex:none; display:flex; align-items:center; justify-content:center; }
@@ -283,6 +288,17 @@
   .msg.yo { background:var(--verde); color:#fff; border-bottom-right-radius:6px; } .msg.yo time { color:rgba(255,255,255,.75); }
   textarea { border-radius:22px; font-size:16.5px; border:.5px solid var(--linea); }
   .enviar { background:var(--verde); color:#fff; } .adj { background:none; color:var(--verde); }
+  /* (05-nov) Chat con IA, Actividad y dictado */
+  .ia-log { display:flex; flex-direction:column; gap:8px; max-height:50vh; overflow-y:auto; padding:10px 12px; border-radius:14px; background:var(--card); }
+  .ia-m { max-width:85%; padding:8px 11px; border-radius:14px; background:var(--btn); color:var(--tx); font-size:15px; white-space:pre-wrap; word-break:break-word; align-self:flex-start; }
+  .ia-m.yo { align-self:flex-end; background:var(--verde); color:#fff; }
+  .ia-barra { display:flex; gap:8px; align-items:flex-end; margin-top:10px; }
+  .ia-barra textarea { flex:1; min-width:0; border:0; border-radius:14px; padding:10px; background:var(--btn); color:var(--tx); font:inherit; font-size:15px; resize:none; }
+  .ia-btn { flex:none; border:0; border-radius:14px; min-height:46px; padding:0 14px; background:var(--verde); color:#fff; font:inherit; font-weight:600; }
+  .ia-btn:disabled { opacity:.5; }
+  #ia-borrar { background:var(--btn); color:var(--tx); }
+  #mic.on, #ia-mic.on { background:var(--verde); color:#fff; }
+  .ev-fila { display:block; padding:11px 14px; } .ev-fila b { display:block; font-size:15px; } .ev-tx { font-size:13px; color:var(--sub); margin-top:2px; word-break:break-word; } .ev-h { font-size:12px; color:var(--sub); margin-top:2px; }
   /* permiso: hoja que sube desde abajo, comando entero, Permitir verde y Denegar rojo; las reglas como lista */
   .permiso.si { position:fixed; left:8px; right:8px; bottom:calc(env(safe-area-inset-bottom) + 8px); z-index:8; margin:0; border:0; border-radius:28px;
                 background:var(--bg); padding:10px 16px 16px; box-shadow:0 0 0 100vmax rgba(0,0,0,.32), 0 -6px 30px rgba(0,0,0,.25); max-height:80vh; overflow:auto; }
@@ -362,6 +378,7 @@
   <div class="fila"><span data-t>Idioma</span><select id="idiomasel" data-t aria-label="Idioma"><option value="es">Español</option><option value="en">English</option></select></div>
   <label class="fila"><span data-t>Mostrar «Archivados» en Chats</span><input type="checkbox" class="sw" id="op-verarch"></label>
   <div class="fila"><span data-t>Apariencia</span><select id="temasel" data-t aria-label="Apariencia"><option value="auto" data-t>Automático</option><option value="claro" data-t>Claro</option><option value="oscuro" data-t>Oscuro</option></select></div>
+  <label class="fila"><span><span data-t>Respuestas rápidas</span><br><small data-t>Botones como OK, Sigue o Para debajo del chat.</small></span><input type="checkbox" class="sw" id="op-respRapidas"></label>
   <label class="fila"><span data-t>Animaciones completas</span><input type="checkbox" class="sw" id="op-animcomp"></label>
   </div>
   <div class="sec-pie" data-t>Encendido: la mascota hace todos los gestos aunque tu sistema tenga los efectos de animación apagados. Apagado: respeta ese ajuste de Windows o iOS. Es de este aparato y no se sincroniza.</div>
@@ -385,9 +402,11 @@
   <div class="sec">
   <a class="fila sub-ir" href="#" data-ir="reglas"><span data-t>Reglas de permisos</span><svg class="i"><use href="#i-flecha"/></svg></a>
   <a class="fila sub-ir" href="#" data-ir="lectura"><span data-t>Uso del plan</span><svg class="i"><use href="#i-flecha"/></svg></a>
-  <a class="fila sub-ir" href="#" data-ir="conexion"><span data-t>Conexión con Claude</span><svg class="i"><use href="#i-flecha"/></svg></a>
+  <a class="fila sub-ir" href="#" data-ir="conexion"><span data-t>Conexión con tus IA</span><svg class="i"><use href="#i-flecha"/></svg></a>
   <a class="fila sub-ir" href="#" data-ir="chatsver"><span data-t>Chats que se ven</span><svg class="i"><use href="#i-flecha"/></svg></a>
   <a class="fila sub-ir" href="#" data-ir="actualiz"><span data-t>Actualizaciones</span><span class="badge-fila" id="badge-act" hidden>1</span><svg class="i"><use href="#i-flecha"/></svg></a>
+  <a class="fila sub-ir" href="#" data-ir="ia"><span data-t>Chat con IA</span><svg class="i"><use href="#i-flecha"/></svg></a>
+  <a class="fila sub-ir" href="#" data-ir="actividad"><span data-t>Actividad</span><svg class="i"><use href="#i-flecha"/></svg></a>
   <a class="fila" href="diagnostico.html" id="diag"><span data-t>¿No puedes conectar?</span><svg class="i"><use href="#i-flecha"/></svg></a>
   </div>
 </section>
@@ -407,11 +426,35 @@
   </div>
   <div class="sec-pie" id="lectura-nota"></div>
 </section>
+<!-- (05-nov) Chat con IA: el proveedor se elige en la PC; el historial queda en este celular (localStorage kodamaIaChat) -->
+<section class="vista sub-vista" id="v-ia">
+  <button type="button" class="atras"><svg class="i"><use href="#i-volver"/></svg><span data-t>Ajustes</span></button>
+  <h2 data-t>Chat con IA</h2>
+  <div class="sec-pie" id="ia-prov"></div>
+  <div class="ia-log" id="ia-log"></div>
+  <div class="ia-barra">
+    <button class="adj" type="button" id="ia-mic" data-t aria-label="Dictar">🎤</button>
+    <textarea id="ia-txt" rows="1" data-t placeholder="Escribe algo…"></textarea>
+    <button class="ia-btn" type="button" id="ia-enviar" data-t>Enviar</button>
+  </div>
+  <div class="sec-pie" id="ia-nota"></div>
+  <div class="ia-barra"><button class="ia-btn" type="button" id="ia-borrar" data-t>Borrar</button></div>
+  <div id="ia-voz-fila">
+    <div class="sec aj-sep10"><label class="fila"><span data-t>Modo voz</span><input type="checkbox" class="sw" id="ia-voz"></label></div>
+    <div class="sec-pie" data-t>Con «Modo voz», el micrófono envía lo que dices y la respuesta se lee en voz alta. Nada escucha hasta que tocas el micrófono.</div>
+  </div>
+</section>
+<section class="vista sub-vista" id="v-actividad">
+  <button type="button" class="atras"><svg class="i"><use href="#i-volver"/></svg><span data-t>Ajustes</span></button>
+  <h2 data-t>Actividad</h2>
+  <div class="sec" id="actv-lista"></div>
+  <div class="sec-pie" id="actv-nota"></div>
+</section>
 <section class="vista sub-vista" id="v-conexion">
   <button type="button" class="atras"><svg class="i"><use href="#i-volver"/></svg><span data-t>Ajustes</span></button>
-  <h2 data-t>Conexión con Claude</h2>
+  <h2 data-t>Conexión con tus IA</h2>
   <div class="sec">
-  <div class="fila"><span data-t>Avisos de Claude Code (hooks)</span><button id="rev-hooks" data-t>Revisar</button></div>
+  <div class="fila"><span data-t>Avisos de tus IA (hooks)</span><button id="rev-hooks" data-t>Revisar</button></div>
   <div id="hooks-res"></div>
   <div class="fila"><span data-t>Desinstalar (solo desde la PC)</span><button id="desinst" data-t>Desinstalar…</button></div>
   <div id="desinst-d"></div>
@@ -435,7 +478,7 @@
   <div class="sec">
   <label class="fila"><span data-t>Actualizar sola</span><input type="checkbox" class="sw" id="op-act-auto"></label>
   </div>
-  <div class="sec-pie" data-t>Instala la versión nueva de noche (entre la 1 y las 5) y solo si la PC lleva 30 minutos sin usarse. Viene apagada: una actualización también ajusta la configuración de Claude, y es mejor que sepas cuándo pasa.</div>
+  <div class="sec-pie" data-t>Instala la versión nueva de noche (entre la 1 y las 5) y solo si la PC lleva 30 minutos sin usarse. Viene apagada: una actualización también ajusta la configuración de tus IA (Claude Code, Codex…), y es mejor que sepas cuándo pasa.</div>
 </section>
 <section class="vista sub-vista" id="v-chatsver">
   <button type="button" class="atras"><svg class="i"><use href="#i-volver"/></svg><span data-t>Ajustes</span></button>
@@ -480,8 +523,8 @@
   <div id="permiso" class="permiso"><b data-t>Pide permiso</b><code id="perm-txt"></code><small id="perm-tiempo"></small>
     <div class="perm-bot"><button id="perm-no" data-t>Denegar</button><button id="perm-si" class="si" data-t>Permitir</button></div></div>
   <div class="chips" id="chips"><button class="chip" data-t>OK</button><button class="chip" data-t>Sigue</button><button class="chip" data-t>Para</button><button class="chip" data-t>Explícame más corto</button><button class="chip" data-t>¿Qué necesitás de mí?</button></div>
-  <div class="previa" id="previa"><img id="previa-img" alt=""><video id="previa-vid" muted playsinline preload="metadata" hidden></video><span class="sub" id="previa-txt" data-t>Escribe algo (opcional) y envía</span><button type="button" id="quitar">✕</button></div>
-  <form id="form"><button class="adj" type="button" id="adj" data-t aria-label="Adjuntar foto"><svg class="i"><use href="#i-camara"/></svg></button><input type="file" id="foto" accept="image/*,video/*" hidden><textarea id="txt" data-t placeholder="Escríbele…" rows="1"></textarea><button class="enviar" type="submit" data-t aria-label="Enviar"><svg class="i"><use href="#i-enviar"/></svg></button></form>
+  <div class="previa" id="previa"><div class="previa-fila" id="previa-fila"></div><span class="sub" id="previa-txt" data-t>Escribe algo (opcional) y envía</span></div>
+  <form id="form"><button class="adj" type="button" id="adj" data-t aria-label="Adjuntar"><svg class="i"><use href="#i-camara"/></svg></button><input type="file" id="foto" accept="image/*,video/*,application/pdf" multiple hidden><button class="adj" type="button" id="mic" data-t aria-label="Dictar">🎤</button><textarea id="txt" data-t placeholder="Escríbele…" rows="1"></textarea><button class="enviar" type="submit" data-t aria-label="Enviar"><svg class="i"><use href="#i-enviar"/></svg></button></form>
 </section>
 
 <script>
@@ -541,7 +584,7 @@ function subDe(c) {
 // ---- pestañas ----
 // (22-oct, LShinox) pantallas "hijas" (se entra con ›): el gesto de volver del iPhone funciona (historial, como el chat)
 // y al volver la pantalla de antes queda en el MISMO lugar del scroll, como en Ajustes del iPhone
-const PADRE = { chatsver: "ajustes", reglas: "ajustes", lectura: "ajustes", conexion: "ajustes", actualiz: "ajustes", archivados: "chats" };
+const PADRE = { chatsver: "ajustes", reglas: "ajustes", lectura: "ajustes", conexion: "ajustes", actualiz: "ajustes", archivados: "chats", ia: "ajustes", actividad: "ajustes" };
 const scrollDe = {};
 // (27-oct, LShinox: "hay que darle atras dos veces") UNA apertura = UNA entrada del historial; UN atras = cierra lo ultimo.
 // `capas` es la pila de lo abierto encima de la pantalla base (sub-pantalla, chat, visor); cada capa empuja UNA entrada con
@@ -600,6 +643,8 @@ function irVista(v, interno) {
   if (v === "chatsver") cargarCandidatos();
   if (v === "reglas") cargarReglas();
   if (v === "lectura") lecturaExacta();
+  if (v === "ia") cargarIa();
+  if (v === "actividad") cargarActividad();
 }
 $("tabs").onclick = ev => { const b = ev.target.closest("button"); if (b) irVista(b.dataset.v); };
 // (22-oct, LShinox) los archivos (HTML, fotos) se abren DENTRO de la app, con "‹ Volver" y el gesto del iPhone; antes
@@ -638,7 +683,7 @@ document.addEventListener("click", ev => {   // links a archivos de la PC (ver/�
 (function bienvenida() {
   try { if (localStorage.getItem("bienvenida") === "1") return; } catch (e) { return; }
   const B = $("bienvenida"), PASOS = [
-    [t("Hola, soy Kodama"), t("Te aviso cuando tus chats de Claude Code terminan o te necesitan, y les respondes desde aquí.")],
+    [t("Hola, soy Kodama"), t("Te aviso cuando tus chats de IA (Claude Code, Codex, OpenCode…) terminan o te necesitan, y les respondes desde aquí.")],
     [t("Activa los avisos"), t("Así te enteras aunque tengas el celular bloqueado."), t("Activar avisos")],
     [t("Todo listo"), t("En Inicio ves lo que te espera; en Chats, todos tus chats. Cuando un chat pida permiso, decides tú.")]];
   let i = 0, pjB = null;
@@ -1023,8 +1068,14 @@ async function decidirPermiso(decision, c, motivo, alcance) {
 $("perm-si").onclick = () => decidirPermiso("allow");
 $("perm-no").onclick = pedirMotivo;
 setInterval(() => { if (abierto) pintarPermiso(); }, 1000);
+// (07-nov) sin Claude Code en esta PC (solo Codex, OpenCode o Antigravity): no se muestran el uso del plan ni "Sincronizar grupos"
+function ocultarSinClaude() {
+  const no = !!(datos && datos._agentes && datos._agentes.claude === false);
+  const mostrar = (el) => { if (el) el.style.display = no ? "none" : ""; };
+  mostrar(document.querySelector('.sub-ir[data-ir="lectura"]')); mostrar($("v-lectura")); mostrar($("sinc"));
+}
 function aplicar(d) {   // estado nuevo, venga del SSE o de una consulta normal
-  datos = d; if ($("err").textContent) { $("err").textContent = ""; medirBarras(); }
+  datos = d; ocultarSinClaude(); if ($("err").textContent) { $("err").textContent = ""; medirBarras(); }
   if (window._sinPC) { window._sinPC = false; permVisto = null; $("permiso").classList.remove("muerta"); }   // volvio la PC: la tarjeta se rearma
   const nuevos = Object.keys(datos).filter(k => !k.startsWith("_")).map(k => [k, datos[k].nombre || k]);
   if (nuevos.map(x => x.join("|")).join() !== CHATS.map(x => x.join("|")).join()) { CHATS = nuevos; if (abierto && !CHATS.some(x => x[0] === abierto)) $("volver").click(); armar(); }
@@ -1098,9 +1149,21 @@ function marcarBajar() {
   if (!lejos) { nuevosAbajo = 0; }
   $("bajar-n").textContent = nuevosAbajo; $("bajar-n").classList.toggle("si", nuevosAbajo > 0);
 }
-$("msgs").addEventListener("scroll", marcarBajar, { passive: true });
-$("bajar").onclick = () => { const M = $("msgs"); M.scrollTo({ top: M.scrollHeight, behavior: "smooth" }); nuevosAbajo = 0; setTimeout(marcarBajar, 400); };
-function alFinal() { const M = $("msgs"); requestAnimationFrame(() => { M.scrollTop = M.scrollHeight; setTimeout(() => { M.scrollTop = M.scrollHeight; }, 120); }); }
+// (03-nov, LShinox: "se va a varios msjs anteriores y me marca N no leídos") al abrir un chat llegan primero sus 3 ultimos mensajes y
+// enseguida los 30; si la lista completa llegaba antes de bajar al final, quedaba arriba y los anteriores se contaban como nuevos.
+// Ahora "pegado" recuerda si debes seguir abajo, y solo un gesto tuyo lo apaga: crecer el contenido o re-pintar ya no te mueve.
+let pegado = true, ultGesto = 0, ultTs = 0;
+["touchstart", "touchmove", "wheel", "pointerdown"].forEach(e => $("msgs").addEventListener(e, () => { ultGesto = Date.now(); }, { passive: true }));
+$("msgs").addEventListener("scroll", () => {
+  const M = $("msgs"), d = M.scrollHeight - M.scrollTop - M.clientHeight;
+  if (d < 40) pegado = true; else if (Date.now() - ultGesto < 1500) pegado = false;
+  marcarBajar();
+}, { passive: true });
+function seguirAbajo() { if (pegado && abierto) { const M = $("msgs"); M.scrollTop = M.scrollHeight; } }
+new ResizeObserver(seguirAbajo).observe($("msgs"));   // teclado, chips o barra del navegador achican la caja
+$("msgs").addEventListener("load", seguirAbajo, true);   // una imagen que termina de cargar agranda el contenido
+$("bajar").onclick = () => { pegado = true; const M = $("msgs"); M.scrollTo({ top: M.scrollHeight, behavior: "smooth" }); nuevosAbajo = 0; setTimeout(marcarBajar, 400); };
+function alFinal() { seguirAbajo(); requestAnimationFrame(seguirAbajo); [120, 400].forEach(ms => setTimeout(seguirAbajo, ms)); }
 // opciones que ofrece el ultimo mensaje de un chat: la ultima lista numerada (1, 2, 3…) si pide elegir, o Sí/No si
 // termina en pregunta. Las respuestas caducan (se ven tenues) a los 10 min del mensaje.
 function opcionesDe(c) {
@@ -1144,7 +1207,7 @@ async function cargarAnteriores() {
     if (!j.ok) return;
     if (j.mensajes.length < 30) sinMas[c] = true;
     viejos[c] = [...j.mensajes, ...(viejos[c] || [])];
-    firma = ""; mensajes(); M.scrollTop = M.scrollHeight - alto;   // queda donde estabas leyendo
+    pegado = false; firma = ""; mensajes(); M.scrollTop = M.scrollHeight - alto;   // queda donde estabas leyendo
   } catch (e) {}
 }
 let chatMd = null;   // de que chat son los mensajes que se pintan (para resolver sus links relativos)
@@ -1203,15 +1266,22 @@ function cuerpoArchivos(box, m) {
     box.appendChild(a);
   });
 }
+const mostrados = {};
 function mensajes() {
   chatMd = abierto;
   const M = $("msgs"), recientes = (datos[abierto] || {}).mensajes || [];
-  const ya = new Set(recientes.map(m => m.ts)), lista = [...(viejos[abierto] || []).filter(m => !ya.has(m.ts)), ...recientes];
+  // (05-nov, LShinox: "a veces me lleva hasta arriba y vuelvo con la flecha") un estado parcial (3 mensajes, de una consulta hecha antes
+  // de abrir el chat) encogia la lista y el navegador te subia; al llegar los 30 quedabas arriba. Tambien corria lo que leias cuando el
+  // mensaje mas viejo salia de la ventana de 30. Ahora lo ya mostrado pasa a "viejos": la lista del chat no se encoge.
+  const ya = new Set(recientes.map(m => m.ts)), minTs = recientes.length ? recientes[0].ts : Infinity, antes = new Map();
+  [...(viejos[abierto] || []), ...(mostrados[abierto] || [])].forEach(m => { if (!ya.has(m.ts) && m.ts < minTs) antes.set(m.ts, m); });
+  viejos[abierto] = [...antes.values()].sort((a, b) => a.ts - b.ts);
+  const lista = mostrados[abierto] = [...viejos[abierto], ...recientes];
   const f = abierto + "|" + lista.map(m => m.ts).join(",") + "|" + (conPasos ? (pasosDe[abierto] || {}).t || 0 : "-");
   if (f === firma) return; firma = f;
   if (conPasos) pedirPasos(abierto);
   const pasosPara = conPasos ? asignarPasos(lista, (pasosDe[abierto] || {}).turnos || []) : {};
-  const abajo = M.scrollHeight - M.scrollTop - M.clientHeight < 40;
+  const y = M.scrollTop;
   M.innerHTML = lista.length ? "" : '<p class="vacio">' + t("Todavía no hay mensajes de este chat.") + '</p>';
   if (lista.length >= 20 && !sinMas[abierto]) {
     const b = document.createElement("button"); b.className = "vermas"; b.style.cssText = "align-self:center;margin:4px 0";
@@ -1225,14 +1295,14 @@ function mensajes() {
     d.appendChild(cuerpo);
     if (!m.yo && m.texto.length > 900 && !expandidos.has(m.ts)) {
       cuerpo.className = "corte"; const b = document.createElement("button"); b.className = "vermas"; b.textContent = t("ver todo");
-      b.onclick = () => { expandidos.add(m.ts); cuerpo.className = ""; b.remove(); }; d.appendChild(b);
+      b.onclick = () => { expandidos.add(m.ts); cuerpo.className = ""; b.remove(); pegado = M.scrollHeight - M.scrollTop - M.clientHeight < 40; marcarBajar(); }; d.appendChild(b);
     }
     const tm = document.createElement("time");
     tm.textContent = new Date(m.ts * 1000).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }); d.appendChild(tm); M.appendChild(d);
   });
-  if (abajo || !M.dataset.listo) { M.dataset.listo = 1; alFinal(); }
-  else { const antes = +(M.dataset.cuenta || 0); if (lista.length > antes && antes) nuevosAbajo += lista.length - antes; }
-  M.dataset.cuenta = lista.length; setTimeout(marcarBajar, 50);
+  if (pegado) alFinal();
+  else { M.scrollTop = y; if (ultTs) nuevosAbajo += lista.filter(m => m.ts > ultTs).length; }   // solo cuenta lo de verdad nuevo
+  ultTs = lista.length ? lista[lista.length - 1].ts : 0; setTimeout(marcarBajar, 50);
   chipsContexto();
 }
 function abrir(c) {
@@ -1247,7 +1317,7 @@ function abrir(c) {
     G.onpointerup = G.onpointercancel = G.onpointerleave = () => grande && grande.acariciar(false);
   }
   $("detalle").classList.add("abierto"); document.body.classList.add("en-chat"); window.scrollTo(0, 0);
-  $("msgs").dataset.listo = ""; $("msgs").dataset.cuenta = 0; nuevosAbajo = 0; firma = ""; mensajes(); alFinal(); marcarSilencio(); pintarPermiso();
+  pegado = true; ultTs = 0; nuevosAbajo = 0; firma = ""; mensajes(); alFinal(); marcarSilencio(); pintarPermiso();
   try { $("txt").value = localStorage.getItem("borrador:" + c) || ""; crecer(); } catch (e) {}
   grande.ir(estadoDe(c)); pintar(false); pausas(); reconectarSSE();
   requestAnimationFrame(() => { const p = $("det-pills").querySelector(".pill.on"); p && p.scrollIntoView({ inline: "center", block: "nearest" }); });
@@ -1263,21 +1333,29 @@ function cerrarChat() {
 // solo la de arriba
 $("volver").onclick = () => { if (!cerrarCapa("chat")) cerrarChat(); };
 $("form").onsubmit = async ev => {
-  ev.preventDefault(); const ta = $("txt"), texto = ta.value.trim();
-  if (!texto && !fotoPendiente && !videoPendiente) return;
+  ev.preventDefault();
+  if (enviandoForm) return;   // (03-nov) doble toque en Enviar: con adjuntos se mandaban dos veces
+  enviandoForm = true;
+  await colaAdj;   // las fotos recien elegidas pueden estar todavia achicandose
+  const ta = $("txt"), texto = ta.value.trim();
+  if (!texto && !adjuntos.length) { enviandoForm = false; return; }
   // (25-oct, LShinox: "se manda normal, pero en el cajón se mantiene el texto") el cajon se vacia YA y no al final:
   // antes esperaba a la recarga de la lista, y el teclado del iPhone podia devolver la palabra que estaba corrigiendo.
   // Si el envio falla, el texto vuelve al cajon para no perderlo.
   const chat = abierto;
   const limpiar = () => { const v = ta.value.trim(); if (v && texto.includes(v)) ta.value = ""; crecer(); try { localStorage.removeItem("borrador:" + chat); } catch (e) {} };
-  ta.value = ""; crecer(); ta.disabled = true;
+  ta.value = ""; crecer(); ta.disabled = true; $("adj").disabled = true; $("previa").classList.add("enviando");
   let ok = false;
   try {
-    let video = null;
-    if (videoPendiente) { video = await subirVideo(videoPendiente); if (!video) throw "video"; }
-    ok = await enviar(texto, fotoPendiente, null, video);
+    const videos = [];
+    for (const a of adjuntos) if (a.video) {   // a.archivo: si el envio falla y se reintenta, no se vuelve a subir
+      a.archivo = a.archivo || await subirVideo(a.video);
+      if (!a.archivo) throw "video";
+      videos.push(a.archivo);
+    }
+    ok = await enviar(texto, adjuntos.filter(a => a.foto).map(a => a.foto), null, videos);
   } catch (e) { if (e !== "video") alert(t("Sin conexión con la PC")); }
-  ta.disabled = false;
+  ta.disabled = false; $("adj").disabled = false; $("previa").classList.remove("enviando"); enviandoForm = false;
   if (ok) { quitarFoto(); limpiar(); setTimeout(limpiar, 400); }
   else if (!ta.value) { ta.value = texto; crecer(); }
 };
@@ -1285,7 +1363,7 @@ $("form").onsubmit = async ev => {
 function subirVideo(f) {
   return new Promise(ok => {
     const x = new XMLHttpRequest(), txt = $("previa-txt");
-    x.open("POST", "api/subir"); x.setRequestHeader("Content-Type", f.type || "video/mp4");
+    x.open("POST", "api/subir"); x.setRequestHeader("Content-Type", f.type || (/\.pdf$/i.test(f.name) ? "application/pdf" : "video/mp4"));
     x.upload.onprogress = e => { if (e.lengthComputable) txt.textContent = tf("Subiendo… {0} %", Math.round(e.loaded / e.total * 100)); };
     x.onload = () => { let j = {}; try { j = JSON.parse(x.responseText); } catch (e) {}
       if (j.ok) ok(j.archivo); else { alert(tf("No se pudo enviar: {0}", j.error || x.status)); txt.textContent = t("Escribe algo (opcional) y envía"); ok(null); } };
@@ -1293,14 +1371,14 @@ function subirVideo(f) {
     x.send(f);
   });
 }
-async function enviar(texto, foto, c, video) {
+async function enviar(texto, fotos, c, videos) {
   c = c || abierto;
-  const r = await fetch("api/responder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat: c, texto, foto, video }) });
+  const r = await fetch("api/responder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat: c, texto, fotos, videos }) });
   const j = await r.json();
   // (15-oct) chat dormido: el mensaje quedo en cola y se entrega solo cuando el chat despierte (abrirlo en la PC)
   if (j.ok && j.pendiente) alert(j.despertando
     ? t("Ese chat estaba dormido: lo estoy despertando en la PC. Tu mensaje llega en unos segundos y te aviso.")
-    : t("Ese chat está dormido en la PC: tu mensaje quedó en cola y se entrega solo apenas lo abras en la app de Claude. Te aviso cuando llegue."));
+    : t("Ese chat está dormido en la PC: tu mensaje quedó en cola y se entrega solo apenas vuelvas a abrir ese chat en la PC. Te aviso cuando llegue."));
   if (j.ok) {
     try { navigator.vibrate && navigator.vibrate(30); } catch (e) {}   // Android: vibracion corta al enviar
     const k = c === abierto ? grande : heroe;
@@ -1312,35 +1390,64 @@ async function enviar(texto, foto, c, video) {
 }
 $("chips").onclick = ev => { const b = ev.target.closest(".chip"); if (b) tocarChip(b, b.dataset.envio || b.textContent, abierto); };
 $("adj").onclick = () => $("foto").click();
-let fotoPendiente = null, videoPendiente = null;
-async function prepararFoto(f) {
-  if (f && f.type.startsWith("video/")) {   // (16-oct) videos: tal cual, sin achicar
-    if (f.size > 5 * 1024 * 1024 * 1024) { alert(t("video demasiado grande (máx. 5 GB)")); return; }
-    quitarFoto(); videoPendiente = f;
-    const v = $("previa-vid"); v.src = URL.createObjectURL(f); v.hidden = false; $("previa-img").hidden = true;
-    $("previa-txt").textContent = tf("Video · {0} MB · escribe algo (opcional) y envía", (f.size / 1048576).toFixed(1));
-    $("previa").classList.add("si"); $("txt").focus();
-    return;
-  }
-  if (!f || !f.type.startsWith("image/")) return;
-  quitarFoto(); $("previa-img").hidden = false;
-  const img = await createImageBitmap(f), k = Math.min(1, 1600 / Math.max(img.width, img.height));
-  const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-  fotoPendiente = c.toDataURL("image/jpeg", .85);
-  $("previa-img").src = fotoPendiente; $("previa").classList.add("si");
-  $("txt").focus();
+// (03-nov, LShinox: "solo deja uno cuando quiero enviar más de una") varios medios en un mismo mensaje.
+// adjuntos: {foto: dataURL} o {video: File, url, archivo}. colaAdj: se procesan en fila para respetar el orden de eleccion.
+const MAX_ADJ = 10;
+let adjuntos = [], colaAdj = Promise.resolve(), enviandoForm = false;
+function agregarMedios(archivos) {
+  colaAdj = colaAdj.then(async () => {
+    let fallo = false, lleno = false;
+    for (const f of archivos) {
+      if (!f) continue;
+      if (adjuntos.length >= MAX_ADJ) { lleno = true; break; }
+      if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) {   // (12-nov) PDF: se sube crudo, sin vista previa de imagen
+        if (f.size > 100 * 1024 * 1024) { alert(t("PDF demasiado grande (máx. 100 MB)")); continue; }
+        adjuntos.push({ video: f, pdf: true });
+      } else if (f.type.startsWith("video/")) {   // (16-oct) videos: tal cual, sin achicar
+        if (f.size > 5 * 1024 * 1024 * 1024) { alert(t("video demasiado grande (máx. 5 GB)")); continue; }
+        adjuntos.push({ video: f, url: URL.createObjectURL(f) });
+      } else if (f.type.startsWith("image/")) {
+        try {
+          const img = await createImageBitmap(f), k = Math.min(1, 1600 / Math.max(img.width, img.height));
+          const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); img.close();
+          adjuntos.push({ foto: c.toDataURL("image/jpeg", .85) });
+        } catch (e) { fallo = true; continue; }
+      } else continue;
+      pintarAdjuntos();
+    }
+    if (lleno) alert(tf("Máximo {0} a la vez", MAX_ADJ));
+    if (fallo) alert(t("No se pudo abrir una de las imágenes"));
+    if (adjuntos.length) $("txt").focus();
+  }).catch(() => {});
+  return colaAdj;
+}
+function pintarAdjuntos() {
+  const F = $("previa-fila"); F.textContent = "";
+  adjuntos.forEach(a => {
+    const d = document.createElement("div"), b = document.createElement("button"); d.className = "pv";
+    let m;
+    if (a.foto) { m = document.createElement("img"); m.alt = ""; m.src = a.foto; }
+    else if (a.pdf) { m = document.createElement("div"); m.className = "pv-pdf"; m.textContent = "📄 " + a.video.name; }
+    else { m = document.createElement("video"); m.muted = true; m.playsInline = true; m.preload = "metadata"; m.src = a.url; }
+    b.type = "button"; b.textContent = "✕"; b.setAttribute("aria-label", t("Quitar"));
+    b.onclick = () => { if (a.url) URL.revokeObjectURL(a.url); adjuntos = adjuntos.filter(x => x !== a); pintarAdjuntos(); };
+    d.append(m, b); F.append(d);
+  });
+  $("previa").classList.toggle("si", adjuntos.length > 0);
+  const solo = adjuntos.length === 1 && adjuntos[0].video;
+  const esPdf = solo && adjuntos[0].pdf;
+  $("previa-txt").textContent = esPdf ? tf("PDF · {0} MB · escribe algo (opcional) y envía", (solo.size / 1048576).toFixed(1))
+    : solo ? tf("Video · {0} MB · escribe algo (opcional) y envía", (solo.size / 1048576).toFixed(1)) : t("Escribe algo (opcional) y envía");
 }
 function quitarFoto() {
-  fotoPendiente = null; $("previa").classList.remove("si");
-  if (videoPendiente) { const v = $("previa-vid"); URL.revokeObjectURL(v.src); v.removeAttribute("src"); v.hidden = true; videoPendiente = null; }
-  $("previa-img").hidden = false; $("previa-txt").textContent = t("Escribe algo (opcional) y envía");
+  adjuntos.forEach(a => { if (a.url) URL.revokeObjectURL(a.url); });
+  adjuntos = []; pintarAdjuntos();
 }
-$("quitar").onclick = quitarFoto;
-$("foto").onchange = ev => { const f = ev.target.files[0]; ev.target.value = ""; prepararFoto(f); };
-$("txt").addEventListener("paste", ev => {   // pegar una captura directo en el cuadro de texto
-  const it = [...(ev.clipboardData && ev.clipboardData.items || [])].find(i => i.type.startsWith("image/"));
-  if (it) { ev.preventDefault(); prepararFoto(it.getAsFile()); }
+$("foto").onchange = ev => { const fs = [...ev.target.files]; ev.target.value = ""; agregarMedios(fs); };
+$("txt").addEventListener("paste", ev => {   // pegar capturas directo en el cuadro de texto
+  const its = [...(ev.clipboardData && ev.clipboardData.items || [])].filter(i => i.type.startsWith("image/"));
+  if (its.length) { ev.preventDefault(); agregarMedios(its.map(i => i.getAsFile())); }
 });
 
 // ---- (15-oct) Info del chat: tocar el nombre arriba del chat muestra cuanto contexto lleva y el uso del plan ----
@@ -1447,7 +1554,7 @@ $("op-lectura").onchange = ev => {
 lecturaExacta();
 $("desinst").onclick = () => {
   const D = $("desinst-d");
-  D.innerHTML = '<label class="fila"><span data-t>' + t("Dejar la configuración de Claude exactamente como antes de instalar") + '</span><input type="checkbox" class="sw" id="des-rest"></label>'
+  D.innerHTML = '<label class="fila"><span data-t>' + t("Dejar la configuración de tus IA exactamente como antes de instalar") + '</span><input type="checkbox" class="sw" id="des-rest"></label>'
     + '<p class="sub">' + t("Si no lo marcas, se quita solo lo de Kodama y tus otros hooks quedan igual. Tus datos se guardan.") + "</p>";
   const b = document.createElement("button"); b.textContent = t("Desinstalar"); D.appendChild(b);
   b.onclick = async () => {
@@ -1678,6 +1785,11 @@ let TEMA = "auto"; try { TEMA = localStorage.getItem("tema") || "auto"; } catch 
 fijarTema(TEMA); $("temasel").value = TEMA;
 $("temasel").onchange = ev => { TEMA = ev.target.value; try { localStorage.setItem("tema", TEMA); } catch (e) {} fijarTema(TEMA); };
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => fijarTema(TEMA));
+// (09-nov) Respuestas rápidas (OK, Sigue, Para bajo el chat): se muestran por defecto; "0" = ocultas. Solo este celular.
+let respRapidas = true; try { respRapidas = localStorage.getItem("respRapidas") !== "0"; } catch (e) {}
+function fijarRespRapidas() { $("chips").style.display = respRapidas ? "" : "none"; }
+fijarRespRapidas(); $("op-respRapidas").checked = respRapidas;
+$("op-respRapidas").onchange = ev => { respRapidas = ev.target.checked; fijarRespRapidas(); try { localStorage.setItem("respRapidas", respRapidas ? "1" : "0"); } catch (e) {} };
 // (22-oct, LShinox) Personaje: Gato / Gato ojos lisos / Brote. Debajo, los colores del que elegiste (los del gato o las
 // variantes del Brote) y, si es un cactus, "con flor". Y es la MISMA mascota que en la PC: se guarda en el hub.
 const COLORES = { gato: [["negro", "Negro"], ["naranja", "Naranja"], ["blanco", "Blanco"], ["gris", "Gris azulado"], ["esmoquin", "Esmoquin"]],
@@ -1803,6 +1915,11 @@ $("liberar").onclick = async () => {
   await cargar();
 };
 ["focus", "blur"].forEach(ev => $("txt").addEventListener(ev, () => setTimeout(ajustarTeclado, 60)));
+// (15-nov) al volver a la app, el iPhone devolvia el foco a la caja y abria el teclado sin que la vista se ajustara:
+// la caja quedaba debajo del teclado. Ahora se suelta el foco (el borrador queda guardado) y se re-mide.
+const alVolverTeclado = () => { const t = $("txt"); if (document.activeElement === t) t.blur(); ajustarTeclado(); setTimeout(ajustarTeclado, 400); };
+window.addEventListener("pageshow", alVolverTeclado);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) alVolverTeclado(); });
 gsap.ticker.fps(30);
 fetch("ajustes.json", { cache: "no-store" }).then(r => r.json()).then(a => { window.CompaneroAjustes = a; }).catch(() => {});
 document.addEventListener("visibilitychange", () => { document.hidden ? gsap.globalTimeline.pause() : gsap.globalTimeline.resume(); });
@@ -1821,6 +1938,79 @@ window.addEventListener("pageshow", medirLuego); document.addEventListener("visi
 new ResizeObserver(medirBarras).observe($("tabs"), { box: "border-box" });
 document.body.classList.add("inicio"); medirBarras(); crearHeroe(); grupos();
 cargar().then(() => { const h = _hashInicial; if (CHATS.some(c => c[0] === h)) abrir(h); });
+
+// (05-nov) Chat con IA, Actividad y dictado. Cada llamada va con try/catch: si la PC no tiene la ruta, sale "No disponible".
+async function apiPost(ruta, cuerpo) {
+  try { const r = await fetch(ruta, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo || {}) }); const j = await r.json(); return j && typeof j === "object" ? j : null; }
+  catch (e) { return null; }
+}
+async function cargarActividad() {
+  const L = $("actv-lista"), N = $("actv-nota");
+  L.textContent = ""; N.textContent = "";
+  const j = await apiPost("api/integraciones", {});
+  if (!j || !Array.isArray(j.eventos)) { N.textContent = t("No disponible"); return; }
+  if (!j.eventos.length) { N.textContent = t("Sin actividad todavía."); return; }
+  j.eventos.slice(0, 30).forEach(ev => {
+    const f = document.createElement("div"); f.className = "ev-fila";
+    const b = document.createElement("b"); b.textContent = ev.titulo || "";
+    const tx = document.createElement("div"); tx.className = "ev-tx"; tx.textContent = ev.texto || "";
+    const h = document.createElement("div"); h.className = "ev-h"; h.textContent = ev.ts ? hace(ev.ts) : "";
+    f.append(b, tx, h); L.appendChild(f);
+  });
+}
+const IA_CHAT_KEY = "kodamaIaChat";
+function iaHist() { try { const a = JSON.parse(localStorage.getItem(IA_CHAT_KEY) || "[]"); return Array.isArray(a) ? a.slice(-30) : []; } catch (e) { return []; } }
+function iaHistGuardar(h) { try { localStorage.setItem(IA_CHAT_KEY, JSON.stringify(h.slice(-30))); } catch (e) {} }
+function iaPintar() {
+  const L = $("ia-log"); L.textContent = "";
+  iaHist().forEach(m => { const d = document.createElement("div"); d.className = "ia-m" + (m.role === "user" ? " yo" : ""); d.textContent = m.content; L.appendChild(d); });
+  L.scrollTop = L.scrollHeight;
+}
+async function cargarIa() {
+  iaPintar(); $("ia-nota").textContent = "";
+  const j = await apiPost("api/ia", {});
+  if (!j || !Array.isArray(j.proveedores)) { $("ia-prov").textContent = t("No disponible"); return; }
+  const p = j.elegido ? j.proveedores.find(x => x.id === j.elegido) : null;
+  $("ia-prov").textContent = p ? p.nombre : t("Configúralo en la PC: Ajustes > Chat con IA.");
+}
+async function iaEnviar(txt) {
+  txt = (txt || "").trim(); if (!txt) return;
+  const btn = $("ia-enviar");
+  const h = iaHist(); h.push({ role: "user", content: txt }); iaHistGuardar(h); $("ia-txt").value = ""; iaPintar();
+  btn.disabled = true; btn.textContent = t("Pensando…"); $("ia-nota").textContent = "";
+  const j = await apiPost("api/ia", { preguntar: h });
+  btn.disabled = false; btn.textContent = t("Enviar");
+  if (j && j.ok) {
+    const h2 = iaHist(); h2.push({ role: "assistant", content: j.texto || "" }); iaHistGuardar(h2); iaPintar();
+    if ($("ia-voz").checked && window.speechSynthesis) { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(j.texto || ""); u.lang = LANG_VOZ(); speechSynthesis.speak(u); }
+  } else $("ia-nota").textContent = (j && j.error) || t("No disponible");
+}
+// Dictado: solo se enciende al tocar el microfono; "unaVez" corta al primer resultado (Modo voz).
+// (05-nov, LShinox: tocar el microfono dejo pegada la app en el celular) en iPhone/iPad no se ofrece: el teclado ya trae su propio dictado.
+const ES_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const SR_VOZ = ES_IOS ? null : (window.SpeechRecognition || window.webkitSpeechRecognition);
+const LANG_VOZ = () => (window.IDIOMA === "en" ? "en-US" : "es-EC");
+let reco = null;
+function dictar(boton, alFinal, unaVez) {
+  if (reco) { try { reco.stop(); } catch (e) {} return; }
+  if (!SR_VOZ) return;
+  let r; try { r = new SR_VOZ(); } catch (e) { return; }
+  r.lang = LANG_VOZ(); r.continuous = !unaVez; r.interimResults = false;
+  const fin = () => { if (reco === r) reco = null; boton.classList.remove("on"); };
+  r.onresult = ev => { let txt = ""; for (let i = ev.resultIndex; i < ev.results.length; i++) if (ev.results[i].isFinal) txt += ev.results[i][0].transcript; txt = txt.trim(); if (txt) alFinal(txt); };
+  r.onerror = fin; r.onend = fin;
+  reco = r; boton.classList.add("on");
+  try { r.start(); } catch (e) { fin(); }
+}
+const micB = $("mic");
+if (SR_VOZ) micB.onclick = () => dictar(micB, txt => { const ta = $("txt"); ta.value = ta.value.replace(/\s*$/, ta.value.trim() ? " " : "") + txt; ta.dispatchEvent(new Event("input")); }, false);
+else micB.style.display = "none";
+const iaMicB = $("ia-mic");
+if (SR_VOZ) iaMicB.onclick = () => dictar(iaMicB, txt => { if ($("ia-voz").checked) iaEnviar(txt); else { const ta = $("ia-txt"); ta.value = ta.value.replace(/\s*$/, ta.value.trim() ? " " : "") + txt; } }, $("ia-voz").checked);
+else iaMicB.style.display = "none";
+$("ia-enviar").onclick = () => iaEnviar($("ia-txt").value);
+$("ia-borrar").onclick = () => { iaHistGuardar([]); iaPintar(); };
+$("ia-voz-fila").style.display = window.speechSynthesis ? "" : "none";
 conectarSSE(); setInterval(() => { if (!es || es.readyState !== 1 || Date.now() - (window._sseT || 0) > 40000) { cargar(); conectarSSE(); } }, 4000);
 prepararAvisos().catch(() => {});
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { cargar(); conectarSSE(); } });

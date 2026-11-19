@@ -25,6 +25,8 @@ import config
 import kodama_plataforma as plataforma
 import kodama_conexion
 import kodama_nucleo
+import kodama_extras
+import kodama_tg_lector
 from kodama_nucleo import BASE, BOT, COLA, LATIDO, SALUD, SES, api, cargar_conf, guardar_conf, log
 from kodama_texto import tr
 from kodama_chats import publicar_elegidos, sync_seleccion
@@ -35,8 +37,8 @@ from kodama_medidor import estimar_uso
 from kodama_notificaciones import cerrar_avisos, procesar_cola, reintentar_avisos, vaciar_espera
 from kodama_telegram import atender, atender_boton
 from kodama_vigilantes import (
-    mantener_despierta, mantenimiento, vigilar_actualizaciones, vigilar_auto_actualizacion, vigilar_salud,
-    volcar_pilas
+    avisar_correo, avisar_integracion, mantener_despierta, mantenimiento, vigilar_actualizaciones, vigilar_auto_actualizacion,
+    vigilar_limites, vigilar_salud, volcar_pilas
 )
 from kodama_rutas import CERRAR, Web
 
@@ -92,6 +94,34 @@ def servir_web():
     threading.Thread(target=bucle, daemon=True).start()
 
 
+# (18-nov) modulos opcionales (correo, integraciones, pausas): cada vigilante arranca solo si el modulo esta encendido
+# en kodama_extras. Al prenderlo desde la app se llama de nuevo; un vigilante ya arrancado no se arranca dos veces.
+_EXTRAS_ARRANCADOS = set()
+_EXTRAS_LOCK = threading.Lock()
+
+
+def arrancar_extras():
+    with _EXTRAS_LOCK:
+        for nombre in ("pausas", "integraciones", "correo"):
+            if nombre in _EXTRAS_ARRANCADOS:
+                continue
+            m = kodama_extras.modulo(nombre)
+            if m is None:
+                continue
+            if nombre == "pausas":   # (06-nov) agua y levantarse, solo en la PC
+                hilo = threading.Thread(target=m.vigilar, daemon=True)
+            elif nombre == "integraciones":   # (05-nov) solo consulta lo que el usuario conecto
+                hilo = threading.Thread(target=m.vigilar, args=(avisar_integracion,), daemon=True)
+            else:
+                hilo = threading.Thread(target=m.vigilar, args=(avisar_correo,), daemon=True)
+            hilo.start()
+            _EXTRAS_ARRANCADOS.add(nombre)
+
+
+# la app (api/extras) llama a esto al prender un modulo, para arrancar su vigilante sin reiniciar el hub
+kodama_extras.al_encender = arrancar_extras
+
+
 def main():
     # (20-oct) UNA sola instancia: el 20-oct el vigilante levanto un segundo hub (su consulta de procesos fallo) y
     # los dos se peleaban Telegram (getUpdates 409 cada 6 s) y procesaban la cola dos veces (avisos duplicados).
@@ -119,6 +149,8 @@ def main():
     threading.Thread(target=vigilar_actualizaciones, daemon=True).start()
     threading.Thread(target=vigilar_auto_actualizacion, daemon=True).start()
     threading.Thread(target=vigilar_permisos_caducados, daemon=True).start()
+    threading.Thread(target=vigilar_limites, daemon=True).start()
+    arrancar_extras()   # (18-nov) pausas, integraciones y correo: solo los que estan encendidos en la app
     # la posicion en la cola se guarda en hub.json: un reinicio ya no salta los avisos que llegaron mientras
     # el hub estaba caido (los de mas de 15 min se descartan en procesar_cola)
     tam = os.path.getsize(COLA) if os.path.exists(COLA) else 0
@@ -141,12 +173,16 @@ def main():
     ult_mant = ult_latido = ult_grupos = time.time()
     open(LATIDO, "w").close()
     offset = conf.get("offset", 0)
+    # (18-nov) Telegram se lee en su propio hilo (kodama_tg_lector): si no responde, la cola de avisos sigue cada ~1,5 s
+    lector = None
+    if kodama_nucleo.TOKEN:
+        lector = kodama_tg_lector.Lector(api, offset, log)
+        lector.iniciar()
     while True:
-        if kodama_nucleo.TOKEN:
-            r = api("getUpdates", offset=offset, timeout=2)
-        else:   # (21-oct) sin Telegram: el getUpdates largo era lo que pausaba el bucle; sin el, pausa a mano
-            time.sleep(2); r = {}
-        for u in r.get("result", []) if r.get("ok") else []:
+        nuevos = lector.tomar(1.5) if lector else []
+        if not lector:
+            time.sleep(1.5)
+        for u in nuevos:
             offset = u["update_id"] + 1
             conf["offset"] = offset
             if "callback_query" in u:
@@ -180,8 +216,6 @@ def main():
                 cerrar_avisos(conf, *CERRAR.pop(0))
         except Exception as e:
             log(f"error cola: {type(e).__name__}: {e}")
-        if not r.get("ok"):
-            time.sleep(5)
 
 
 if __name__ == "__main__":

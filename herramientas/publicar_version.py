@@ -36,6 +36,7 @@ DIST = os.path.join(APP, "dist")
 
 INCLUIR = [
     "arrancar.pyw", "companero_*.py", "kodama_*.py", "config.py", "grupos_app.py", "estimador.py", "instalar.py",
+    "opencode_plugin.js",   # (04-nov) plugin de OpenCode: lo copia instalar.py a ~/.config/opencode/plugins
     "requirements.txt", "VERSION", "LEEME.md", "LICENCIA.txt", "LICENSE.txt", "clave_publica.txt",
     "web/*.html", "web/*.js", "web/*.json", "web/*.png",
     "escritorio-tauri/src-tauri/target/release/kodama.exe",

@@ -349,7 +349,11 @@ def cwd_de(cmd):
     try:
         cli = next((cli for cli, v in todos_elegidos().items() if v[0] == cmd), None)
         s = next((s for s in grupos_app.catalogo()["sesiones"].values() if s["cli"] == cli), None) if cli else None
-        return (s or {}).get("cwd")
+        cwd = (s or {}).get("cwd")
+        if not cwd:   # (16-nov) OpenCode/Codex no estan en el catalogo de Claude: su registro de sesion trae la carpeta
+            r = sesion_por_cmd(cmd)
+            cwd = (r or {}).get("cwd")
+        return cwd
     except Exception:
         return None
 

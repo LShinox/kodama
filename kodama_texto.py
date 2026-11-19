@@ -116,8 +116,17 @@ def _corta(s, n=110):
 
 # ---- idioma de Telegram y de los avisos (14-oct): config.json "idioma": "es" (por defecto) o "en" ----
 _EN = {
+    "últimas 5 horas": "last 5 hours",   # (05-nov) avisos del limite del plan
+    "semana": "week",
+    "Plan · {ventana}: {pct} %": "Plan · {ventana}: {pct}%",
+    "se reinicia: {hora}": "resets: {hora}",
     "No hay imágenes, páginas ni PDF que se puedan abrir en esta carpeta.": "No images, pages or PDFs that can be opened in this folder.",
     "Entregado a {n}": "Delivered to {n}",
+    "Aún no pude entregar a {n}; sigo intentando": "Still couldn't deliver to {n}; I'll keep trying",
+    "Aún no pude entregar a {n}: {m}": "Still couldn't deliver to {n}: {m}",
+    "tu PC está en uso; lo entrego cuando la dejes 2 min": "your PC is in use; I'll deliver it when you leave it for 2 min",
+    "ese chat no está en la app de Claude (o está archivado)": "that chat isn't in the Claude app (or it's archived)",
+    "estoy despertando otro chat; sigo en unos segundos": "I'm waking another chat; I'll keep going in a few seconds",
     "{n} se atoró": "{n} got stuck", "{e} {n} pide permiso": "{e} {n} needs permission",
     "{e} {n} te hace una pregunta": "{e} {n} has a question", "{e} {n} te hace {k} preguntas": "{e} {n} has {k} questions",
     "✅ {n} terminó": "✅ {n} is done", "pregunta": "question", "permiso": "permission", "se atoró": "stuck", "terminó": "done",

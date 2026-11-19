@@ -15,6 +15,7 @@ import time
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 import config
+from kodama_comun import cuadro_final, texto_con_cuadro
 BASE = config.ESTADO
 SES = os.path.join(BASE, "sesiones")
 COLA = os.path.join(BASE, "cola.jsonl")
@@ -204,6 +205,9 @@ def main():
         return
     if ev == "Stop":
         texto = d.get("last_assistant_message") or ""
+        cuadro = cuadro_final(sid)   # (04-nov) la pregunta del cuadro de fin de turno de la app de escritorio
+        if cuadro:
+            texto = texto_con_cuadro(texto, cuadro)
     elif ev == "Notification":
         texto = d.get("message") or ""
     elif ev == "UserPromptSubmit":   # (15-oct) lo que escribes en la PC: para verlo tambien en el celular

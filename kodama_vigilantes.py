@@ -18,6 +18,10 @@ from kodama_nucleo import (
 )
 from kodama_push import push_a_todos
 from kodama_archivos import conservar
+from kodama_medidor import uso_plan
+from kodama_texto import tr
+import kodama_extras   # (18-nov) modulos opcionales: integraciones se carga solo si esta encendido
+import kodama_prefs
 
 
 # ---- (20-oct) chequeo de salud: la app de Claude puede cambiar sus archivos internos sin aviso (el 20-oct mudo sus
@@ -142,6 +146,78 @@ def vigilar_actualizaciones():
         time.sleep(12 * 3600)
 
 
+# ---- (05-nov, idea de claude-island) avisos al 80, 95 y 100 % del plan: uno por umbral y ventana, sin pronostico ----
+ALERTAS_USO = os.path.join(BASE, "alertas_uso.json")
+
+
+def texto_alerta(a):
+    ventana = tr("últimas 5 horas") if a["k"] == "5h" else tr("semana")
+    pct = ("≈ " if a.get("estimado") else "") + str(round(a["pct"]))
+    texto = tr("Plan · {ventana}: {pct} %", ventana=ventana, pct=pct)
+    if a.get("reinicia"):
+        f = time.localtime(a["reinicia"])
+        hora = time.strftime("%H:%M", f) if a["k"] == "5h" else time.strftime("%d/%m %H:%M", f)
+        texto += " · " + tr("se reinicia: {hora}", hora=hora)
+    return texto
+
+
+def revisar_limites(uso=None, ruta=None):
+    """Una vuelta: manda las alertas nuevas. En horas de silencio no manda ni las anota: salen al terminar si sigue arriba."""
+    if not kodama_prefs.leer()["alertas_uso"] or kodama_prefs.silencio_ahora():
+        return []
+    ruta = ruta or ALERTAS_USO
+    try:
+        previo = json.load(open(ruta, encoding="utf-8"))
+    except (OSError, ValueError):
+        previo = {}
+    salen, nuevo = kodama_prefs.alertas_nuevas(uso if uso is not None else uso_plan(), previo)
+    if nuevo != previo:
+        with open(ruta + ".tmp", "w", encoding="utf-8") as f:
+            json.dump(nuevo, f)
+        os.replace(ruta + ".tmp", ruta)
+    for a in salen:
+        texto = texto_alerta(a)
+        log(f"alerta de uso: {a['k']} {a['umbral']}")
+        kodama_prefs.ULTIMA_ALERTA.clear()
+        kodama_prefs.ULTIMA_ALERTA.update(k=a["k"], umbral=a["umbral"], pct=a["pct"], ts=time.time(), texto=texto)
+        conf = cargar_conf()
+        if conf.get("dueno"):
+            api("sendMessage", chat_id=conf["dueno"], text="⚠️ " + texto)
+        push_a_todos("⚠️ Kodama", texto, "")
+    return salen
+
+
+# ---- (05-nov) avisos de integraciones y correo: van al celular y al gato; en horas de silencio solo quedan en la lista ----
+def _avisar_evento(titulo, texto):
+    kodama_prefs.ULTIMO_EVENTO.clear()
+    kodama_prefs.ULTIMO_EVENTO.update(ts=time.time(), titulo=titulo, texto=f"{titulo}: {texto}"[:160])
+    if not kodama_prefs.silencio_ahora():
+        push_a_todos(titulo, texto, "")
+
+
+def avisar_integracion(e):
+    _avisar_evento(str(e.get("titulo") or "Kodama"), str(e.get("texto") or ""))
+
+
+def avisar_correo(cuenta, m):
+    """Solo remitente y asunto: Kodama nunca baja el cuerpo del correo."""
+    e = {"id": str(m.get("id")), "titulo": f"✉️ {cuenta}", "texto": f"{m.get('de', '')}: {m.get('asunto', '')}"[:300], "url": "", "ts": time.time(), "proveedor": "correo"}
+    ki = kodama_extras.modulo("integraciones")
+    if ki is not None:   # (18-nov) apagado: el aviso igual sale; solo no se guarda en la lista de eventos
+        ki.agregar_eventos([e])
+    avisar_integracion(e)
+
+
+def vigilar_limites():
+    time.sleep(90)
+    while True:
+        try:
+            revisar_limites()
+        except Exception as e:
+            log(f"alertas de uso: {type(e).__name__}: {e}")
+        time.sleep(60)
+
+
 # ---- mantenimiento (14-oct): rotar archivos que crecen, purgar fotos, latido para el aviso de salud ----
 TOPE_BYTES = 5 * 1024 * 1024
 
@@ -171,7 +247,8 @@ def respaldar():
     if os.path.exists(destino):
         return
     fuera = {"fotos", "puente", "escritorio-captura.png", "escritorio-captura.txt", "latido", "hub.pid", "escritorio.pid",
-             "local.key"}   # (15-oct, contra #14) la clave local no va al respaldo: si falta, el hub crea otra
+             "local.key",   # (15-oct, contra #14) la clave local no va al respaldo: si falta, el hub crea otra
+             "integraciones.json", "correo.json", "ia.json"}   # (05-nov) tokens y claves de terceros: tampoco
     try:
         with zipfile.ZipFile(destino + ".tmp", "w", zipfile.ZIP_DEFLATED) as z:
             for raiz, etiqueta in ((BASE, "estado"), (config.TS_DIR, "ts")):

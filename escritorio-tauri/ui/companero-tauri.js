@@ -12,8 +12,8 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
   // coloca la ventana arriba al centro; la pagina (escritorio\index.html) dibuja la isla cuando recibe `alIsla`. conf.isla = "auto" (por defecto: isla si
   // hay muesca) | "si" (isla siempre; sin muesca, una pastilla debajo de la barra de menus) | "no". Cambiarlo recarga la pagina.
   const ES_MAC = /Macintosh|Mac OS X/i.test(navigator.userAgent || "") && !/Windows/i.test(navigator.userAgent || "");
-  const ISLA_W = 440, ISLA_H = 640;   // ventana transparente de la isla (px logicos): cabe la pastilla abierta y Ajustes
-  let islaOn = false, islaCfg = null, islaMedida = null;
+  const ISLA_W = 500, ISLA_H = 640;   // ventana transparente de la isla (px logicos): cabe la pastilla abierta y Ajustes. (04-nov) 500: con 440 el ala con texto y el mouse encima se cortaba a la derecha
+  let islaOn = false, islaCfg = null, islaMedida = null, islaOrigen = null;
   const islaModo = () => conf.isla === "si" || conf.isla === "no" ? conf.isla : "auto";
   const islaDecidir = () => islaModo() === "si" || (islaModo() === "auto" && !!(islaMedida && islaMedida.notch));
   async function islaColocar() {
@@ -47,11 +47,16 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
     } catch (e) {} finally { islaSondeando = false; }
   }
   if (ES_MAC) setInterval(islaSondear, 2000);
-  const oyentes = { pj: [], visible: [], atajo: [], noMolestar: [], sonido: [], cursor: [], ojos: [], modo: [], ajustes: [], sueno: [], capsula: [], capsulaColor: [], animCompletas: [], isla: [] };
+  const oyentes = { pj: [], visible: [], atajo: [], noMolestar: [], sonido: [], cursor: [], ojos: [], modo: [], ajustes: [], sueno: [], capsula: [], capsulaColor: [], animCompletas: [], isla: [], version: [], animoPc: [] };
   const avisar = (k, ...a) => oyentes[k].forEach(f => { try { f(...a); } catch (e) {} });
   const clave = async () => KEY || (KEY = await inv("clave"));
   const leerPuerto = async () => { try { const p = parseInt(await inv("puerto"), 10); if (p >= 8787 && p <= 8799) HUB = "http://127.0.0.1:" + p; } catch (e) {} return HUB; };
   let puertoListo = leerPuerto();
+  async function hubBytes(ruta) {   // (04-nov) igual que hub() (misma URL y cabecera), pero devuelve los bytes del archivo
+    await puertoListo;
+    const r = await fetch(HUB + ruta, { headers: { "X-Companero-Local": await clave() } });
+    return r.ok ? r.arrayBuffer() : null;
+  }
   async function hub(ruta, cuerpo) {
     await puertoListo;
     const pedir = async () => fetch(HUB + ruta, { method: cuerpo ? "POST" : "GET", body: cuerpo ? JSON.stringify(cuerpo) : undefined,
@@ -92,7 +97,7 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
     interactivo: si => inv("interactivo", { si }),
     // (27-oct) ZONA TACTIL FIJA: la pagina manda los rectangulos [x, y, ancho, alto] (px CSS) de lo que se ve y se toca; Rust arma con ellos la
     // region de la ventana (SetWindowRgn) con la escala del monitor donde esta. Fuera de la region los clics pasan a lo de abajo, sin sondeo.
-    zona: r => { window.__zona = r; return inv("zona", { r }); },
+    zona: r => { window.__zona = r; return inv("zona", { r, dpr: window.devicePixelRatio || 0 }); },   // (19-nov) Rust convierte con la escala de la pagina, no la del monitor
     escribir: si => inv("escribir", { si }),
     arrastrar: (dx, dy) => inv("mover", { dx, dy }),
     inactivo: () => hub("/api/inactivo").then(j => j.segundos).catch(() => 0),
@@ -119,6 +124,9 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
     alAnimCompletas: f => { oyentes.animCompletas.push(f); setTimeout(() => f(animCompletas()), 0); },   // (5.a vuelta) "Animaciones completas" (true por defecto)
     // (28-oct) MODO ISLA (solo macOS): se llama una vez con {notch, nw, nh, barra, w, h} cuando la isla esta activa (nunca en Windows)
     alIsla: f => { oyentes.isla.push(f); if (islaCfg) setTimeout(() => f(islaCfg), 0); },
+    // (04-nov) "Reacciona a la PC": el gato sigue la carga de la PC (sudor, memoria, bateria). Default ON (conf.animoPc !== false)
+    alAnimoPc: f => { oyentes.animoPc.push(f); setTimeout(() => f(!conf || conf.animoPc !== false), 0); },
+    alVersion: f => { oyentes.version.push(f); f(nueva); },   // (04-nov) version nueva (null = al dia): se llama al registrarse y cada vez que cambia
     alCapsulaColor: f => { oyentes.capsulaColor.push(f); setTimeout(() => f(capCol()), 0); },   // (27-oct, 4.a vuelta) color de la capsula: "blanca" (por defecto) | "negra"
     // (27-oct) la ventana NACE oculta (tauri.conf.json "visible": false) para que no se vea el destello del arranque. Aca NO se muestra
     // hasta que la pagina diga que el gato ya se dibujo (pintado(): primer cuadro de Lottie o del SVG + 1 requestAnimationFrame) o pasen 3,5 s
@@ -272,22 +280,41 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
     },
     bordes: async (r, si) => { enPanel = si; await inv("limites", r); zonaYa(); repintar(); },
     hub: (ruta, cuerpo) => hub(ruta, cuerpo).catch(e => ({ ok: false, error: String(e.message || e) })),
+    hubBytes: ruta => hubBytes(ruta).catch(() => null),   // (04-nov) bytes crudos (sonidos propios); null si no esta ok
+    // (04-nov, usuario) arrastrar el gato fuera de la isla y devolverlo (solo macOS; en Windows islaDisp da false y la pagina no usa el resto).
+    // Coordenadas = screenX/screenY de la pagina (puntos). cx de la medida va desde el borde izquierdo de la pantalla de la isla: su origen sale del monitor con ese tamaño.
+    islaDisp: () => ES_MAC && !!(islaMedida && islaMedida.mac),
+    islaCerca: (sx, sy) => {
+      if (!islaMedida) return false;
+      if (!islaOrigen) { islaOrigen = { x: 0, y: 0 }; T.window.availableMonitors().then(ms => { const m = ms.find(q => { const f = q.scaleFactor || 1; return Math.abs(q.size.width / f - islaMedida.ancho) < 2 && Math.abs(q.size.height / f - islaMedida.alto) < 2; }); if (m) { const f = m.scaleFactor || 1; islaOrigen = { x: m.position.x / f, y: m.position.y / f }; } }).catch(() => {}); }
+      return sy - islaOrigen.y <= islaMedida.nh + 60 && Math.abs(sx - islaOrigen.x - islaMedida.cx) <= islaMedida.nw / 2 + 160;
+    },
+    islaSoltar: async (sx, sy) => {   // el gato queda donde se solto (centro de la cara = el puntero), dentro de lo que acepta enPantalla(); sin eso volveria a la esquina
+      let x0 = 0, y0 = 0, w = screen.width, h = screen.height;
+      try { const m = (await T.window.availableMonitors()).find(q => { const f = q.scaleFactor || 1; return sx >= q.position.x / f && sx < (q.position.x + q.size.width) / f && sy >= q.position.y / f && sy < (q.position.y + q.size.height) / f; });
+        if (m) { const f = m.scaleFactor || 1; x0 = m.position.x / f; y0 = m.position.y / f; w = m.size.width / f; h = m.size.height / f; } } catch (e) {}
+      conf.x = Math.round(Math.min(Math.max(sx, x0 + 95), x0 + w - 70) - 315); conf.y = Math.round(Math.min(Math.max(sy, y0 + 95), y0 + h - 75) - 512);   // 315, 512 = centro del gato en la ventana de 400 x 600
+      await window.companero.panel.poner("isla", "no");
+    },
+    islaVolver: () => window.companero.panel.poner("isla", islaMedida && islaMedida.notch ? "auto" : "si"),
     leer: () => ({ pj: pjVis(conf.pj), color: conf.color || "negro", florCactus: conf.florCactus !== false, ojos: !!conf.ojos,
                    modo: conf.modo === "aviso" ? "aviso" : "siempre", sonido: conf.sonido !== false, idioma: conf.idioma || "es", nueva,
                    sueno: sueno().on, suenoMin: sueno().min, loNuevoVisto: conf.loNuevoVisto || "", capsula: !!conf.capsula,
                    animCompletas: animCompletas(), capsulaColor: capCol(), ojosGato: conf.ojosGato === "gato" ? "gato" : "gatoPro",
-                   islaDisp: ES_MAC && !!(islaMedida && islaMedida.mac), isla: islaModo(), islaOn }),
+                   islaDisp: ES_MAC && !!(islaMedida && islaMedida.mac), isla: islaModo(), islaOn, islaInfo: conf.islaInfo === "hora" || conf.islaInfo === "nada" ? conf.islaInfo : "uso", animoPc: conf.animoPc !== false }),   // (04-nov) islaInfo: lo que muestra la isla cerrada
     poner: async (k, v) => {   // lo mismo que hacian los items del menu de la bandeja
       if (k === "sueno") { conf.sueno = !!v; guardar(); avisar("sueno", sueno()); return; }
       if (k === "suenoMin") { conf.suenoMin = +v; guardar(); avisar("sueno", sueno()); return; }
       if (k === "capsula") { conf.capsula = !!v; guardar(); avisar("capsula", conf.capsula); return; }
       if (k === "animCompletas") { conf.animCompletas = !!v; guardar(); aplicarAnimCompletas(); return; }   // solo en esta PC: no pasa por compartirPj()
+      if (k === "islaInfo") { conf.islaInfo = v === "hora" || v === "nada" ? v : "uso"; guardar(); return; }   // (04-nov) isla cerrada: "uso" (default) | "hora" | "nada"; sin reload
       if (k === "isla") {   // (28-oct) solo macOS: "auto" | "si" | "no"; si cambia si la isla esta activa, se recarga la pagina (la ventana vuelve a su tamaño de siempre antes)
         if (!ES_MAC) return;
         conf.isla = v === "si" || v === "no" ? v : "auto"; guardar();
         setTimeout(async () => { if (islaDecidir() !== islaOn) { if (islaOn) { try { await inv("isla_info", { poner: true, activa: false, w: 400, h: 600 }); } catch (e) {} } location.reload(); } }, 200);
         return;
       }
+      if (k === "animoPc") { conf.animoPc = !!v; guardar(); avisar("animoPc", conf.animoPc); return; }   // (04-nov) solo en esta PC
       if (k === "loNuevoVisto") { conf.loNuevoVisto = String(v); guardar(); return; }   // (26-oct) "Lo nuevo" visto, por version
       if (k === "capsulaColor") { conf.capsulaColor = v === "negra" ? "negra" : "blanca"; guardar(); compartirPj(); avisar("capsulaColor", capCol()); return; }
       if (k === "pj" && !MOSTRAR_BROTE && /^brote/.test(v)) return;   // (lanzamiento) Brote oculto
@@ -373,7 +400,7 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
   let celBloqueado = false;   // (26-oct) bloqueo del celular; si cambia desde el celular, el menu se rehace solo
   setInterval(async () => { try { if (!!(await hub("/api/bloqueo")).bloqueado !== celBloqueado) menu(); } catch (e) {} }, 30000);
   async function menu() {
-    try { nueva = (await hub("/api/actualizacion")).version || null; } catch (e) {}
+    try { const v = (await hub("/api/actualizacion")).version || null; if (v !== nueva) { nueva = v; avisar("version", nueva); } } catch (e) {}   // (04-nov) avisa a la mascota (alVersion) solo si cambia
     try { celBloqueado = !!(await hub("/api/bloqueo")).bloqueado; } catch (e) {}
     const M = T.menu, it = (text, action, extra = {}) => M.MenuItem.new(Object.assign({ text, action }, extra));
     const pjs = await M.Submenu.new({ text: L("Personaje"), items: await Promise.all([["gato", "Gato"], ["brote5", "Brote"], ["broteDosHojas", "Brote dos hojas"], ["broteOtono", "Brote otoñal"], ["broteCactus", "Brote cactus"], ["broteCactusBolitas", "Brote cactus (bolitas)"]].filter(([v]) => MOSTRAR_BROTE || v === "gato").map(([v, n]) =>
@@ -403,7 +430,7 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
           try { await hub("/api/bloqueo", { activo: !celBloqueado }); } catch (e) {}
           menu(); }),
         await M.PredefinedMenuItem.new({ item: "Separator" }),
-        await it(L("Salir"), () => inv("salir")),
+        await it(L("Salir"), () => inv("salir"), { id: "kodama-salir" }),
       ];
       const mc = await M.Menu.new({ items: corto });
       if (bandeja) return bandeja.setMenu(mc);
@@ -441,7 +468,7 @@ window.__csp = []; document.addEventListener("securitypolicyviolation", e => { i
       // (21-oct) solo aparece si el hub encontro una version nueva en GitHub; instalar es siempre a pedido
       ...(nueva ? [await it(L("Actualizar a") + " " + nueva, () => hub("/api/actualizar", {}).catch(() => {}))] : []),
       await M.PredefinedMenuItem.new({ item: "Separator" }),
-      await it(L("Salir"), () => inv("salir")),
+      await it(L("Salir"), () => inv("salir"), { id: "kodama-salir" }),
     ];
     const m = await M.Menu.new({ items });
     if (bandeja) return bandeja.setMenu(m);

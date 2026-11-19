@@ -273,10 +273,10 @@ def previsualizar(out, nombre, f, region, zoom):
         NOTAS.append("preview failed for %s: %s" % (nombre, e))
 
 
-# crops (x, y, w, h in points) used for the previews; the island window is 440 wide, centered on a 1024-wide screen (x = 292)
+# crops (x, y, w, h in points) used for the previews; the island window is 500 wide, centered on a 1024-wide screen (x = 262)
 R_PILL = (400, 0, 320, 52)   # (isla 3) the simulated notch (190 wide, centered at x=512) + the single right wing
 def R_ISLA(alto):
-    return (292, 0, 440, alto)
+    return (262, 0, 500, alto)
 
 
 def solo_previews():
@@ -477,7 +477,7 @@ def main():
             d, ok = esperar(work, lambda d: d.get("panel"), 20, "A: Settings open (option A)")
             time.sleep(1.4)
             foto(out, "A08-settings-optionA-floating-panel-en", "auto + simulated notch: Settings as a floating panel under the pill", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(660))
-            detalle(out, "A08z-pill-and-title-row-en", "A08-settings-optionA-floating-panel-en", (292, 0, 440, 150))
+            detalle(out, "A08z-pill-and-title-row-en", "A08-settings-optionA-floating-panel-en", (262, 0, 500, 150))
             pedir(work, "kodama:ajustes-b")   # closes the panel and opens it again with option B (the island grows into a settings card)
             time.sleep(0.8)
             d, ok = esperar(work, lambda d: d.get("panel") and abierta(d), 20, "A: Settings open (option B)")
@@ -543,7 +543,7 @@ def main():
             d, ok = esperar(work, lambda d: d.get("panel"), 20, "D: Settings open")
             time.sleep(1.4)
             foto(out, "D04-settings-floating-panel-es", "auto + simulated notch, Spanish", pedir(work) or d, pet.pid, exe_v, base_sha, R_ISLA(660))
-            detalle(out, "D04z-pill-and-title-row-es", "D04-settings-floating-panel-es", (292, 0, 440, 150))
+            detalle(out, "D04z-pill-and-title-row-es", "D04-settings-floating-panel-es", (262, 0, 500, 150))
             pet.parar()
             pet = None
 

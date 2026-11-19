@@ -36,6 +36,15 @@ static ZONA: Mutex<Vec<[f64; 4]>> = Mutex::new(Vec::new());
 static ZONA_F: AtomicU64 = AtomicU64::new(0);
 #[cfg(windows)]
 static ZONA_VIEJA: AtomicU32 = AtomicU32::new(0);   // >0 = `limites` quito la region y falta que la pagina mande la zona nueva (cuenta sondeos)
+// (19-nov) devicePixelRatio de la pagina (bits de f64; 0 = todavia no llego). Al arrancar en otra pantalla que la vez anterior,
+// el WebView puede dibujar con otra escala que la del monitor: la region se arma con la escala con la que se DIBUJA la pagina.
+#[cfg(windows)]
+static PAGINA_DPR: AtomicU64 = AtomicU64::new(0);
+#[cfg(windows)]
+fn escala_region(f_monitor: f64) -> f64 {
+    let d = f64::from_bits(PAGINA_DPR.load(Ordering::Relaxed));
+    if d.is_finite() && d >= 0.5 && d <= 8.0 { d } else { f_monitor }
+}
 // Antes de que la pagina mande la primera zona: solo el lugar del gato (abajo a la derecha de la ventana de 400x600)
 const ZONA_INICIAL: [f64; 4] = [196.0, 380.0, 204.0, 220.0];
 
@@ -90,6 +99,8 @@ extern "system" {
 /// HACIA AFUERA. Sin zonas -> region vacia (la ventana no existe para el mouse ni se ve nada). Windows se queda con la region.
 #[cfg(windows)]
 fn zona_aplicar(hwnd: *mut std::ffi::c_void, f: f64) {
+    let fm = f;   // escala del monitor: se guarda en ZONA_F para que el hilo de respaldo detecte cambios de pantalla
+    let f = escala_region(f);
     let z = ZONA.lock().unwrap_or_else(|e| e.into_inner()).clone();
     let cl = |v: f64| v.max(-32000.0).min(32000.0) as i32;
     unsafe {
@@ -107,15 +118,19 @@ fn zona_aplicar(hwnd: *mut std::ffi::c_void, f: f64) {
         }
         if SetWindowRgn(hwnd, dst, 1) == 0 { DeleteObject(dst); }   // si falla, la region sigue siendo nuestra
     }
-    ZONA_F.store(f.to_bits(), Ordering::Relaxed);
+    ZONA_F.store(fm.to_bits(), Ordering::Relaxed);
     ZONA_VIEJA.store(0, Ordering::Relaxed);
 }
 
 /// La pagina manda cada vez que cambia el diseño (globo, lista, capsula, Ajustes, mover, animaciones) los rectangulos de lo
 /// que se ve y se toca, en px CSS. Rust los convierte con la escala del monitor donde esta la ventana AHORA.
 #[tauri::command]
-fn zona(window: WebviewWindow, r: Vec<[f64; 4]>) {
+fn zona(window: WebviewWindow, r: Vec<[f64; 4]>, dpr: Option<f64>) {
     let r: Vec<[f64; 4]> = r.into_iter().filter(|a| a.iter().all(|v| v.is_finite())).take(32).collect();
+    #[cfg(windows)]
+    if let Some(d) = dpr { if d.is_finite() && d >= 0.5 && d <= 8.0 { PAGINA_DPR.store(d.to_bits(), Ordering::Relaxed); } }
+    #[cfg(not(windows))]
+    let _ = dpr;
     *ZONA.lock().unwrap_or_else(|e| e.into_inner()) = r;
     #[cfg(windows)]
     {
@@ -346,6 +361,16 @@ fn main() {
             #[cfg(not(windows))]
             let _ = (win, ev);
         })
+        // (18-nov) "Salir" funciona aunque la pagina este muerta (17-nov no cerraba)
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == "kodama-salir" {
+                let h = app.clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_secs(2));
+                    h.exit(0);
+                });
+            }
+        })
         .setup(|app| {
             // (28-oct, isla 2) SOLO macOS: app "accesoria" (sin icono en el Dock, sin menu de aplicacion arriba a la izquierda: antes la barra de menus decia
             // "kodama  File  Edit  View  Window" mientras la mascota estaba activa). Vale para la isla y para la mascota normal. El icono de la barra de menus
@@ -371,7 +396,8 @@ fn main() {
             let ah = app.handle().clone();
             let _ = w.with_webview(move |wv| unsafe {
                 use webview2_com::Microsoft::Web::WebView2::Win32::{ICoreWebView2_19, ICoreWebView2Controller4, ICoreWebView2File,
-                    ICoreWebView2WebMessageReceivedEventArgs2, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW};
+                    ICoreWebView2WebMessageReceivedEventArgs2, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW,
+                    COREWEBVIEW2_PROCESS_FAILED_KIND, COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED};
                 use windows_core::Interface;
                 let ctl = wv.controller();
                 // (27-oct, soltar 2) "prohibido" al arrastrar un archivo desde el Explorador: la ventana nace oculta y la muestra la pagina; el destino
@@ -386,6 +412,23 @@ fn main() {
                     if let Ok(c19) = core.cast::<ICoreWebView2_19>() {
                         let _ = c19.SetMemoryUsageTargetLevel(COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW);
                     }
+                    // (17-nov) Si WebView2 se cae (cambio de pantalla, filtro azul, GPU), la ventana quedaba en NEGRO con kodama.exe vivo. Proceso del navegador de WebView2 caido -> Kodama se reinicia solo; render o GPU caido -> se recarga la pagina.
+                    let ah3 = ah.clone();
+                    let core3 = core.clone();
+                    let hf = webview2_com::ProcessFailedEventHandler::create(Box::new(move |_sender, args| {
+                        if let Some(args) = args {
+                            let mut kind = COREWEBVIEW2_PROCESS_FAILED_KIND(0);
+                            let _ = args.ProcessFailedKind(&mut kind);
+                            if kind == COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED {
+                                ah3.restart();
+                            } else {
+                                let _ = core3.Reload();
+                            }
+                        }
+                        Ok(())
+                    }));
+                    let mut token_pf = 0i64;
+                    let _ = core.add_ProcessFailed(&hf, &mut token_pf);
                     // La pagina, al recibir el drop de WebView2, manda postMessageWithAdditionalObjects("kodama-soltar", files): aca salen las
                     // RUTAS reales (ICoreWebView2File::Path) y se le devuelven a la pagina con el evento "kodama-soltar".
                     let ah2 = ah.clone();

@@ -20,6 +20,8 @@ from kodama_chats import (
 )
 from kodama_permisos import permisos_pendientes
 from kodama_medidor import _EST, uso_plan
+import kodama_extras   # (18-nov) modulos opcionales: pausas solo si esta encendido
+import kodama_prefs
 from kodama_archivos import _archivos_de, _ficha_archivo
 
 
@@ -85,7 +87,7 @@ def contexto_chat(cmd):
     s = next((x for x in grupos_app.catalogo()["sesiones"].values() if x["cli"] == cli), None) if cli else None
     if not s or not s.get("cwd"):
         return None
-    tr = os.path.join(config.HOME, ".claude", "projects", config.clave_carpeta(s["cwd"]), cli + ".jsonl")
+    tr = config.transcript_de(s["cwd"], cli)
     try:
         with open(tr, "rb") as f:
             f.seek(max(0, os.path.getsize(tr) - 400000)); cola = f.read().decode("utf-8", "ignore")
@@ -113,7 +115,7 @@ def pasos_chat(cmd, turnos=15):
     s = next((x for x in grupos_app.catalogo()["sesiones"].values() if x["cli"] == cli), None) if cli else None
     if not s or not s.get("cwd"):
         return []
-    tr = os.path.join(config.HOME, ".claude", "projects", config.clave_carpeta(s["cwd"]), cli + ".jsonl")
+    tr = config.transcript_de(s["cwd"], cli)
     try:
         with open(tr, "rb") as f:
             f.seek(max(0, os.path.getsize(tr) - 1_500_000)); lineas = f.read().decode("utf-8", "ignore").splitlines()[1:]
@@ -180,13 +182,28 @@ def firma_estado():
             int(time.time() // 15) if ejec else 0)
 
 
+_AGENTES = {"t": 0.0, "v": None}
+
+
+def agentes_cache():
+    """(07-nov) Que IA de codigo hay en esta PC (config.agentes_presentes), recalculado como mucho cada 60 s. Va en el
+    estado como "_agentes" (guion bajo: la app no lo toma por un chat). Si falla, {"claude": True}: la app se ve como antes."""
+    if _AGENTES["v"] is None or time.time() - _AGENTES["t"] >= 60:
+        try:
+            v = config.agentes_presentes()
+        except Exception:
+            v = {"claude": True}
+        _AGENTES.update(t=time.time(), v=v)
+    return _AGENTES["v"]
+
+
 def historial():
     """(14-oct, rendimiento) Cache: solo se recalcula si cambio algun archivo o pasaron 20 s (por los "hace N min" y
     las caducidades). Antes se rearmaba entero cada 4 s por la mascota y cada cambio por el celular."""
     f = firma_estado()
     if _HIST["v"] is None or _HIST["firma"] != f or time.time() - _HIST["t"] >= 20:
         _HIST.update(firma=f, t=time.time(), v=_historial())
-    v = _HIST["v"]
+    v = dict(_HIST["v"], _agentes=agentes_cache())
     # (14-oct) el chat que estas mirando en la app de Claude (cambia rapido: va fuera del cache)
     cli = mirando_chat()
     cmd = (elegidos().get(cli) or (None,))[0] if cli else None
@@ -293,6 +310,16 @@ def _historial():
     uso = uso_plan()
     if uso:
         out["_uso"] = uso
+    en_sil, urgentes = kodama_prefs.estado_silencio()   # (05-nov) horas de silencio y alerta del plan: las lee el gato
+    if en_sil:
+        out["_silencio"], out["_silencio_urgentes"] = True, urgentes
+    if kodama_prefs.ULTIMA_ALERTA and time.time() - kodama_prefs.ULTIMA_ALERTA.get("ts", 0) < 600:
+        out["_alerta_uso"] = dict(kodama_prefs.ULTIMA_ALERTA)
+    if kodama_prefs.ULTIMO_EVENTO and not en_sil and time.time() - kodama_prefs.ULTIMO_EVENTO.get("ts", 0) < 600:
+        out["_evento"] = dict(kodama_prefs.ULTIMO_EVENTO)
+    kp = kodama_extras.modulo("pausas")   # (06-nov) agua y levantarse: solo lo muestra el gato de la PC; apagado = no se muestra
+    if kp is not None and kp.VISTA["aviso"]:
+        out["_pausa"] = dict(kp.VISTA["aviso"])
     out["_seleccion"] = seleccion()
     out["_version"] = str(int(max(os.path.getmtime(os.path.join(WEB, f)) for f in os.listdir(WEB))))
     return out

@@ -19,7 +19,7 @@ import time
 
 import config
 
-PROY = os.path.join(config.HOME, ".claude", "projects")
+PROYS = [os.path.join(d, "projects") for d in config.dirs_claude()]   # (04-nov) una por cada carpeta de Claude Code (perfiles)
 GUARDADO = os.path.join(config.ESTADO, "estimador.json")      # factores calibrados (para no empezar de cero)
 EXACTOS = os.path.join(config.ESTADO, "uso_exacto.jsonl")     # lecturas exactas por get_usage (las escribe el medidor)
 HORAS = 30
@@ -47,7 +47,7 @@ def _peso(modelo):
 def actualizar():
     """Lee lo NUEVO de los transcripts modificados en las ultimas 30 h (la primera vez lee todo eso)."""
     desde = time.time() - HORAS * 3600
-    for f in glob.glob(os.path.join(PROY, "**", "*.jsonl"), recursive=True):
+    for f in [x for raiz in PROYS for x in glob.glob(os.path.join(raiz, "**", "*.jsonl"), recursive=True)]:
         try:
             st = os.stat(f)
         except OSError:

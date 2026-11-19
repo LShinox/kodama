@@ -12,7 +12,8 @@ Doc: developers.openai.com/codex/hooks y /codex/config-advanced (lo confirmo el 
   app y a la mascota). Las sesiones que lanza un chat de Claude (p. ej. `codex exec` para imagenes) NO se anotan: se
   reconoce porque el transcript dice originator "codex_exec" (21-oct) o porque claude.exe esta entre los procesos padre.
 - "terminó" sale de `notify` (trae el ultimo mensaje); los permisos van por el hook PermissionRequest.
-- Responder un mensaje a una sesion de Codex abierta: todavia NO (no hay forma confirmada de escribirle a la TUI).
+- Responderle (04-nov): solo mientras espera en el hook Stop (companero_puente, igual que con Claude; la doc de hooks de Codex dice que el `reason` se vuelve un mensaje nuevo tuyo).
+  Fuera de esa espera no hay via: `codex exec resume` falla con un hilo abierto (issues openai/codex #37403 y #39823) y app-server no se conecta a una TUI ya abierta. Ver kodama-difusion.
 """
 import io
 import json
@@ -48,7 +49,9 @@ def titulo_hilo(sid):
 
 
 def es_exec(sid, ruta=None):
-    """(21-oct) True si la sesion es un `codex exec` (sin ventana: la lanza un programa, p. ej. un chat de Claude que
+    """(16-nov) Tambien True si la tarea la lanza el plugin de Codex para Claude Code (originator "Claude Code") o es un
+    subagente de Codex (source con la clave "subagent").
+    (21-oct) True si la sesion es un `codex exec` (sin ventana: la lanza un programa, p. ej. un chat de Claude que
     genera una imagen). Lo dice la 1.a linea del transcript: originator "codex_exec" / source "exec" (la app de Codex
     escribe "Codex Desktop"). Hace falta porque la cadena de procesos padre no siempre llega a claude.exe."""
     try:
@@ -64,7 +67,8 @@ def es_exec(sid, ruta=None):
             return False
         with open(ruta, encoding="utf-8") as f:
             p = (json.loads(f.readline()) or {}).get("payload") or {}
-        return p.get("originator") == "codex_exec" or p.get("source") == "exec"
+        return (p.get("originator") in ("codex_exec", "Claude Code") or p.get("source") == "exec"
+                or (isinstance(p.get("source"), dict) and "subagent" in p["source"]))
     except (OSError, ValueError, AttributeError):
         return False
 
@@ -132,8 +136,23 @@ def main():
         if not d.get("last_assistant_message"):
             d["last_assistant_message"] = ultimo_mensaje(d.get("transcript_path")) or "Codex terminó su turno."
         correr("companero_hook", d)
+        if stop_con_espera():
+            correr("companero_puente", d)   # (04-nov) espera tu respuesta como con Claude: si llega, Codex sigue con ella ({"decision": "block"})
     elif ev in ("SessionStart", "UserPromptSubmit", "SessionEnd"):
         correr("companero_hook", d)
+
+
+def stop_con_espera():
+    """(04-nov) True si el hook Stop de Kodama en ~/.codex/hooks.json ya tiene el timeout largo (lo pone instalar.py). Con el viejo (15 s) Codex mataria la espera y mostraria "Stop Failed".
+    "codex_espera": false en config.json la apaga aunque el timeout sea largo: solo avisos y permisos (asi lo usa LShinox)."""
+    if config._C.get("codex_espera") is False:
+        return False
+    try:
+        d = json.load(open(os.path.join(os.path.expanduser("~"), ".codex", "hooks.json"), encoding="utf-8"))
+        return any("companero_codex.py" in (h.get("command") or "") and (h.get("timeout") or 0) >= 600
+                   for e in d["hooks"]["Stop"] for h in e.get("hooks", []))
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
 
 
 def ultimo_mensaje(ruta):

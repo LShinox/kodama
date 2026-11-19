@@ -37,4 +37,5 @@ pruebas/probar_aparatos.py
 animacion/animar_gato.jsx
 animacion/verificar_gato.jsx
 herramientas/consumo_semana.py
-herramientas/salud_pc.ps1
+marco/marco.json
+marco/enlace.txt

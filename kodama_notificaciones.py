@@ -14,11 +14,18 @@ from kodama_nucleo import AUSENTE_SEG, BASE, CHATS, COLA, RESP, api, guardar_con
 from kodama_texto import clasificar, es_entrega_kodama, pendientes, redactar, titulo_aviso, tr
 from kodama_push import push_a_todos
 from kodama_chats import info, mirando_chat, mirando_claude, sesiones, silenciado
+import kodama_prefs
 from kodama_permisos import PERM_TG
 
 
 REINTENTAR = []   # avisos de Telegram que fallaron: se reintentan a 1, 3 y 10 min (14-oct)
 ESPERAS_REINTENTO = (60, 180, 600)
+
+
+def podar_ultimo_aviso(ult, ahora, max_s=600):
+    """(18-nov) ultimo_aviso solo sirve 5 min: se borran las claves de mas de 10 min (hub.json llego a 180 KB)."""
+    for k in [k for k, t in ult.items() if not isinstance(t, (int, float)) or ahora - t > max_s]:
+        del ult[k]
 
 
 def reintentar_avisos(conf):
@@ -45,11 +52,14 @@ def enviar_aviso(conf, item, agrupado=False, reintento=0):
     titulo = titulo_aviso(emo, nombre, tipo, n)
     if not reintento and silenciado(conf, cmd):   # chat silenciado: no avisa (la app lo sigue mostrando)
         return None
+    if not reintento and kodama_prefs.silencio_ahora(tipo):   # (05-nov) horas de silencio: igual que un chat silenciado
+        return None
     if not reintento and mirando_chat() == item["session_id"]:   # (14-oct) lo estas mirando en la app de Claude
         log(f"sin aviso: estas mirando {cmd}")
         return None
     if not reintento:
         ult = conf.setdefault("ultimo_aviso", {})
+        podar_ultimo_aviso(ult, ahora)
         clave = f"{cmd}|{tipo}"
         if tipo == "termino" and ahora - ult.get(clave, 0) < 300:      # "terminó": uno por chat cada 5 min
             return None
@@ -69,6 +79,9 @@ def enviar_aviso(conf, item, agrupado=False, reintento=0):
             completo = bool(pid) and 0 < len(txt) <= 180
             threading.Thread(target=push_a_todos, args=(titulo, txt if completo else linea, cmd, tipo, pendientes(conf)),
                              kwargs={"permiso": pid, "completo": completo}, daemon=True).start()
+    if not kodama_prefs.leer().get("telegram_avisos", True):   # (06-nov, LShinox: el chat del bot se llena) solo la app avisa
+        guardar_conf(conf)
+        return emo, nombre, tipo
     # Telegram: titular + la linea clave + el resto plegado (blockquote expandable) + botones
     resto = redactar(item["texto"].strip())
     if len(resto) > 3000:
@@ -244,5 +257,5 @@ def vaciar_espera(conf, forzar=False):
     lista = " · ".join(f"{emo} {nombre} ({ETQ.get(tipo, tipo)})".strip() for emo, nombre, tipo in enviados)
     titulo = tr("{k} chats te esperan", k=len(enviados)) if len(enviados) > 1 else f"{enviados[0][0]} {enviados[0][1]}"
     threading.Thread(target=push_a_todos, args=(titulo, lista, "", "grupo", pendientes(conf)), daemon=True).start()
-    if len(enviados) > 1:
+    if len(enviados) > 1 and kodama_prefs.leer().get("telegram_avisos", True):
         api("sendMessage", chat_id=conf["dueno"], text=f"🔔 <b>{_html.escape(titulo)}</b>\n{_html.escape(lista)}", parse_mode="HTML")

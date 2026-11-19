@@ -58,7 +58,7 @@ def leer_token():
 TOKEN = leer_token()
 
 
-def api(metodo, **params):
+def api(metodo, _silencio=False, **params):
     if not TOKEN:   # (21-oct) sin Telegram configurado: no se llama a nada
         return {"ok": False}
     data = urllib.parse.urlencode({k: (json.dumps(v) if isinstance(v, (dict, list)) else v)
@@ -70,7 +70,8 @@ def api(metodo, **params):
             SALUD["telegram_ok"] = time.time()
             return res
     except Exception as e:                # nunca loguear la URL (lleva el token)
-        log(f"error {metodo}: {type(e).__name__}")
+        if not _silencio:
+            log(f"error {metodo}: {type(e).__name__}")
         return {"ok": False}
 
 

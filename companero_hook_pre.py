@@ -44,10 +44,29 @@ def categoria(tool):
     return ""
 
 
+def cuadro_final(s, sid):
+    """(04-nov, idea de clawd #1326) La app de escritorio de Claude cierra muchos turnos con un cuadro (resumen, pregunta y botones): mcp__ccd_turn__wrap_up, una herramienta
+    interna sin documentar. No pasa por PermissionRequest y puede no quedar en el ultimo mensaje. Si trae pregunta se anota en estado\\wrapup\\<sesion>.json para el aviso del
+    hook Stop (kodama_comun.cuadro_final). Solo esta herramienta paga el import de json. Si algo cambia o falla, no se anota nada."""
+    if not sid or len(sid) > 80 or not sid.replace("-", "").replace("_", "").isalnum():
+        return
+    import json
+    t = json.loads(s).get("tool_input") or {}
+    if not (t.get("ask") or "").strip():
+        return
+    carpeta = os.path.join(os.path.dirname(BASE), "wrapup")
+    os.makedirs(carpeta, exist_ok=True)
+    acciones = [str(a.get("label") or "")[:60] for a in (t.get("actions") or []) if isinstance(a, dict) and a.get("label")][:4]
+    with open(os.path.join(carpeta, sid + ".json"), "w", encoding="utf-8") as f:
+        json.dump({"ts": time.time(), "recap": str(t.get("recap") or "")[:1500], "ask": str(t["ask"])[:500], "acciones": acciones}, f, ensure_ascii=False)
+
+
 def main():
     try:
         s = sys.stdin.buffer.read(65536).decode("utf-8", "replace")   # los dos campos vienen al principio
         sid, tool = valor(s, "session_id"), valor(s, "tool_name")
+        if tool == "mcp__ccd_turn__wrap_up":
+            cuadro_final(s, sid)
         cat = categoria(tool)
         if not cat or not sid or len(sid) > 80 or not sid.replace("-", "").replace("_", "").isalnum():
             return

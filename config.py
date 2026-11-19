@@ -26,6 +26,7 @@ WEB = os.path.join(APP_DIR, "web")
 TS_DIR = os.path.join(APP_DIR, "ts")
 RESPALDOS = os.path.join(APP_DIR, "respaldos")
 HOME = os.path.expanduser("~")
+CLAUDE_DIR_DEFECTO = os.path.join(HOME, ".claude")
 # (22-oct) carpeta del chat de Kodama (antes "Medidor", en APP_DIR\medidor): fuera de la carpeta del programa, asi ese
 # chat no ve el codigo, y la app de Claude lo muestra como "Kodama"
 CHAT_DIR = os.path.join(HOME, "Kodama")
@@ -62,6 +63,34 @@ def clave_carpeta(ruta):
     """Como nombra Claude Code la carpeta del proyecto en ~/.claude/projects: todo lo que no es letra, numero o
     guion pasa a "-" (la carpeta Videos\\Musica del usuario "yo" -> C--Users-yo-Videos-Musica)."""
     return re.sub(r"[^A-Za-z0-9-]", "-", os.path.normpath(ruta))
+
+
+def dirs_claude():
+    """(04-nov) Carpetas de datos de Claude Code en esta PC, sin repetidos: la por defecto (siempre), las de config.json
+    "perfiles_claude" y la de CLAUDE_CONFIG_DIR. Las que no sean la por defecto van solo si la carpeta existe."""
+    cand = [CLAUDE_DIR_DEFECTO] + [os.path.expanduser(p) for p in (_C.get("perfiles_claude") or []) if p]
+    env = os.environ.get("CLAUDE_CONFIG_DIR", "").strip()
+    if env:
+        cand.append(os.path.expanduser(env))
+    out, vistos = [], set()
+    for i, d in enumerate(cand):
+        n = os.path.normcase(os.path.normpath(d))
+        if n in vistos or (i > 0 and not os.path.isdir(d)):
+            continue
+        vistos.add(n)
+        out.append(d)
+    return out
+
+
+def transcript_de(cwd, cli):
+    """(04-nov) Transcript de la sesion `cli` del proyecto `cwd`: la primera carpeta de dirs_claude() donde exista; si
+    ninguna, la de la primera carpeta (la por defecto)."""
+    dirs = dirs_claude()
+    for d in dirs:
+        p = os.path.join(d, "projects", clave_carpeta(cwd), cli + ".jsonl")
+        if os.path.exists(p):
+            return p
+    return os.path.join(dirs[0], "projects", clave_carpeta(cwd), cli + ".jsonl")
 
 
 CHATS = {}     # clave de carpeta -> (id, nombre, emoji)
@@ -132,3 +161,20 @@ def es_personal(clave_proyecto):
 def dir_app_claude():
     """Carpeta de datos de la app de Claude. (28-oct) Lo propio de cada sistema vive en kodama_plataforma."""
     return kodama_plataforma.dir_datos_app_claude(HOME)
+
+
+def agentes_presentes(home=None, which=None, app_claude=None):
+    """(07-nov) Que IA de codigo hay en esta PC, por carpeta de datos (sin correr nada). Kodama tambien sirve a quien
+    usa solo Codex, solo OpenCode (con ChatGPT, DeepSeek o modelos gratis) o solo Antigravity. "claude" = Claude Code:
+    su carpeta ~/.claude, el comando `claude` en el PATH o la carpeta de datos de la app de Claude.
+    `home`, `which` y `app_claude` existen para las pruebas (por defecto: HOME, shutil.which y dir_app_claude())."""
+    import shutil
+    h = home or HOME
+    w = which or shutil.which
+    app = app_claude if app_claude is not None else (dir_app_claude() if home is None else "")
+    return {
+        "claude": os.path.isdir(os.path.join(h, ".claude")) or bool(w("claude")) or bool(app and os.path.isdir(app)),
+        "codex": os.path.isdir(os.path.join(h, ".codex")),
+        "antigravity": os.path.isdir(os.path.join(h, ".gemini")),
+        "opencode": os.path.isdir(os.path.join(h, ".config", "opencode")),
+    }

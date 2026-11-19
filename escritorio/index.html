@@ -52,8 +52,16 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
      Va fuera de #pie/#pj (la escala .72 de la capsula no la achica) y cuelga de la esquina de arriba a la derecha de la caja del gato. */
   #otros { position:absolute; right:22px; bottom:132px; min-width:22px; height:22px; border-radius:11px; background:#d93036; color:#fff; font-size:12.5px; font-weight:700; line-height:1; display:none; align-items:center; justify-content:center; padding:0 6px; box-sizing:border-box; box-shadow:0 0 0 2px #fff, 0 3px 8px rgba(0,0,0,.4); cursor:pointer; z-index:32; font-variant-numeric:tabular-nums; transition:bottom .9s cubic-bezier(.3,.7,.3,1); }
   #otros.grave { background:#f5a623; color:#2a1d00; }
+  #vnueva { position:absolute; right:112px; bottom:132px; width:22px; height:22px; border-radius:11px; background:#2F7FC1; color:#fff; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 2px #fff, 0 3px 8px rgba(0,0,0,.4); cursor:pointer; z-index:32; }   /* (04-nov) flecha azul: hay una version nueva (abre Ajustes > Actualizaciones) */
+  #vnueva[hidden] { display:none; }
+    body.con-panel #vnueva, body.caps:has(#asomo.si) #vnueva, body.caps:has(#burbuja.si) #vnueva { display:none !important; }
     body.con-panel #otros, body.caps:has(#asomo.si) #otros, body.caps:has(#burbuja.si) #otros { display:none !important; }   /* en Ajustes y con la capsula estirada (aviso o globo adentro) la insignia no se muestra */
   body.duerme #otros { bottom:112px; } body.caps #otros { right:30px; bottom:128px; } body.caps.duerme #otros { bottom:128px; }
+  body.duerme #vnueva { bottom:112px; } body.caps #vnueva { right:120px; bottom:128px; } body.caps.duerme #vnueva { bottom:128px; }
+  body.isla #vnueva { display:none !important; }
+  #animotxt { position:absolute; right:10px; bottom:172px; max-width:220px; background:var(--card); color:var(--tx); font-size:12px; padding:4px 10px; border-radius:12px; box-shadow:var(--sombra); pointer-events:none; z-index:33; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }   /* (04-nov) por que el gato reacciona: pastilla al pasar el mouse */
+  #animotxt[hidden] { display:none; }
+  body.con-panel #animotxt, body.isla #animotxt { display:none !important; }
   #nombre { display:inline-flex; align-items:center; gap:5px; font-size:13px; background:var(--card); border-radius:99px; padding:3px 10px; box-shadow:var(--sombra); cursor:pointer; max-width:146px; transition:box-shadow .25s; }
   #nombre span.txt { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .pto { width:10px; height:10px; border-radius:50%; flex:none; display:inline-block; }
@@ -243,6 +251,7 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
   body.caps #asomo .t { flex:1 1 100%; } body.caps #asomo .cab { flex-wrap:wrap; row-gap:2px; }
   body.caps #asomo .nav { margin-left:0; } body.caps #asomo .n { color:var(--tx); min-width:0; } body.caps #asomo .l { -webkit-line-clamp:3; color:var(--tx); } body.caps #asomo:hover .l { -webkit-line-clamp:6; }
   body.caps #asomo .r { margin-top:2px; } body.caps #ascerrar { position:absolute; top:8px; right:12px; }
+  #asomo #aspausa { background:transparent; color:var(--tx); box-shadow:inset 0 0 0 1px var(--color, var(--acento)); }
   body.caps #burbuja { padding:14px 16px 14px 20px; min-height:190px; max-height:408px; }
   body.caps #bacc, body.caps #bform, body.caps #destino, body.caps #badj { margin-right:110px; }
   body.caps #bacc { flex-direction:column; align-items:flex-start; gap:4px; } body.caps #bacc .chips, body.caps #bchips { max-height:none; overflow:visible; width:100%; flex:none; }
@@ -265,7 +274,34 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
   body.isla-plano #isla { top:4px; border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.1); }
   body.isla-plano #isla.hov { border-radius:18px; } body.isla-plano #isla.abierta { border-radius:24px; }
   #islaCab { position:relative; height:var(--nh); cursor:pointer; }
-  #islaDer { position:absolute; right:0; top:0; width:var(--der, 54px); height:var(--nh); display:flex; align-items:center; justify-content:center; }
+  #islaDer { position:absolute; right:0; top:0; width:var(--der, 54px); height:var(--nh); display:flex; align-items:center; justify-content:flex-start; z-index:4; }   /* (04-nov) el punto pegado al gato; z-index: la cola pasa por detras */
+  /* (04-nov) "Isla cerrada muestra": el uso del plan (o la hora) a la izquierda del punto; se oculta con la pastilla abierta */
+  #ajpc .bu { padding:11px 14px; } #ajpc .bu + .bu { border-top:1px solid var(--linea); }
+  #ajpc .bu-c { display:flex; justify-content:space-between; align-items:baseline; gap:10px; font-size:13px; } #ajpc .bu-c b { font-size:22px; font-weight:700; }
+  #ajpc .bu-p { height:8px; border-radius:99px; background:var(--btn); overflow:hidden; margin-top:6px; }
+  #ajpc .bu-p i { display:block; height:100%; width:0; border-radius:99px; background:var(--verde); transition:width .5s ease; } #ajpc .bu-p i.alto { background:#d99a2b; } #ajpc .bu-p i.lleno { background:var(--rojo); }
+  #ajpc .bu-r { font-size:12px; color:var(--sub); margin-top:5px; min-height:15px; }
+  #ajpc .aj-hora { border:0; border-radius:8px; background:var(--btn); color:var(--tx); font:inherit; padding:4px 8px; margin-left:auto; }
+  #ajpc .aj-txt { border:0; border-radius:8px; background:var(--btn); color:var(--tx); font:inherit; padding:4px 8px; margin-left:auto; min-width:0; width:58%; box-sizing:border-box; }   /* (05-nov) como .aj-hora */
+  #ajpc .aj-area { display:block; box-sizing:border-box; width:calc(100% - 24px); margin:0 12px; border:0; border-radius:10px; background:var(--btn); color:var(--tx); font:inherit; padding:8px; resize:none; }
+  #ajpc [hidden] { display:none !important; }
+  #ajpc .ajr-tit { font-size:14px; flex:1; min-width:0; }
+  #ajpc .ajr-ev { padding:9px 14px; } #ajpc .ajr-ev b { display:block; font-size:13.5px; } #ajpc .ajr-tx { font-size:12.5px; color:var(--sub); margin-top:2px; word-break:break-all; } #ajpc .ajr-h { font-size:11.5px; color:var(--sub); margin-top:2px; }
+  #ajpc .ajr-err { font-size:12px; color:var(--rojo); padding:0 14px 8px; }
+  #ajpc .ajr-fila2 { display:flex; flex-wrap:wrap; gap:6px; padding:8px 14px 10px; }
+  #ajpc .ajr-bt2 { border:0; border-radius:10px; padding:7px 12px; font:inherit; font-size:13px; background:var(--btn); color:var(--tx); cursor:pointer; }
+  #ajpc .ajr-bt2:disabled { opacity:.5; }
+  #ajpc .ia-log { max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:10px 12px; }
+  #ajpc .ia-m { max-width:86%; padding:7px 10px; border-radius:12px; background:var(--btn); color:var(--tx); font-size:13px; white-space:pre-wrap; word-break:break-word; align-self:flex-start; }
+  #ajpc .ia-m.yo { align-self:flex-end; background:var(--verde); color:#fff; }
+  #ajpc .ia-acc { display:flex; gap:8px; align-items:center; padding:0 12px; }
+  #ajpc .ia-acc .bt { margin-top:8px; flex:1; }
+  #ajpc .ia-acc .ajr-bt2 { margin-top:8px; }
+  #islaInfo { font-size:11px; font-weight:600; color:#d8d1c7; white-space:nowrap; margin-left:6px; font-variant-numeric:tabular-nums; }
+  #islaInfo:empty { display:none; }
+  #islaInfo.alto { color:#e8b04a; }
+  #islaInfo.lleno { color:#ef6a5a; }
+  #isla.abierta #islaInfo { display:none; }
   #islaPto { width:9px; height:9px; border-radius:50%; background:#6b645c; flex:none; }
   #islaPto.trabaja { background:#8fcf5f; animation:islaPulso 1.6s ease-in-out infinite; } #islaPto.dormido { background:#3d3935; }
   @keyframes islaPulso { 50% { opacity:.35; transform:scale(.8); } }
@@ -278,7 +314,17 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
   body.isla:not(.isla-plano) #isla::before, body.isla:not(.isla-plano) #isla::after { content:""; position:absolute; top:0; height:var(--isla-r); width:calc(var(--isla-r) + .5px); pointer-events:none; }
   body.isla:not(.isla-plano) #isla::before { right:calc(100% - .5px); opacity:0; transition:opacity .2s ease;
     background:radial-gradient(circle at 0 100%, transparent calc(var(--isla-r) - .6px), #000 calc(var(--isla-r) + .4px)); }
-  body.isla:not(.isla-plano) #isla.abierta::before { opacity:1; }
+  body.isla:not(.isla-plano) #isla.abierta::before, body.isla:not(.isla-plano) #isla.hov::before { opacity:1; }
+  /* (04-nov) mouse encima con muesca: crece la isla ENTERA (tambien bajo la muesca), sin escalon ("se ve cortado") */
+  body.isla:not(.isla-plano) #isla.hov:not(.abierta) { border-radius:0 0 18px 18px; }
+  /* (04-nov) Ajustes: el gato de la pastilla cae al hueco del titulo creciendo, y vuelve a subir al cerrar. Por encima de #ajpc solo durante el viaje */
+  body.isla-morf #isla { z-index:31; }
+  body.isla-morf #pie { pointer-events:none; transition:none !important; }
+  body.isla-arr #pie { transition:none !important; cursor:grabbing; }   /* (04-nov) el gato sigue al puntero (islaArrPintar) */
+  body.isla-nace #isla, body.isla-nace #pie { transition:none !important; }
+  /* (04-nov) como en Windows la capsula se estira hasta ser Ajustes, aca la pastilla negra se estira hasta ser la ventana, y vuelve */
+  #islaMorph { display:none; position:absolute; box-shadow:0 10px 26px rgba(0,0,0,.32); z-index:29; pointer-events:none; }
+  .ajgato.esperando > div { visibility:hidden; }
   body.isla:not(.isla-plano) #isla::after { left:calc(100% - .5px);
     background:radial-gradient(circle at 100% 100%, transparent calc(var(--isla-r) - .6px), #000 calc(var(--isla-r) + .4px)); }
   /* SOLO pruebas de CI (Rust avisa sim:true cuando la muesca es simulada): una muesca falsa negra debajo de la pastilla, para que las capturas muestren como se funde con ella */
@@ -307,11 +353,17 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
   body.isla #asomo .n { color:var(--tx); } body.isla #asomo .l { color:var(--tx); -webkit-line-clamp:3; } body.isla #asomo:hover .l { -webkit-line-clamp:6; }
   body.isla #asomo .l { margin-top:6px; }   /* la X de cerrar (arriba a la derecha) no tapa el principio ni el final de la primera linea del mensaje */
   body.isla #ascerrar { position:absolute; top:2px; right:10px; width:28px; height:28px; }
+  body.isla #asomo .cab { box-sizing:border-box; padding-right:40px; }   /* (06-nov) la X tapaba el contador "1 de 2" */
   body.isla #burbuja { padding:6px 16px 14px 18px; max-height:540px; overflow-y:auto; scrollbar-width:thin; }
   #isla.tile #asomo, #isla.tile #burbuja { padding-left:0; }
   body.isla #asnom::before, body.isla #paranom::before { content:""; display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--color, #999); margin-right:6px; }
   body.isla #lista { position:relative; right:auto; bottom:auto; width:auto; max-height:440px; z-index:auto; background:none; box-shadow:none; border-radius:0; margin:0 8px 10px; }
   #isla.tile #lista { margin-left:0; }
+  /* (04-nov, usuario) con muesca el gato vive a la derecha de la pastilla: al abrirse sigue a la derecha y el texto va a la izquierda, asi se desplaza sin cruzar la isla */
+  body.isla:not(.isla-plano) #islaTile { left:auto; right:14px; }
+  body.isla:not(.isla-plano) #isla.tile #islaIn { padding-left:0; padding-right:100px; }
+  body.isla:not(.isla-plano) #isla.tile #asomo, body.isla:not(.isla-plano) #isla.tile #burbuja { padding-left:18px; padding-right:0; }
+  body.isla:not(.isla-plano) #isla.tile #lista { margin-left:8px; margin-right:0; }
   /* Ajustes, opcion A (la de siempre en pantalla): el MISMO panel flotante de la mascota normal (380 x 560), centrado bajo la pastilla; la pastilla sigue cerrada */
   body.isla #ajpc { z-index:30; }
   /* (29-oct) la sombra DEBE caber en la ventana (440 x 640, panel 380 x 560 a 30 px de cada lado y 24 px del fondo): con 0 14px 34px la ventana la cortaba en seco y se veia un rectangulo gris alrededor */
@@ -349,12 +401,14 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
 </div>
 <div id="asomo" role="status" aria-live="polite"><div class="t"><div class="cab"><span class="n" id="asnom"></span><span class="etq" id="aschip"></span>
   <span class="nav" id="asnav"><button class="ib" id="asant" data-t aria-label="Aviso anterior">‹</button><span id="asi"></span><button class="ib" id="assig" data-t aria-label="Aviso siguiente">›</button></span></div><div class="l" id="aslin"></div></div>
-  <button class="r" id="asresp" data-t title="Responder (Ctrl+Shift+F11)">Responder</button><button class="ib" id="ascerrar" data-t aria-label="Descartar aviso">✕</button></div>
+  <button class="r" id="asresp" data-t title="Responder (Ctrl+Shift+F11)">Responder</button><button class="r" id="aspausa" data-t hidden>Después</button><button class="ib" id="ascerrar" data-t aria-label="Descartar aviso">✕</button></div>
 <div id="lista"></div>
 <div id="pborr" role="button" tabindex="0"></div>
 <div id="caps" aria-hidden="true"></div><div id="morph" aria-hidden="true"></div>
 <div id="pie"><div id="pj" role="button" tabindex="0"></div><div id="nombre"><span class="pto" id="nompto"></span><span class="txt" id="nomtxt">…</span>▾</div></div>
 <span id="otros" role="button" tabindex="0" data-t title="Chats que te esperan"></span>
+<span id="vnueva" role="button" tabindex="0" hidden>↑</span>
+<div id="animotxt" hidden></div>
 <div id="aro" aria-hidden="true"></div><div id="arotxt" aria-hidden="true" data-t>Suéltalo aquí</div>
 <div id="asa" data-t title="Arrastrar"></div>
 <!-- (22-oct) Ajustes dentro de la mascota: lo abre "Ajustes…" del menu de la bandeja -->
@@ -374,22 +428,32 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
         <div class="fi"><span data-t>Con cápsula</span><span class="sw" data-k="capsula"></span></div>
         <div class="fi" id="aj-capcolfila"><span data-t>Color de la cápsula</span><div class="sg" id="aj-capcol"><span data-v="blanca" data-t>Blanca</span><span data-v="negra" data-t>Negra</span></div></div>
         <div class="fi"><span data-t>Sonidos</span><span class="sw" data-k="sonido"></span></div>
+        <div class="fi ir" data-accion="sonidosCarpeta"><span data-t>Sonidos propios</span><span class="v"></span></div>
+        <div class="fi ir" data-accion="sonidosProbar"><span data-t>Volver a leer y probar</span><span class="v"></span></div>
         <div class="fi"><span data-t>Animaciones completas</span><span class="sw" data-k="animCompletas"></span></div>
         <div class="fi"><span data-t>Sueño profundo</span><span class="sw" data-k="sueno"></span></div>
         <div class="fi" id="aj-suenomin-fila"><span data-t>Minutos sin cambios</span><div class="sg" id="aj-suenomin"><span data-v="2">2</span><span data-v="5">5</span><span data-v="10">10</span></div></div>
+        <div class="fi"><span data-t>Reacciona a la PC</span><span class="sw" data-k="animoPc"></span></div>
         <div class="fi ir" data-accion="esquina"><span data-t>Volver a la esquina</span><span class="v"></span></div>
       </div>
       <div class="pie2" data-t>Solo cambia la mascota de esta PC.</div>
       <div class="pie2" data-t>La mascota descansa dentro de un círculo del color de la ventana; al abrir Ajustes se estira hasta ser la ventana y, al cerrarla, vuelve a ser un círculo y la mascota cae adentro.</div>
       <div class="pie2" data-t>Cuando nada cambia, la mascota se queda quieta y casi no gasta CPU. Despierta con un aviso, al pasarle el mouse, con un clic o al abrir Ajustes.</div>
       <div class="pie2" data-t>Encendido: la mascota hace todos los gestos aunque tu sistema tenga los efectos de animación apagados. Apagado: respeta ese ajuste de Windows o iOS. Es de este aparato y no se sincroniza.</div>
+      <div class="pie2" data-t>Pon en esa carpeta un archivo llamado aviso, error o enviado (.wav, .mp3, .ogg o .m4a, hasta 2 MB) para reemplazar ese sonido.</div>
+      <div class="pie2" data-t>El gato suda si la CPU va al máximo, se infla si falta memoria y se cansa con poca batería. Pásale el mouse para ver por qué. Solo se lee mientras está despierto y en pantalla.</div>
+      <div class="pie2" data-t>También reacciona al uso del plan: ladea la cabeza al 80 %, bosteza al 95 % y se queda sin energía al 100 %.</div>
       <div class="cab" data-t>Celular</div>
       <div class="sec"><div class="fi ir" data-accion="conectar"><span data-t>Conectar celular</span><span class="v"></span></div></div>
       <div class="cab" data-t>Más</div>
       <div class="sec">
         <div class="fi ir" data-ir="uso"><span data-t>Uso del plan</span><span class="v"></span></div>
+        <div class="fi ir" data-ir="silencio"><span data-t>Horas de silencio</span><span class="v" id="aj-silv"></span></div>
+        <div class="fi ir" data-ir="integraciones"><span data-t>Integraciones</span><span class="v"></span></div>
+        <div class="fi ir" data-ir="correo"><span data-t>Correo</span><span class="v"></span></div>
+        <div class="fi ir" data-ir="ia"><span data-t>Chat con IA</span><span class="v"></span></div>
         <div class="fi ir" data-ir="reglas"><span data-t>Reglas de permisos</span><span class="v" id="aj-nreglas"></span></div>
-        <div class="fi ir" data-ir="conexion"><span data-t>Conexión con Claude</span><span class="v"></span></div>
+        <div class="fi ir" data-ir="conexion"><span data-t>Conexión con tus IA</span><span class="v"></span></div>
         <div class="fi ir" data-ir="actualiz"><span data-t>Actualizaciones</span><span class="v"><span class="bdg" id="aj-bdg" hidden>1</span></span></div>
         <div class="fi ir" data-accion="reportar"><span data-t>Reportar un problema</span><span class="v"></span></div>
       </div>
@@ -404,16 +468,74 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
       <div class="pie2" data-t>Es la misma mascota en la PC y en el celular.</div>
     </section>
     <section class="pg" data-p="uso"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Uso del plan</h2>
-      <div class="sec" id="aj-uso" hidden><div class="fi"><span id="aj-uso5l"></span><span class="v" id="aj-uso5"></span></div><div class="fi"><span id="aj-usowl"></span><span class="v" id="aj-usow"></span></div></div>
+      <div class="sec" id="aj-uso" hidden>   <!-- (05-nov, idea de claude-island) barras redondas con el % grande -->
+        <div class="bu"><div class="bu-c"><span id="aj-uso5l"></span><b id="aj-uso5"></b></div><div class="bu-p"><i id="aj-uso5b"></i></div><div class="bu-r" id="aj-uso5r"></div></div>
+        <div class="bu"><div class="bu-c"><span id="aj-usowl"></span><b id="aj-usow"></b></div><div class="bu-p"><i id="aj-usowb"></i></div><div class="bu-r" id="aj-usowr"></div></div>
+      </div>
       <div class="pie2" id="aj-uso-nota"></div>
+      <div class="sec aj-sep10"><div class="fi"><span data-t>Avisar al 80, 95 y 100 %</span><span class="sw" id="aj-aluso"></span></div></div>
+      <div class="sec aj-sep10"><div class="fi"><span data-t>Recordar tomar agua y levantarme</span><span class="sw" id="aj-pausas"></span></div></div>
       <div class="sec"><div class="fi"><span data-t>Usar el chat de Kodama para el dato exacto</span><span class="sw" id="aj-lectura"></span></div></div>
       <div class="pie2" id="aj-lectura-nota"></div>
+    </section>
+    <!-- (05-nov, idea de nubi) horas de silencio: valen para el gato, el celular y Telegram -->
+    <section class="pg" data-p="silencio"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Horas de silencio</h2>
+      <div class="sec">
+        <div class="fi"><span data-t>Activar</span><span class="sw" id="aj-sil"></span></div>
+        <div class="fi"><span data-t>Desde</span><input type="time" class="aj-hora" id="aj-sil-d"></div>
+        <div class="fi"><span data-t>Hasta</span><input type="time" class="aj-hora" id="aj-sil-h"></div>
+        <div class="fi"><span data-t>Dejar pasar permisos y preguntas</span><span class="sw" id="aj-sil-u"></span></div>
+      </div>
+      <div class="pie2" data-t>En ese horario no hay sonidos, avisos en pantalla, notificaciones en el celular ni mensajes de Telegram. Los chats siguen trabajando y lo pendiente sigue en la app.</div>
+    </section>
+    <!-- (05-nov) Integraciones: canales y su actividad; todo sale del hub (ruta /api/integraciones) -->
+    <section class="pg" data-p="integraciones"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Integraciones</h2>
+      <div id="aj-int-lista"></div>
+      <div class="sec aj-sep10"><div class="fi"><span data-t>Pasarela local</span><button type="button" class="ajr-bt2" id="aj-int-ruta" data-t>Ver ruta</button></div></div>
+      <div class="pie2" id="aj-int-ruta-txt"></div>
+      <div class="pie2" data-t>WhatsApp no tiene una vía oficial para cuentas personales. Una pasarela no oficial puede hacer que WhatsApp bloquee tu número: úsala bajo tu propio riesgo. Kodama no la instala.</div>
+      <div class="cab" data-t>Actividad</div>
+      <div class="sec" id="aj-int-act" hidden></div>
+      <div class="pie2" data-t>Los tokens se guardan en esta PC y solo salen hacia ese servicio. Usa tokens de solo lectura.</div>
+      <div class="pie2" id="aj-int-nota"></div>
+    </section>
+    <!-- (05-nov) Correo: solo remitente y asunto de los no leidos (ruta /api/correo) -->
+    <section class="pg" data-p="correo"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Correo</h2>
+      <div id="aj-correo-lista"></div>
+      <div class="cab" data-t>Agregar cuenta</div>
+      <div class="sec">
+        <div class="fi"><span data-t>Proveedor</span><select class="aj-txt" id="aj-correo-preset"></select></div>
+        <div class="fi" id="aj-correo-otro" hidden><span data-t>Servidor</span><input type="text" class="aj-txt" id="aj-correo-servidor" autocomplete="off"></div>
+        <div class="fi" id="aj-correo-otro2" hidden><span data-t>Puerto</span><input type="number" class="aj-txt" id="aj-correo-puerto" autocomplete="off"></div>
+        <div class="fi"><span data-t>Nombre</span><input type="text" class="aj-txt" id="aj-correo-nombre" autocomplete="off"></div>
+        <div class="fi"><span data-t>Usuario</span><input type="text" class="aj-txt" id="aj-correo-usuario" autocomplete="off"></div>
+        <div class="fi"><span data-t>Clave</span><input type="password" class="aj-txt" id="aj-correo-clave" autocomplete="off"></div>
+      </div>
+      <button type="button" class="bt" id="aj-correo-guardar" data-t>Guardar</button>
+      <div class="pie2" data-t>Solo lee remitente y asunto de los no leídos; nunca el contenido, y no marca nada como leído. Usa una contraseña de aplicación, no tu contraseña normal.</div>
+      <div class="pie2" id="aj-correo-nota"></div>
+    </section>
+    <!-- (05-nov) Chat con IA: proveedor elegido en la PC (ruta /api/ia); el historial queda en localStorage kodamaIaChat -->
+    <section class="pg" data-p="ia"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Chat con IA</h2>
+      <div class="sec">
+        <div class="fi"><span data-t>Proveedor</span><select class="aj-txt" id="aj-ia-prov"></select></div>
+        <div class="fi" id="aj-ia-clave-fila"><span data-t>Clave</span><input type="password" class="aj-txt" id="aj-ia-clave" autocomplete="off"></div>
+        <div class="fi"><span data-t>Modelo</span><input type="text" class="aj-txt" id="aj-ia-modelo" list="aj-ia-dl" autocomplete="off"><datalist id="aj-ia-dl"></datalist></div>
+      </div>
+      <div class="ia-acc"><button type="button" class="ajr-bt2" id="aj-ia-modelos" data-t>Ver modelos</button><button type="button" class="ajr-bt2" id="aj-ia-usar" data-t>Usar este</button></div>
+      <div class="pie2" id="aj-ia-nube"></div>
+      <div class="pie2" data-t>Dictado en Windows: pulsa Win + H en cualquier caja de texto.</div>
+      <div class="cab" data-t>Conversación</div>
+      <div class="sec"><div class="ia-log" id="aj-ia-log"></div></div>
+      <textarea class="aj-area" id="aj-ia-txt" rows="2" data-t placeholder="Escribe algo…"></textarea>
+      <div class="ia-acc"><button type="button" class="bt" id="aj-ia-enviar" data-t>Enviar</button><button type="button" class="ajr-bt2" id="aj-ia-borrar" data-t>Borrar</button></div>
+      <div class="pie2" id="aj-ia-nota"></div>
     </section>
     <section class="pg" data-p="reglas"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Reglas de permisos</h2>
       <div class="sec" id="aj-reglas"></div>
       <div class="pie2" data-t>Lo que aprobaste con «Permitir siempre esto» o «Permitir en esta tarea» ya no te lo pregunta.</div>
     </section>
-    <section class="pg" data-p="conexion"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Conexión con Claude</h2>
+    <section class="pg" data-p="conexion"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Conexión con tus IA</h2>
       <div class="sec" id="aj-hooks"><div class="txt" data-t>Revisando…</div></div>
       <button type="button" class="bt" id="aj-arreglar" hidden data-t>Arreglar (se guarda un respaldo antes)</button>
     </section>
@@ -547,7 +669,8 @@ function montar(c) {
   const P = $("pj"); [...P.children].forEach(n => { if (n.id !== "otros") n.remove(); });
   const cont = document.createElement("div"); cont.style.cssText = "width:100%;height:100%"; P.appendChild(cont);
   const cambio = chat && chat !== c; chat = c;
-  comp = Companero.crear(cont, pjTipo, null); comp.ir(estadoDe(c)); if (animDormida && comp.pausar) comp.pausar(true, visibleVen && !document.hidden);   // sin adorno: los adornos van a ser personalizables (pendiente)
+  comp = Companero.crear(cont, pjTipo, null); comp.ir(estadoDe(c)); if (animDormida && comp.pausar) comp.pausar(true, visibleVen && !document.hidden);
+  if (comp && comp.animo) comp.animo(animoTipo);   // (04-nov) el gato nuevo sigue con el animo de la PC   // sin adorno: los adornos van a ser personalizables (pendiente)
   if (!pintadoAvisado) vigilarGato();
   if (islaOn && comp2) islaGatoTit(true);   // (29-oct) isla: el gato del titulo de Ajustes se rehace con el personaje/color nuevo
   // (27-oct) saludo: al abrir la mascota (una vez) guiña un ojo; no en modo aviso (escondida), con Ajustes abiertos ni si esta ocupada/dormida
@@ -565,11 +688,19 @@ function badge(n, grave) {
   B.title = tx; B.setAttribute("aria-label", tx);
   if (n && grave && (!badgeGrave || !antes) && !RM) B.animate([{ transform: "scale(1)" }, { transform: "scale(1.3)", offset: .4 }, { transform: "scale(1)" }], { duration: 600, easing: "cubic-bezier(.2,.9,.3,1.2)" });
   badgeGrave = !!(n && grave);
-}function pintar() {
+}
+let ultFesta = 0;   // (04-nov) ultimo festejo del gato al terminar una tarea (ver pintar)
+function pintar() {
   const c = elegirChat(); if (!c) return;
+  const mismoChat = c === chat && !!comp, previo = mismoChat ? comp.estado : null;
   if (c !== chat || !comp) montar(c);
   const e = estadoDe(c), tp = (datos[c] || {}).tipo;
-  if (comp.estado !== e && comp.estado !== "enviado") comp.ir(e);
+  if (comp.estado !== e && comp.estado !== "enviado") {
+    comp.ir(e);
+    // (04-nov) trabajando -> escribio en el MISMO chat: festejo. Preguntas, permisos y errores no (ya asoman); 15 s entre festejos.
+    // ASOMA va al final: solo se evalua con el gato ya creado (la constante se declara mas abajo).
+    if (previo === "trabajando" && e === "escribio" && mismoChat && Date.now() - ultFesta > 15000 && !ASOMA.includes(tp)) { ultFesta = Date.now(); if (comp.festejar) comp.festejar(); }
+  }
   document.body.classList.toggle("duerme", e === "dormido");   // (19-oct) dormido: baja y se apoya en la barra
   comp.insignia(null);   // (9.a vuelta) la insignia de la mascota la dibuja #otros (una sola, con el numero)
   faseGato(c, e);
@@ -665,7 +796,10 @@ function filaLista(c, sub, tipo) {
   d.innerHTML = '<span class="pto"></span><div class="tx"><b></b><span></span></div>';
   d.querySelector(".pto").style.background = colDe(c);
   d.querySelector("b").textContent = nomDe(c); d.querySelector(".tx span").textContent = sub;
-  d.title = nomDe(c) + " · " + sub;
+  // (16-nov) el titulo es el globito de Windows al pasar el mouse: con el mensaje entero (largo, varias lineas) salia
+  // un cuadro gigante que tapaba a Kodama y mostraba el texto completo. Ahora: una sola linea, maximo 120 caracteres.
+  const tt = (nomDe(c) + " · " + sub).replace(/\s+/g, " ").trim();
+  d.title = tt.length > 120 ? tt.slice(0, 119) + "…" : tt;
   const M = { pregunta: ["?", "q"], permiso: ["!", "x"], error: ["!", "x"], termino: ["•", "ok"] }[tipo];
   if (M) { const m = document.createElement("span"); m.className = "marca " + M[1]; m.textContent = M[0]; d.appendChild(m); }
   return d;
@@ -678,6 +812,7 @@ function irA(c, abrir = false) {
 $("nombre").onclick = () => { const L = $("lista"); const ab = !L.classList.contains("si"); if (ab) { cerrar(); L.classList.add("si"); lista(); } else L.classList.remove("si"); };
 $("otros").onclick = () => { cerrar(true); $("lista").classList.add("si"); lista(); };   // (27-oct, adjuntar) cerrar(true): los adjuntos viajan al chat que elijas en la lista
 $("bsel").onclick = $("bcambiar").onclick = () => { cerrar(true); $("lista").classList.add("si"); lista(false); };
+function tocarGato() { const r = comp ? comp.tocar() : "normal"; if (r !== "racha") tocarMascota(); }   // (04-nov) con la racha de toques (reacciones del gato) no se abre el globo
 function tocarMascota() {   // con 2+ chats esperando: primero elegis cual; con uno o ninguno: su globo
   if (abierto) return cerrarUsuario();
   if ($("lista").classList.contains("si")) { if (hayAdj()) limpiarAdjuntos(); return $("lista").classList.remove("si"); }
@@ -709,7 +844,7 @@ function abrirGlobo(msg) {
   mostrado = ult ? ult.ts : null; $("nuevo").style.display = "none";
   $("burbuja").style.setProperty("--color", colDe(c));
   $("paranom").textContent = etiqueta(c); $("paranom").title = d.titulo || "";   // el titulo de la sesion: distingue dos sesiones del mismo chat
-  $("babrir").style.display = d.abrir ? "" : "none"; $("babrir").onclick = () => { companero.abrir(d.abrir); cerrar(); };
+  $("babrir").style.display = d.abrir && !otraIA(d) ? "" : "none"; $("babrir").onclick = () => { companero.abrir(d.abrir); cerrar(); };
   // (27-oct, punto 4) archivar ya no es un boton del globo: es una accion por fila dentro de la lista "Chats que te esperan" (⊟ a la derecha, con confirmacion de un toque)
   pendContador();
   // (14-oct) aprobar: por el buzon Claude no acepta un "OK" como aprobacion tuya; escrito en el chat si
@@ -1047,7 +1182,7 @@ async function enviar(texto) {
   if (r.ok) {
     limpiarAdjuntos();
     ultEnvio = envioPor[c] = Date.now(); guardarBorrador(c, ""); $("bin").value = ""; crecer();
-    destino(r.pendiente ? `⏳ ${window.t("En cola para")} <b>${etiqueta(c)}</b>: ${window.t("está dormido, se entrega al abrirlo en la app de Claude")}` : `${window.t("✓ Enviado a")} <b>${etiqueta(c)}</b>`, "ok");
+    destino(r.pendiente ? `⏳ ${window.t("En cola para")} <b>${etiqueta(c)}</b>: ${window.t("está dormido, se entrega al abrirlo en la PC")}` : `${window.t("✓ Enviado a")} <b>${etiqueta(c)}</b>`, "ok");
     comp.ir("enviado"); sonar("enviado"); setTimeout(cerrar, 1200); setTimeout(() => comp && pintar(), 2600);
   } else destino(`${window.t("✗ No se pudo enviar a")} <b>${etiqueta(c)}</b>: ${String(r.error || "error").replace(/[<>&]/g, "")} <button type="button" id="reint">${window.t("Reintentar")}</button>`, "mal");
 }
@@ -1061,8 +1196,60 @@ let tBlur = null;
 window.addEventListener("blur", () => { clearTimeout(tBlur); if (abierto && !$("bin").value.trim() && !hayAdj()) tBlur = setTimeout(() => { if (!document.hasFocus() && !window._sobre && !$("bin").value.trim() && !hayAdj()) cerrar(); }, 5000); });
 window.addEventListener("focus", () => clearTimeout(tBlur));
 let t = null, mantuvo = false;
-$("pj").onpointerdown = e => { mantuvo = false; t = setTimeout(() => { mantuvo = true; comp.acariciar(true); }, 350); };
-$("pj").onpointerup = e => { clearTimeout(t); if (mantuvo) comp.acariciar(false); else { comp.tocar(); tocarMascota(); } };
+// (04-nov, usuario) ARRASTRAR EL GATO FUERA DE LA ISLA Y DEVOLVERLO (solo macOS; en Windows islaDisp da false y gaIni no hace nada). En la isla cerrada el gato sigue al puntero y crece hasta su
+// tamaño de siempre; soltado a mas de 40 px bajo la barra queda libre en ese punto (modo isla "no"). Libre, se arrastra desde el gato o el asa; soltado cerca de la muesca vuelve a la isla.
+let ga = null, gaCercaSi = false, tGaTxt = 0;
+const gaDisp = () => !!(companero.panel && companero.panel.islaDisp && companero.panel.islaDisp());
+function gaIni(e) {
+  ga = null;
+  if (!gaDisp() || e.button || panelAbierto) return;
+  if (islaOn) { const I = $("isla"); if (!I || I.classList.contains("abierta")) return; }
+  ga = { x: e.screenX, y: e.screenY, mov: false };
+  try { $("pj").setPointerCapture(e.pointerId); } catch (e2) {}
+}
+function gaMov(e) {
+  if (!ga) return;
+  const dx = e.screenX - ga.x, dy = e.screenY - ga.y;
+  if (!ga.mov) {
+    if (Math.hypot(dx, dy) < 6) return;
+    ga.mov = true; clearTimeout(t); if (mantuvo) { mantuvo = false; comp.acariciar(false); }
+    if (islaOn) document.body.classList.add("isla-arr");
+  }
+  if (islaOn) return islaArrPintar(e.clientX, e.clientY);
+  companero.arrastrar(dx, dy); ga.x = e.screenX; ga.y = e.screenY;
+  gaCerca(companero.panel.islaCerca(e.screenX, e.screenY));
+}
+function gaFin(e) {
+  const g = ga; ga = null;
+  if (!g || !g.mov) return false;
+  if (islaOn) {
+    if (e.type === "pointerup" && e.clientY > ISLA.h0 + 40) { companero.panel.islaSoltar(e.screenX, e.screenY); return true; }   // la pagina se recarga sin isla
+    document.body.classList.remove("isla-arr"); islaSync(); return true;
+  }
+  gaVolverSiCerca(e);
+  return true;
+}
+function gaVolverSiCerca(e) {
+  const cerca = e.type === "pointerup" && companero.panel.islaCerca(e.screenX, e.screenY);
+  gaCerca(false);
+  if (cerca) { try { sessionStorage.setItem("islaVuelve", "1"); } catch (e2) {} companero.panel.islaVolver(); }
+}
+function islaArrPintar(x, y) {
+  const P = $("pie"), r = $("islaCab").getBoundingClientRect(), cx = Math.max(40, Math.min(innerWidth - 40, x)), cy = Math.max(10, Math.min(innerHeight - 60, y));
+  const s0 = islaGatoVals("cerrada").s, s = s0 + (1 - s0) * Math.max(0, Math.min(1, (cy - ISLA.h0) / 70));
+  P.style.clipPath = ""; P.style.setProperty("--s", s.toFixed(4)); P.style.setProperty("--gl", (cx - r.left - GATO.cx * s).toFixed(1) + "px"); P.style.setProperty("--gt", (cy - r.top - GATO.cy * s).toFixed(1) + "px");
+}
+function gaCerca(si) {   // libre y cerca de la muesca: el aro y su etiqueta avisan que al soltarlo vuelve a la isla
+  if (si === gaCercaSi) return;
+  gaCercaSi = si; clearTimeout(tGaTxt);
+  const T = $("arotxt");
+  if (si) T.textContent = tf("Suéltalo para volver a la isla"); else tGaTxt = setTimeout(() => { T.textContent = tf("Suéltalo aquí"); }, 200);
+  aroMostrar(si);
+}
+$("pj").onpointerdown = e => { mantuvo = false; t = setTimeout(() => { mantuvo = true; comp.acariciar(true); }, 350); gaIni(e); };
+$("pj").onpointermove = gaMov;
+$("pj").onpointercancel = gaFin;
+$("pj").onpointerup = e => { clearTimeout(t); if (gaFin(e)) return; if (mantuvo) comp.acariciar(false); else tocarGato(); };
 $("pj").onpointerleave = () => { clearTimeout(t); if (mantuvo) { mantuvo = false; comp.acariciar(false); } };
 $("pj").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tocarMascota(); } };
 $("bcerrar").onclick = () => cerrarUsuario();
@@ -1098,13 +1285,22 @@ function ojosHacia(x, y, forzar) {
   else if (ojosActivos) { ojosActivos = false; comp.mirarA(null); }
 }
 if (companero.alOjos) companero.alOjos(v => { ojosSiempre = !!v; if (!v && comp2 && comp2.mirarA) comp2.mirarA(null); if (!v && comp && comp.mirarA) { ojosActivos = false; comp.mirarA(null); } });
+// (04-nov) MARCA DE VERSION NUEVA: flecha azul junto a la insignia (companero.alVersion). Un pulso al aparecer; click o Enter abren Ajustes > Actualizaciones
+const VN = $("vnueva");
+const vnAbrir = e => { e.stopPropagation(); abrirPanel("actualiz"); };
+VN.onclick = vnAbrir; VN.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); vnAbrir(e); } };
+if (companero.alVersion) companero.alVersion(v => {
+  VN.hidden = !v; if (!v) return;
+  const tx = tf("Hay una versión nueva: {0}", v); VN.title = tx; VN.setAttribute("aria-label", tx);
+  if (!RM) VN.animate([{ transform: "scale(1)" }, { transform: "scale(1.3)", offset: .5 }, { transform: "scale(1)" }], { duration: 600, easing: "cubic-bezier(.2,.9,.3,1.2)" });
+});
 function sobreEn(x, y) {
   if (!ojosForzados) ojosHacia(x, y, false);
   const dentro = x >= 0 && y >= 0 && x < innerWidth && y < innerHeight;
   const el = dentro ? document.elementFromPoint(x, y) : null;
-  const sobre = !!(el && el.closest("#pie, #otros, #caps, #burbuja, #lista, #asa, #asomo, #pborr, #ajpc, #isla"));
+  const sobre = !!(el && el.closest("#pie, #otros, #vnueva, #caps, #burbuja, #lista, #asa, #asomo, #pborr, #ajpc, #isla"));
   if (islaOn) islaHover(!!(el && el.closest("#isla")));   // (28-oct) isla: la pastilla crece con el mouse encima
-  if (sobre !== window._sobre) { window._sobre = sobre; companero.interactivo(sobre); }
+  if (sobre !== window._sobre) { window._sobre = sobre; companero.interactivo(sobre); animoPastilla(sobre); }   // (04-nov) pastilla del "por que" al entrar/salir
   if (sobre) tocada();
 }
 document.addEventListener("mousemove", e => sobreEn(e.clientX, e.clientY));
@@ -1119,7 +1315,7 @@ companero.alCursor(() => { if (animDormida && visibleVen && !document.hidden && 
 // si no existiera y todo pasa a lo de abajo. El sondeo del cursor queda solo para los ojos y para dar foco al escribir.
 // Margenes [izq, arriba, der, abajo] en px: lo que se dibuja fuera de la caja (sombras, la colita del globo, la insignia, las orejas y las "z", los saltos).
 // La region recorta tambien el dibujo: lo que quede mas alla de estos margenes no se ve.
-const ZONA_IDS = [["pie", 16, 34, 16, 28], ["otros", 10, 10, 10, 10], ["caps", 26, 22, 26, 38], ["burbuja", 22, 22, 22, 46], ["asomo", 22, 22, 22, 34],
+const ZONA_IDS = [["pie", 16, 34, 16, 28], ["otros", 10, 10, 10, 10], ["vnueva", 10, 10, 10, 10], ["animotxt", 10, 10, 10, 10],["caps", 26, 22, 26, 38], ["burbuja", 22, 22, 22, 46], ["asomo", 22, 22, 22, 34],
                   ["lista", 22, 22, 22, 34], ["pborr", 16, 12, 16, 30], ["asa", 8, 8, 8, 8], ["ajpc", 26, 22, 26, 40], ["morph", 30, 24, 30, 64],
                   ["aro", 32, 32, 32, 32], ["arotxt", 8, 8, 8, 8], ["isla", 4, 0, 4, 14]];   // (27-oct, arrastre) el aro y su etiqueta se ven (la region recorta el dibujo) solo mientras dura el arrastre
 let zonaPrev = {}, zonaUlt = "", zonaT = 0;
@@ -1173,17 +1369,25 @@ const obsVentana = new MutationObserver(ajustarVentana);
 setTimeout(ajustarVentana, 1500);
 let arr = null;
 $("asa").onpointerdown = e => { arr = { x: e.screenX, y: e.screenY }; e.target.setPointerCapture(e.pointerId); };
-$("asa").onpointermove = e => { if (!arr) return; companero.arrastrar(e.screenX - arr.x, e.screenY - arr.y); arr = { x: e.screenX, y: e.screenY }; };
-$("asa").onpointerup = () => { arr = null; };
+$("asa").onpointermove = e => { if (!arr) return; companero.arrastrar(e.screenX - arr.x, e.screenY - arr.y); arr = { x: e.screenX, y: e.screenY }; if (gaDisp()) gaCerca(companero.panel.islaCerca(e.screenX, e.screenY)); };   // (04-nov) gaCerca: solo macOS, ver gaIni
+$("asa").onpointerup = e => { arr = null; if (gaDisp()) gaVolverSiCerca(e); };
 companero.alCambiarPj(v => { pjTipo = v; comp && comp.destruir(); comp = null; pintar(); });
+// (07-nov) sin Claude Code en esta PC: se ocultan los controles del uso del plan (la pantalla sigue por la pausa de agua)
+function ocultarSinClaude() {
+  const no = !!(datos && datos._agentes && datos._agentes.claude === false);
+  for (const id of ["aj-uso", "aj-uso-nota", "aj-lectura-nota"]) { const el = $(id); if (el) el.style.display = no ? "none" : ""; }
+  for (const id of ["aj-aluso", "aj-lectura"]) { const el = $(id) && $(id).closest(".sec"); if (el) el.style.display = no ? "none" : ""; }
+}
+// (07-nov) "Abrir este chat en Claude" no sirve para chats de Codex, OpenCode, Antigravity o WSL (por el prefijo del nombre)
+function otraIA(d) { return /^(Codex · |OpenCode · |Antigravity|WSL · )/.test((d && d.nombre) || ""); }
 async function cargar() {
   const d = await companero.estado();
   if (d && !d._error) {
     // (19-oct) cada 4 s llega el estado entero: si no cambio nada, no se redibuja (solo se mira si toca asomarse)
     const firma = JSON.stringify(d);
-    if (firma === cargar._f) { quizaAsomar(); return; }
+    if (firma === cargar._f) { pausaMostrar(d._pausa); quizaAsomar(); return; }   // (06-nov) la pausa pudo quedar esperando a que atendieras un chat
     cargar._f = firma;
-    datos = d;
+    datos = d; ocultarSinClaude();
     // (21-oct) algo cambio en los chats: la mascota despierta para mostrarlo. (22-oct, LShinox: "parpadea extraño")
     // antes despertaba con CUALQUIER cambio (el "haciendo" de un chat que trabaja cambia cada pocos segundos) y, con la
     // PC sin uso, el chequeo de 5 s la volvia a dormir: dormia/despertaba sin parar. Ahora solo despierta si cambia
@@ -1195,6 +1399,9 @@ async function cargar() {
       vistos[d._mirando] = d[d._mirando].ultimo_ts; try { localStorage.setItem("vistos", JSON.stringify(vistos)); } catch (e) {}
     }
     pintar();
+    alertaUso(d._alerta_uso);   // (05-nov) cruzo el 80, 95 o 100 % del plan
+    alertaUso(d._evento);       // (05-nov) integraciones y correo: misma pastilla, con el sonido de aviso
+    pausaMostrar(d._pausa);     // (06-nov) agua y levantarse
     // mensaje nuevo mientras el globo esta abierto: NO se reemplaza lo que lees; aparece un aviso para verlo
     if (abierto) marcarEspera();
     if (abierto) { const u = ultimoDe(chat); if (u && u.ts !== mostrado) { $("nuevo").style.display = "inline-block"; document.querySelectorAll("#bchips [data-caduca]").forEach(b => { b.disabled = true; b.title = window.t("Hay un mensaje más nuevo"); }); } }
@@ -1208,11 +1415,15 @@ async function cargar() {
 // abiertos ni con un borrador · 6 dura 8 s (pregunta) o 12 s (permiso/error) · 7 cada mensaje asoma una sola vez · 8 tope 6 por hora
 // ---- sonidos (14-oct): sintetizados con WebAudio (sin archivos de terceros, sin licencias), volumen bajo
 // (Coucou usa 0,12), solo al asomar y al enviar; se apagan desde la bandeja ("Sonidos") y con "No molestar"
-let conSonido = true, actx = null;
+let conSonido = true, actx = null, tActx = 0;
 function sonar(tipo) {
-  if (!conSonido || Date.now() < noMolestarHasta) return;
+  if (!conSonido || Date.now() < noMolestarHasta || (datos._silencio && !datos._silencio_urgentes)) return;   // (05-nov) horas de silencio
   try {
     actx = actx || new AudioContext();
+    // (04-nov, idea de coucou #420) el audio se abre solo para sonar y se suelta despues: un AudioContext activo mantiene abierta la salida de audio del sistema
+    if (actx.state === "suspended") actx.resume();
+    clearTimeout(tActx); tActx = setTimeout(() => { try { actx.suspend(); } catch (e) {} }, (propios[tipo] ? propios[tipo].duration * 1000 : 400) + 800);
+    if (propios[tipo]) { const src = actx.createBufferSource(), g = actx.createGain(); src.buffer = propios[tipo]; g.gain.value = .5; src.connect(g).connect(actx.destination); src.start(); return; }   // (04-nov) sonido propio (estado\sonidos)
     // [frecuencia, inicio, duracion]. (14-oct) Enviado = opcion C "clic de dos notas" (elegida por LShinox en companero-sonidos.html)
     const notas = { aviso: [[659, 0, .22], [880, .11, .22]], error: [[440, 0, .22], [330, .13, .22]], enviado: [[1175, 0, .06], [1568, .05, .07]] }[tipo] || [];
     notas.forEach(([f, t0, dur]) => {
@@ -1223,7 +1434,83 @@ function sonar(tipo) {
     });
   } catch (e) {}
 }
-const ASOMA = ["pregunta", "permiso", "error"];
+// (04-nov) sonidos propios: archivos aviso / error / enviado en estado\sonidos (Ajustes > Mascota). Se leen al cargar y con "Volver a leer y probar".
+// Sin archivos no se crea el AudioContext; un archivo que no se decodifica deja ese sonido sintetizado.
+let propios = {};
+async function cargarSonidos() {
+  if (!ajP) return;
+  const j = await ajP.hub("/api/sonidos");
+  const disp = j && j.disponibles ? Object.keys(j.disponibles) : [];
+  if (!disp.length) { propios = {}; return; }
+  try { actx = actx || new AudioContext(); } catch (e) { propios = {}; return; }
+  const nuevos = {};
+  for (const tipo of disp) {
+    try { const b = await ajP.hubBytes(`/api/sonido/${tipo}`); if (b) nuevos[tipo] = await actx.decodeAudioData(b); } catch (e) {}
+  }
+  propios = nuevos;
+  try { actx.suspend(); } catch (e) {}   // (04-nov) decodificar no necesita la salida de audio abierta
+}
+// (04-nov) REACCIONA A LA PC: el hub lee la carga (api/maquina) cada 20 s; animoDe (pura, sin DOM) dice que animo tiene el gato
+// y personajes-lottie.js lo muestra (comp.animo). Leer NUNCA despierta al gato: si esta dormido o fuera de pantalla no se lee.
+// (05-nov, idea de limitlings) up = % mas alto del plan (5 h o semana) o null: 80 ladea la cabeza, 95 bosteza, 100 se queda sin energia. La PC manda sobre el plan, salvo la bateria baja. Sin pronostico.
+function animoDe(m, cpuAltaAntes, up) {
+  const cpuAlta = m.cpu != null && m.cpu >= 90;
+  const sinEnchufe = m.bateria != null && m.enchufado === false;
+  let tipo = null, porUso = false;
+  if (sinEnchufe && m.bateria <= 10) tipo = "agotado";
+  else if (cpuAlta && cpuAltaAntes) tipo = "cpu";   // dos lecturas seguidas arriba del 90 %
+  else if (m.mem != null && m.mem >= 92) tipo = "mem";
+  else if (up != null && up >= 100) { tipo = "agotado"; porUso = true; }
+  else if (sinEnchufe && m.bateria <= 20) tipo = "cansado";
+  else if (up != null && up >= 95) { tipo = "cansado"; porUso = true; }
+  else if (up != null && up >= 80) { tipo = "uso80"; porUso = true; }
+  return { tipo, cpuAlta, porUso };
+}
+let animoOn = true, animoTipo = null, animoDato = null, cpuAltaAntes = false, animoUso = null, animoPorUso = false;
+async function animoLeer() {
+  if (!ajP || !animoOn || !visibleVen || document.hidden || animDormida || modoAviso || islaOn) return;
+  const [m, j] = await Promise.all([ajP.hub("/api/maquina").catch(() => null), ajP.hub("/api/lectura-exacta", {}).catch(() => null)]);
+  const u = (j && j.uso) || {}, x5 = u["5h"], xs = u.semana;
+  animoUso = xs && xs.pct != null && (!x5 || x5.pct == null || xs.pct > x5.pct) ? Object.assign({ k: "semana" }, xs) : x5 && x5.pct != null ? Object.assign({ k: "5h" }, x5) : null;
+  const dato = m && "cpu" in m ? m : {};   // en Mac la carga no se lee; el plan si
+  const r = animoDe(dato, cpuAltaAntes, animoUso ? animoUso.pct : null);
+  cpuAltaAntes = r.cpuAlta; animoDato = dato; animoPorUso = r.porUso;
+  if (r.tipo !== animoTipo) { animoTipo = r.tipo; comp && comp.animo && comp.animo(animoTipo); }
+}
+setInterval(animoLeer, 20000);
+// (04-nov) "por que reacciona": pastilla al pasar el mouse por el gato con un animo activo (CPU, memoria o bateria)
+let animoPTok = 0;
+function animoPastilla(encima) {
+  const P = $("animotxt"), tk = ++animoPTok;
+  if (!encima || !animoOn || !animoTipo || !animoDato || abierto || panelAbierto) { P.hidden = true; return; }
+  const d = animoDato;
+  P.textContent = animoPorUso && animoUso ? tf(animoUso.k === "5h" ? "Plan 5 h: {0} %" : "Plan semana: {0} %", Math.round(animoUso.pct)) : animoTipo === "cpu" ? tf("CPU {0} %", d.cpu) : animoTipo === "mem" ? tf("Memoria {0} %", d.mem) : tf("Batería {0} %", d.bateria);
+  P.hidden = false;
+  if (animoTipo === "cpu" && ajP) ajP.hub("/api/maquina?detalle=1").then(j => {   // los procesos que mas CPU usan (solo al pedirlo)
+    if (tk === animoPTok && j && j.top && j.top.length) P.textContent += " · " + j.top.join(", ");
+  }).catch(() => {});
+}
+if (companero.alAnimoPc) companero.alAnimoPc(v => {   // Ajustes > "Reacciona a la PC"
+  animoOn = !!v;
+  if (!animoOn) { animoTipo = null; comp && comp.animo && comp.animo(null); animoPastilla(false); }
+  else animoLeer();
+});
+// (05-nov, idea de paw-family) un chat te necesita: el gato levanta la pata cada 15 s, ademas de la insignia. Nunca lo despierta ni lo saca de la pantalla.
+setInterval(() => {
+  if (!comp || !comp.gesto || RM || animDormida || !visibleVen || document.hidden || abierto || panelAbierto || datos._silencio) return;
+  if (chats().some(c => teNecesita(c) && ASOMA.includes(datos[c].tipo) && !((datos[c].silencio || 0) * 1000 > Date.now()))) { try { comp.gesto("patita"); } catch (e) {} }
+}, 15000);
+// (05-nov) alerta del plan en el gato: suena y muestra la pastilla 8 s. Cada alerta una sola vez, aunque se recargue la ventana.
+let alertaVista = 0; try { alertaVista = +localStorage.getItem("alertaUso") || 0; } catch (e) {}
+function alertaUso(a) {
+  if (!a || !a.ts || a.ts <= alertaVista) return;
+  alertaVista = a.ts; try { localStorage.setItem("alertaUso", String(a.ts)); } catch (e) {}
+  sonar(a.umbral >= 95 ? "error" : "aviso");
+  const P = $("animotxt"); if (!P || abierto || panelAbierto) return;
+  animoPTok++; P.textContent = a.texto; P.hidden = false;
+  setTimeout(() => { if (P.textContent === a.texto) P.hidden = true; }, 8000);
+}
+const ASOMA =["pregunta", "permiso", "error"];
 let asomados = {}, ultAsomo = 0, horaAsomos = [], asomoAct = null, tAsomo = null, noMolestarHasta = 0, envioPor = {}, buscando = false;
 try { asomados = JSON.parse(localStorage.getItem("asomados") || "{}"); } catch (e) {}
 // (21-oct) modo "Aparecer solo cuando me necesitan" (menu del gato): la ventana queda escondida (0 % de CPU) y la
@@ -1302,10 +1589,13 @@ function capsAjustar(el) {
   a.addEventListener("finish", () => { if (tok !== capsTok) return; caps.style.height = h + "px"; capsCancelar(); capsAjustar(el); });
 }
 if (window.ResizeObserver) { const ro = new ResizeObserver(es => es.forEach(e => capsAjustar(e.target))); ro.observe($("asomo")); ro.observe($("burbuja")); }
-$("caps").onpointerup = e => { if (e.target === $("caps") && comp) { comp.tocar(); tocarMascota(); } };   // el circulo tambien es la mascota
+$("caps").onpointerup = e => { if (e.target === $("caps") && comp) tocarGato(); };   // el circulo tambien es la mascota
 async function entrarEscena() {
   if (enEscena) return; enEscena = true; clearTimeout(tSalir);
   companero.ventana(true); visibleVen = true; dormirAnim(false); ultInter = Date.now();
+  // (18-nov) modo aviso: la region de la ventana venia medida con la ventana oculta (WebView sin seguir el tamaño) y el globo
+  // y el gato salian cortados. Al aparecer se re-mide y se fuerza varias veces, y otra vez cuando termina de entrar
+  zonaYa(true); setTimeout(() => zonaYa(true), 700);
   if (capsula && !RM) $("caps").animate([{ transform: "scale(.3)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 300, easing: "cubic-bezier(.2,.9,.3,1.2)" });
   // (26-oct) con el gato Lottie, la entrada es su animacion aparecer_normal; con el motor viejo, el deslizamiento de siempre
   if (!RM) { if (comp && comp.aparecer) comp.aparecer(); else $("pie").animate([{ transform: "translateY(115%)" }, { transform: "translateY(-6%)", offset: .72 }, { transform: "none" }],
@@ -1352,7 +1642,8 @@ async function quizaAsomar() {
   // (14-oct) el chat que estas mirando en la app de Claude no se asoma (y su mensaje cuenta como visto)
   const mir = datos._mirando, um = mir && ultimoDe(mir);
   if (um && !asomados[mir + ":" + um.ts]) { asomados[mir + ":" + um.ts] = ahora; try { localStorage.setItem("asomados", JSON.stringify(asomados)); } catch (e) {} }
-  const cand = chats().filter(c => { const d = datos[c], u = ultimoDe(c); return u && teNecesita(c) && (ASOMA.includes(d.tipo) || modoAviso) && !asomados[c + ":" + u.ts] && ahora - (envioPor[c] || 0) > 60000 && !((d.silencio || 0) * 1000 > ahora); })   // chat silenciado: no asoma
+  const cand = chats().filter(c => { const d = datos[c], u = ultimoDe(c); if (datos._silencio && !(datos._silencio_urgentes && (d.tipo === "permiso" || d.tipo === "pregunta"))) return false;   // (05-nov) horas de silencio
+    return u && teNecesita(c) && (ASOMA.includes(d.tipo) || modoAviso) && !asomados[c + ":" + u.ts] && ahora - (envioPor[c] || 0) > 60000 && !((d.silencio || 0) * 1000 > ahora); })   // chat silenciado: no asoma
     .sort((a, b) => (PRIO[datos[a].tipo] ?? 9) - (PRIO[datos[b].tipo] ?? 9));
   if (!cand.length) return;
   buscando = true; let inactivo = 0; try { inactivo = await companero.inactivo(); } catch (e) {} buscando = false;
@@ -1408,11 +1699,36 @@ function ocultarAsomo() {   // se pliega a la insignia del gato: el aviso no se 
   clearTimeout(tAsomo); if (!asomoAct) return; asomoAct = null;
   animCerrar($("asomo"), 150).onfinish = () => { if (!asomoAct) $("asomo").classList.remove("si"); salirEscena(); };
 }
-function responderAsomo() { const c = asomoAct; if (!c) return; ocultarAsomo(); abrirEn(c); }
+function responderAsomo() { if (pausaAct) return pausaResponder("listo"); const c = asomoAct; if (!c) return; ocultarAsomo(); abrirEn(c); }
 $("asresp").onclick = responderAsomo;
-$("ascerrar").onclick = ocultarAsomo;
+$("ascerrar").onclick = () => { if (pausaAct) pausaResponder("despues"); else ocultarAsomo(); };
+// (06-nov) agua y levantarse: usa el mismo aviso, con Listo y Después. Nunca encima de un chat que te necesita, de otro aviso, del globo ni de Ajustes.
+// Lo ignorado se va a los 30 s; el hub lo repite una sola vez. La animacion propia (tomar agua, estirarse) queda para la animacion a mano: por ahora, el saltito.
+let pausaAct = null, pausaVista = 0;
+function pausaFin() {
+  pausaAct = null; $("aspausa").hidden = true; $("asresp").textContent = window.t("Responder"); $("asomo").classList.remove("pausa"); ocultarAsomo();
+}
+function pausaResponder(accion) {
+  const a = pausaAct; if (!a) return;
+  pausaFin(); if (ajP) ajP.hub("/api/pausa", { tipo: a.tipo, accion }).catch(() => {});
+}
+function pausaMostrar(a) {
+  if (pausaAct && (!a || a.ts !== pausaAct.ts || pendientesAsomo().length)) pausaFin();   // ya no aplica (te levantaste, llamada) o un chat te necesita: el hub la repite
+  if (!a || !a.ts || a.ts <= pausaVista || pausaAct || asomoAct || abierto || panelAbierto || islaOn || bloqueado() || pendientesAsomo().length || Date.now() < noMolestarHasta) return;
+  if (modoAviso && !enEscena) { entrarEscena().then(() => pausaMostrar(a)); return; }
+  pausaVista = a.ts; pausaAct = a; asomoAct = "_pausa"; dormirAnim(false);
+  const A = $("asomo"); A.classList.add("pausa"); A.style.setProperty("--color", "#4a9fd8");
+  $("asnom").textContent = "Kodama"; $("aschip").style.display = "none"; $("asnav").classList.remove("si");
+  $("aslin").textContent = a.tipo === "agua" ? window.t("Hora de tomar agua.") : tf("Llevas {0} min sentado. Levántate y estírate un momento.", a.min);
+  $("asresp").textContent = window.t("Listo"); $("aspausa").hidden = false;
+  A.classList.add("si"); animAbrir(A, 220);
+  if (comp && comp.gesto) comp.gesto("saltito");
+  sonar("aviso");
+  clearTimeout(tAsomo); tAsomo = setTimeout(pausaFin, 30000);
+}
+$("aspausa").onclick = () => pausaResponder("despues");
 $("asomo").addEventListener("mouseenter", () => clearTimeout(tAsomo));   // mientras lo lees no se va
-$("asomo").addEventListener("mouseleave", () => { if (asomoAct) tAsomo = setTimeout(ocultarAsomo, 4000); });
+$("asomo").addEventListener("mouseleave", () => { if (asomoAct) tAsomo = setTimeout(pausaAct ? pausaFin : ocultarAsomo, 4000); });
 
 // atajos globales (companero-tauri.js): Ctrl+Shift+F10 abre/cierra el globo del chat que más te necesita; Ctrl+Shift+F11 responde al asomo
 companero.alAtajo(q => {
@@ -1442,8 +1758,9 @@ companero.conf().then(c => { pjTipo = c.pj || pjTipo; noMolestarHasta = c.noMole
 let panelAbierto = false, ajTl = null, ajGeo = null;
 const AJ = { W: 380, H: 560 };
 const ajP = companero.panel;
+if (ajP && ajP.hubBytes) cargarSonidos();   // (04-nov) sonidos propios al arrancar (si hay archivos en estado\sonidos)
 function ajIr(p) { document.querySelectorAll("#ajpc .pg").forEach(s => s.classList.toggle("on", s.dataset.p === p));
-  if (p === "uso") ajLectura(); if (p === "reglas") ajReglas(); if (p === "conexion") ajHooks(); if (p === "actualiz") ajActualiz(); if (p === "personaje") ajPersonaje(); if (islaOn) islaGatoTit(); }
+  if (p === "uso") { ajLectura(); ajPrefsLeer(); } if (p === "silencio") ajPrefsLeer(); if (p === "reglas") ajReglas(); if (p === "conexion") ajHooks(); if (p === "actualiz") ajActualiz(); if (p === "personaje") ajPersonaje(); if (p === "integraciones") ajInteg(); if (p === "correo") ajCorreo(); if (p === "ia") ajIa(); if (islaOn) islaGatoTit(); }
 async function abrirPanel(pag) {
   if (!ajP) return;
   ajIr(pag || "inicio"); ajPintar(); ajLoNuevo();
@@ -1584,8 +1901,11 @@ if (ajP) {
   document.addEventListener("keydown", e => { if (e.key === "Escape" && panelAbierto) cerrarPanel(); });
   document.querySelectorAll("#ajpc [data-ir]").forEach(f => f.onclick = () => ajIr(f.dataset.ir));
   document.querySelectorAll("#ajpc .at").forEach(b => b.onclick = () => ajIr("inicio"));
-  document.querySelectorAll("#ajpc [data-accion]").forEach(f => f.onclick = () => {
-    const a = f.dataset.accion; if (a === "esquina") return cerrarPanel(() => ajP.poner("esquina")); ajP.poner(a); });
+  document.querySelectorAll("#ajpc [data-accion]").forEach(f => f.onclick = async () => {
+    const a = f.dataset.accion;
+    if (a === "sonidosCarpeta") { ajP.hub("/api/sonidos/abrir", {}); return; }   // (04-nov) {} = POST: abre estado\sonidos en el explorador
+    if (a === "sonidosProbar") { await cargarSonidos(); sonar("aviso"); return; }   // (04-nov) relee los archivos y toca el aviso
+    if (a === "esquina") return cerrarPanel(() => ajP.poner("esquina")); ajP.poner(a); });
   document.querySelectorAll("#ajpc .sw[data-k]").forEach(s => s.onclick = () => { s.classList.toggle("si"); ajP.poner(s.dataset.k, s.classList.contains("si")); if (s.dataset.k === "modo") modoAviso = s.classList.contains("si") && !islaOn;
     if (s.dataset.k === "sueno") $("aj-suenomin-fila").style.opacity = s.classList.contains("si") ? "" : ".45";
     if (s.dataset.k === "capsula") $("aj-capcolfila").style.display = s.classList.contains("si") ? "" : "none"; });   // (4.a vuelta) el color de la capsula solo se ve con la capsula activada
@@ -1610,6 +1930,7 @@ function ajPintar() {
   $("aj-capcolfila").style.display = c.capsula ? "" : "none";
   document.querySelectorAll("#aj-capcol span").forEach(s => s.classList.toggle("on", s.dataset.v === c.capsulaColor));
   $("aj-bdg").hidden = !c.nueva;
+  ajPrefsLeer();
   ajIslaFila(c);   // (28-oct) solo macOS: el selector "Modo isla (muesca)"
   ajP.hub("/api/reglas", {}).then(j => { const n = (j.siempre || []).length + (j.tarea || []).reduce((a, x) => a + x.claves.length, 0); $("aj-nreglas").textContent = n || ""; });
 }
@@ -1628,6 +1949,169 @@ async function ajLoNuevo() {
     + (s.respuestas_celular ? " " + tf("{0} de las respuestas, desde el celular.", s.respuestas_celular) : "");
   caja.hidden = false;
   $("aj-lonuevo-ok").onclick = () => { ajP.poner("loNuevoVisto", j.version); caja.hidden = true; };
+}
+// (05-nov) Ajustes > Integraciones, Correo y Chat con IA. Cada llamada al hub va en try/catch: si el hub no tiene la ruta
+// (hub viejo), la pagina muestra "No disponible" en su nota. Los tokens y claves nunca se leen de vuelta: el hub solo dice si estan guardados.
+async function ajHub(ruta, cuerpo) { try { return (await ajP.hub(ruta, cuerpo || {})) || null; } catch (e) { return null; } }
+function ajNota(id, txt) { const n = $(id); if (n) n.textContent = txt || ""; }
+function ajVacia(el) { while (el && el.firstChild) el.removeChild(el.firstChild); }
+function ajTexto(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; e.textContent = txt == null ? "" : String(txt); return e; }
+// Integraciones
+let ajIntListo = false;
+function ajIntProv(p, err) {
+  const sec = document.createElement("div"); sec.className = "sec aj-sep10";
+  const cab = document.createElement("div"); cab.className = "fi ir";
+  const sw = document.createElement("span"); sw.className = "sw" + (p.activo ? " si" : "");
+  cab.append(ajTexto("span", "ajr-tit", p.nombre), sw);
+  const cuerpo = document.createElement("div"); cuerpo.hidden = true;
+  cab.onclick = () => { cuerpo.hidden = !cuerpo.hidden; };
+  sw.onclick = async e => { e.stopPropagation(); const on = !sw.classList.contains("si"); sw.classList.toggle("si", on);
+    const r = await ajHub("/api/integraciones", { id: p.id, activo: on }); if (!r) { sw.classList.toggle("si", !on); ajNota("aj-int-nota", window.t("No disponible")); } };
+  const inputs = {};
+  (p.campos || []).forEach(c => {
+    const fi = document.createElement("div"); fi.className = "fi";
+    const inp = document.createElement("input"); inp.className = "aj-txt"; inp.autocomplete = "off";
+    inp.type = c === "url" ? "url" : "password";
+    inp.placeholder = c === "url" ? "https://…" : (p.configurado ? window.t("Guardada, déjala vacía para no cambiarla") : window.t("Pegar aquí"));
+    inputs[c] = inp; fi.append(ajTexto("span", "", c), inp); cuerpo.appendChild(fi);
+  });
+  const bts = document.createElement("div"); bts.className = "ajr-fila2";
+  const bG = ajTexto("button", "ajr-bt2", window.t("Guardar")); bG.type = "button";
+  const bP = ajTexto("button", "ajr-bt2", window.t("Probar")); bP.type = "button";
+  const msg = ajTexto("div", "pie2", "");
+  bts.append(bG, bP); cuerpo.append(bts, msg);
+  bG.onclick = async () => { const campos = {}; Object.keys(inputs).forEach(k => { const v = inputs[k].value.trim(); if (v) campos[k] = v; });
+    const r = await ajHub("/api/integraciones", { id: p.id, campos }); const ok = !!r && r.ok !== false;
+    if (ok) Object.values(inputs).forEach(i => { i.value = ""; });
+    msg.textContent = ok ? window.t("Guardado.") : window.t("No se pudo guardar."); };
+  bP.onclick = async () => { const r = await ajHub("/api/integraciones", { probar: p.id });
+    msg.textContent = r && r.ok ? tf("Funciona: {0} elementos", r.n) : ((r && r.error) || window.t("No disponible")); };
+  sec.append(cab);
+  if (err) sec.appendChild(ajTexto("div", "ajr-err", err));
+  sec.appendChild(cuerpo);
+  return sec;
+}
+function ajEvento(ev) {
+  const d = document.createElement("div"); d.className = "ajr-ev";
+  d.append(ajTexto("b", "", ev.titulo || ""), ajTexto("div", "ajr-tx", ev.texto || ""));
+  if (/^https?:\/\//.test(ev.url || "")) d.appendChild(ajTexto("div", "ajr-tx", ev.url));   // enlace: solo texto (no hay abridor de enlaces externos en Ajustes)
+  const h = haceTxt(ev.ts); if (h) d.appendChild(ajTexto("div", "ajr-h", h));
+  return d;
+}
+async function ajInteg() {
+  if (!ajIntListo) { ajIntListo = true;
+    $("aj-int-ruta").onclick = async () => { const r = await ajHub("/api/integraciones", { webhook: true });
+      $("aj-int-ruta-txt").textContent = r && r.ok ? "http://127.0.0.1:" + r.puerto + r.ruta : window.t("No disponible"); }; }
+  ajNota("aj-int-nota", "");
+  const lista = $("aj-int-lista"), act = $("aj-int-act");
+  const j = await ajHub("/api/integraciones", {});
+  ajVacia(lista); ajVacia(act);
+  if (!j || !Array.isArray(j.proveedores)) { ajNota("aj-int-nota", window.t("No disponible")); act.hidden = true; return; }
+  const errs = j.errores || {};
+  j.proveedores.forEach(p => lista.appendChild(ajIntProv(p, errs[p.id])));
+  const evs = (Array.isArray(j.eventos) ? j.eventos : []).slice(0, 30);
+  evs.forEach(x => act.appendChild(ajEvento(x)));
+  act.hidden = !evs.length;
+}
+// Correo
+let ajCorreoListo = false;
+function ajCorreoCuenta(c, r) {
+  const sec = document.createElement("div"); sec.className = "sec aj-sep10";
+  const cab = document.createElement("div"); cab.className = "fi";
+  const sw = document.createElement("span"); sw.className = "sw" + (c.activo ? " si" : "");
+  sw.onclick = async () => { const on = !sw.classList.contains("si"); sw.classList.toggle("si", on);
+    const j = await ajHub("/api/correo", { guardar: { id: c.id, activo: on } }); if (!j) { sw.classList.toggle("si", !on); ajNota("aj-correo-nota", window.t("No disponible")); } };
+  cab.append(ajTexto("span", "ajr-tit", c.nombre), sw);
+  const det = document.createElement("div"); det.className = "ajr-ev";
+  det.appendChild(ajTexto("div", "ajr-tx", c.usuario || ""));
+  if (r && r.no_leidos != null) det.appendChild(ajTexto("div", "ajr-h", tf("{0} sin leer", r.no_leidos)));
+  const bq = ajTexto("button", "ajr-bt2", window.t("Quitar")); bq.type = "button";
+  bq.onclick = async () => { if (!confirm(window.t("¿Quitar esta cuenta?"))) return; const j = await ajHub("/api/correo", { quitar: c.id }); if (!j) ajNota("aj-correo-nota", window.t("No disponible")); ajCorreo(); };
+  const fila = document.createElement("div"); fila.className = "ajr-fila2"; fila.appendChild(bq);
+  sec.append(cab, det, fila);
+  if (r && r.error) sec.appendChild(ajTexto("div", "ajr-err", r.error));
+  return sec;
+}
+function ajCorreoOtro() { const otro = $("aj-correo-preset").value === "otro"; $("aj-correo-otro").hidden = !otro; $("aj-correo-otro2").hidden = !otro; }
+async function ajCorreo() {
+  if (!ajCorreoListo) { ajCorreoListo = true;
+    $("aj-correo-preset").onchange = ajCorreoOtro;
+    $("aj-correo-guardar").onclick = async () => {
+      const v = id => $(id).value.trim(), preset = $("aj-correo-preset").value;
+      const g = { nombre: v("aj-correo-nombre"), usuario: v("aj-correo-usuario"), clave: $("aj-correo-clave").value, activo: true };
+      if (preset === "otro") { g.servidor = v("aj-correo-servidor"); g.puerto = +$("aj-correo-puerto").value || 0; } else g.preset = preset;
+      const j = await ajHub("/api/correo", { guardar: g });
+      if (j && j.ok !== false) { $("aj-correo-clave").value = ""; ajCorreo(); } else ajNota("aj-correo-nota", window.t("No se pudo guardar."));
+    }; }
+  ajNota("aj-correo-nota", "");
+  const lista = $("aj-correo-lista"); ajVacia(lista);
+  const j = await ajHub("/api/correo", {});
+  if (!j || !Array.isArray(j.cuentas)) { ajNota("aj-correo-nota", window.t("No disponible")); return; }
+  j.cuentas.forEach(c => lista.appendChild(ajCorreoCuenta(c, (j.resumen || {})[c.id])));
+  const sel = $("aj-correo-preset"); ajVacia(sel);
+  (Array.isArray(j.presets) ? j.presets : []).forEach(p => { const o = document.createElement("option"); o.value = String(p); o.textContent = String(p); sel.appendChild(o); });
+  const otro = document.createElement("option"); otro.value = "otro"; otro.textContent = window.t("Otro"); sel.appendChild(otro);
+  ajCorreoOtro();
+}
+// Chat con IA (Ajustes de la PC)
+let ajIaListo = false, ajIaDatos = null;
+const AJ_IA_KEY = "kodamaIaChat";
+function ajIaHist() { try { const a = JSON.parse(localStorage.getItem(AJ_IA_KEY) || "[]"); return Array.isArray(a) ? a.slice(-30) : []; } catch (e) { return []; } }
+function ajIaHistSave(h) { try { localStorage.setItem(AJ_IA_KEY, JSON.stringify(h.slice(-30))); } catch (e) {} }
+function ajIaLog() {
+  const L = $("aj-ia-log"); ajVacia(L);
+  ajIaHist().forEach(m => L.appendChild(ajTexto("div", "ia-m" + (m.role === "user" ? " yo" : ""), m.content)));
+  L.scrollTop = L.scrollHeight;
+}
+function ajIaPintar() {
+  const j = ajIaDatos, p = j && (j.proveedores || []).find(x => x.id === $("aj-ia-prov").value);
+  if (!p) return;
+  $("aj-ia-clave-fila").hidden = !p.necesita_clave;
+  $("aj-ia-clave").value = "";
+  $("aj-ia-clave").placeholder = p.configurado ? window.t("Guardada, déjala vacía para no cambiarla") : window.t("Pegar aquí");
+  $("aj-ia-modelo").value = p.modelo || "";
+  $("aj-ia-nube").textContent = p.nube ? tf("Lo que escribas se envía a {0}.", p.nombre) : window.t("Se queda en tu PC.");
+}
+async function ajIaEnviar() {
+  const ta = $("aj-ia-txt"), txt = ta.value.trim(); if (!txt) return;
+  const btn = $("aj-ia-enviar");
+  const h = ajIaHist(); h.push({ role: "user", content: txt }); ajIaHistSave(h); ta.value = ""; ajIaLog();
+  btn.disabled = true; btn.textContent = window.t("Pensando…"); ajNota("aj-ia-nota", "");
+  const j = await ajHub("/api/ia", { preguntar: h });
+  btn.disabled = false; btn.textContent = window.t("Enviar");
+  if (j && j.ok) { const h2 = ajIaHist(); h2.push({ role: "assistant", content: j.texto || "" }); ajIaHistSave(h2); ajIaLog(); }
+  else ajNota("aj-ia-nota", (j && j.error) || window.t("No disponible"));
+}
+function ajIaBind() {
+  $("aj-ia-prov").onchange = () => { ajVacia($("aj-ia-dl")); ajIaPintar(); };
+  $("aj-ia-modelos").onclick = async () => {
+    ajNota("aj-ia-nota", "");
+    const j = await ajHub("/api/ia", { modelos: $("aj-ia-prov").value });
+    const dl = $("aj-ia-dl"); ajVacia(dl);
+    if (j && j.ok && Array.isArray(j.modelos)) j.modelos.forEach(m => { const o = document.createElement("option"); o.value = String(m); dl.appendChild(o); });
+    else ajNota("aj-ia-nota", (j && j.error) || window.t("No disponible"));
+  };
+  $("aj-ia-usar").onclick = async () => {
+    const pid = $("aj-ia-prov").value, clave = $("aj-ia-clave").value.trim(), modelo = $("aj-ia-modelo").value.trim();
+    const g = { pid, modelo }; if (clave) g.clave = clave;   // sin clave escrita, la guardada se queda como esta
+    const a = await ajHub("/api/ia", { guardar: g });
+    const b = a && a.ok !== false ? await ajHub("/api/ia", { elegir: pid }) : null;
+    if (b && b.ok !== false) ajIa(); else ajNota("aj-ia-nota", window.t("No se pudo guardar."));
+  };
+  $("aj-ia-enviar").onclick = () => ajIaEnviar();
+  $("aj-ia-borrar").onclick = () => { ajIaHistSave([]); ajIaLog(); };
+}
+async function ajIa() {
+  if (!ajIaListo) { ajIaListo = true; ajIaBind(); }
+  ajNota("aj-ia-nota", "");
+  ajIaLog();
+  const sel = $("aj-ia-prov"); ajVacia(sel);
+  const j = await ajHub("/api/ia", {});
+  if (!j || !Array.isArray(j.proveedores)) { ajIaDatos = null; ajNota("aj-ia-nota", window.t("No disponible")); return; }
+  ajIaDatos = j;
+  j.proveedores.forEach(p => { const o = document.createElement("option"); o.value = String(p.id); o.textContent = p.nombre + " " + window.t(p.nube ? "(nube)" : "(en tu PC)"); sel.appendChild(o); });
+  if (j.elegido) sel.value = String(j.elegido);
+  ajIaPintar();
 }
 function ajPersonaje() {
   const c = ajP.leer(), esBrote = MOSTRAR_BROTE && c.pj.startsWith("brote");
@@ -1651,15 +2135,45 @@ if (ajP) $("aj-tipo").onclick = async e => { const v = e.target.dataset.v; if (!
   ajPersonaje(); ajPintar(); };
 if (ajP) $("aj-ojos").onclick = async e => { const v = e.target.dataset.v; if (!v || ajP.leer().pj.startsWith("brote")) return;
   await ajP.poner("pj", v); ajPersonaje(); ajPintar(); };   // (27-oct, 4.a vuelta) Ojos: con pupila = gatoPro, lisos = gato (se sincroniza igual que el personaje)
+// (05-nov) barra redonda de una ventana del plan: % grande, color por tramo y cuanto falta para el reinicio (solo si el dato lo trae)
+function reiniciaEn(seg) {
+  const s = seg - Date.now() / 1000; if (s <= 0) return "";
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60);
+  if (h >= 24) { const f = new Date(seg * 1000); return tf("Se reinicia: {0}", f.toLocaleDateString([], { weekday: "short" }) + " " + f.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })); }
+  return h ? tf("Se reinicia en {0} h {1} min", h, m) : tf("Se reinicia en {0} min", Math.max(1, m));
+}
+function ajBarra(id, x) {
+  const hay = x && x.pct != null, pct = hay ? Math.max(0, Math.min(100, x.pct)) : 0, i = $("aj-uso" + id + "b");
+  $("aj-uso" + id).textContent = hay ? (x.estimado ? "≈ " : "") + Math.round(x.pct) + "%" : "—";
+  i.style.width = pct + "%"; i.className = pct >= 95 ? "lleno" : pct >= 80 ? "alto" : "";
+  $("aj-uso" + id + "r").textContent = hay && x.reinicia ? reiniciaEn(x.reinicia) : "";
+}
+// (05-nov) horas de silencio y avisos del plan: se guardan en el hub, valen para todos los aparatos
+let ajPrefs = null;
+async function ajPrefsLeer(cambios) {
+  try { ajPrefs = await ajP.hub("/api/preferencias", cambios || {}); } catch (e) { ajPrefs = null; }
+  if (!ajPrefs || !ajPrefs.silencio) return;
+  const s = ajPrefs.silencio;
+  $("aj-sil").classList.toggle("si", s.activo); $("aj-sil-u").classList.toggle("si", s.urgentes); $("aj-sil-d").value = s.desde; $("aj-sil-h").value = s.hasta;
+  $("aj-silv").textContent = s.activo ? s.desde + " – " + s.hasta : "";
+  $("aj-aluso").classList.toggle("si", ajPrefs.alertas_uso);
+  $("aj-pausas").classList.toggle("si", !!(ajPrefs.pausas && ajPrefs.pausas.activo));
+}
+if (ajP) {
+  $("aj-sil").onclick = () => ajPrefsLeer({ silencio: { activo: !$("aj-sil").classList.contains("si") } });
+  $("aj-sil-u").onclick = () => ajPrefsLeer({ silencio: { urgentes: !$("aj-sil-u").classList.contains("si") } });
+  $("aj-sil-d").onchange = e => ajPrefsLeer({ silencio: { desde: e.target.value } });
+  $("aj-sil-h").onchange = e => ajPrefsLeer({ silencio: { hasta: e.target.value } });
+  $("aj-aluso").onclick = () => ajPrefsLeer({ alertas_uso: !$("aj-aluso").classList.contains("si") });
+  $("aj-pausas").onclick = () => ajPrefsLeer({ pausas: { activo: !$("aj-pausas").classList.contains("si") } });
+}
 async function ajLectura(cuerpo) {
   const j = await ajP.hub("/api/lectura-exacta", cuerpo || {}); $("aj-lectura").classList.toggle("si", !!j.activa);
   // (28-oct) 5 h y semana con la hora LOCAL de reinicio: exacto si Claude Code se lo pasó a Kodama (statusLine), si no ≈ estimado
-  const u = j.uso || {}, hr = (x, largo) => { const f = new Date(x * 1000), h = f.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    return largo ? f.toLocaleDateString([], { weekday: "short" }) + " " + h : h; },
-    val = (x, largo) => x && x.pct != null ? (x.estimado ? "≈ " : "") + Math.round(x.pct) + "%" + (x.reinicia ? " · ↻ " + hr(x.reinicia, largo) : "") : "—";
+  const u = j.uso || {};
   $("aj-uso").hidden = !(u["5h"] || u.semana);
-  $("aj-uso5l").textContent = window.t("Plan · últimas 5 horas"); $("aj-uso5").textContent = val(u["5h"]);
-  $("aj-usowl").textContent = window.t("Plan · semana"); $("aj-usow").textContent = val(u.semana, true);
+  $("aj-uso5l").textContent = window.t("Plan · últimas 5 horas"); ajBarra("5", u["5h"]);
+  $("aj-usowl").textContent = window.t("Plan · semana"); ajBarra("w", u.semana);
   $("aj-uso-nota").textContent = !(u["5h"] || u.semana) ? window.t("Sin dato del uso del plan todavía.") : u.exacto ? window.t("Dato exacto") : window.t("≈ estimado, sin gastar plan");
   $("aj-lectura-nota").textContent = !j.activa ? window.t("Apagado: el uso sale del archivo de la app de Claude y de un estimado (no gasta plan). Actívalo si quieres el dato exacto a pedido; gasta un poco de plan y la app de Claude cambia de chat unos segundos.")
     : j.chat_listo ? window.t("Activo. El chat de Kodama solo lee el uso y archiva chats; no ve tus archivos.")
@@ -1705,7 +2219,7 @@ if (ajP) {
 // (para tapar la union) y se extiende a la derecha lo justo para la cara del gato + el punto de estado o el numero; a la izquierda de la muesca no sale nada, asi los menus de las apps
 // siguen visibles en pantallas chicas. Ancho cerrado = sol + pad + cara del gato + pad + der + pad (~96 pt con una muesca de 32 pt de alto; NO depende del ancho de la muesca: el ala
 // arranca en su borde derecho). Abierta: la tarjeta de siempre, centrada bajo la muesca (wexp). Sin muesca: pastilla compacta centrada bajo la barra de menus.
-const ISLA = { sol: 14, pad: 6, der: 28, wx: 420, h0: 38, w0: 96, wexp: 420, nw: 190, plano: false };
+const ISLA = { sol: 14, pad: 6, der: 20, wx: 420, h0: 38, w0: 96, wexp: 420, nw: 190, plano: false, extra: 0, dx: 0 };   // (04-nov) extra: ancho del texto "Isla cerrada muestra" (islaInfoPintar)
 // Ajustes en modo isla: "a" = panel flotante de siempre bajo la pastilla (380x560); "b" = la pastilla se agranda y lo lleva dentro. Se elige aca; las capturas de
 // CI piden la otra con la orden fija `kodama:ajustes-b` (solo pruebas, solo macOS) para compararlas.
 const ISLA_AJ_DEFECTO = "a";
@@ -1715,32 +2229,38 @@ const GATO = { w: 90, h: 85, cx: 64, cy: 68 };
 // ancho de la ventana de la isla (Rust la centra en la MUESCA: el centro de la muesca cae en la mitad de este ancho) y x de la pastilla: cerrada con muesca = el ala sale del borde
 // derecho de la muesca (14 pt adentro); abierta o sin muesca = centrada
 const islaAncho = () => document.documentElement.clientWidth || innerWidth || 440;
-function islaX(w, abierta) { const cw = islaAncho(); return Math.round(ISLA.plano || abierta ? (cw - w) / 2 : cw / 2 + ISLA.nw / 2 - ISLA.sol); }
+function islaX(w, abierta, bajoMuesca) { const cw = islaAncho(); return Math.round(ISLA.plano || abierta ? (cw - w) / 2 : bajoMuesca ? cw / 2 - ISLA.nw / 2 - 3 : cw / 2 + ISLA.nw / 2 - ISLA.sol); }
 function islaActivar(cfg) {
   if (islaOn || !cfg) return;
   islaOn = true; modoAviso = false;
   const B = document.body, plano = !cfg.notch;
   const h0 = plano ? 32 : Math.max(24, Math.round(cfg.nh)), cara = hh => GATO.w * hh / GATO.h;   // cara = ancho de la cabeza del gato con ese alto
-  const w0 = plano ? Math.round(11 + cara(h0 - 6) + ISLA.pad + ISLA.der + 8) : Math.round(ISLA.sol + ISLA.pad + cara(h0 + 4) + ISLA.pad + ISLA.der + ISLA.pad);
+  const w0 = plano ? Math.round(11 + cara(h0 - 6) + ISLA.pad + ISLA.der + 8) : Math.round(ISLA.sol + ISLA.pad + cara(h0 - 8) + ISLA.pad + ISLA.der + ISLA.pad);
   ISLA.h0 = h0; ISLA.w0 = w0; ISLA.nw = cfg.nw; ISLA.plano = plano; ISLA.wexp = Math.max(ISLA.wx, Math.round(cfg.nw + 2 * 54));
   if (capsula) capsReset();
+  // (04-nov, usuario) isla-nace: sin esto, medir la ventana mas abajo dejaba #isla en left:0 y la transicion la traia desde la izquierda al recargar
+  B.classList.add("isla-nace"); setTimeout(() => B.classList.remove("isla-nace"), 150);
   B.classList.remove("caps"); B.classList.add("isla"); B.classList.toggle("isla-plano", plano);
   const I = document.createElement("div"); I.id = "isla"; I.setAttribute("role", "group");
   const cab = document.createElement("div"); cab.id = "islaCab";
   const der = document.createElement("div"); der.id = "islaDer";
   const pto = document.createElement("span"); pto.id = "islaPto"; der.appendChild(pto);
+  const info = document.createElement("span"); info.id = "islaInfo"; der.appendChild(info);   // (04-nov) uso del plan u hora (ver islaInfoPintar)
   const tile = document.createElement("div"); tile.id = "islaTile";
   const cu = document.createElement("div"); cu.id = "islaCuerpo";
   const en = document.createElement("div"); en.id = "islaIn"; cu.appendChild(en);
-  cab.appendChild($("pie")); cab.appendChild(der); der.insertBefore($("otros"), pto);
+  cab.appendChild($("pie")); cab.appendChild(der); der.insertBefore($("otros"), pto); der.insertBefore(info, $("otros"));   // (04-nov) orden: texto, insignia, punto
   en.appendChild($("asomo")); en.appendChild($("burbuja")); en.appendChild($("lista"));   // Ajustes (#ajpc) se queda en el body (opcion A) o entra aca (opcion B)
   I.appendChild(cab); I.appendChild(tile); I.appendChild(cu); B.insertBefore(I, B.firstChild);
+  // (04-nov, usuario) al devolver el gato arrastrandolo, el ala sale de la muesca hacia la derecha (sin muesca, la pastilla aparece en su lugar)
+  let vuelve = false; try { vuelve = !!sessionStorage.getItem("islaVuelve"); sessionStorage.removeItem("islaVuelve"); } catch (e) {}
+  if (vuelve && !RM) I.animate(plano ? [{ opacity: 0, transform: "scale(.7)" }, { opacity: 1, transform: "none" }] : [{ clipPath: "inset(0 100% -80px 0)" }, { clipPath: "inset(0 0 -80px 0)" }], { duration: 340, easing: "cubic-bezier(.2,.9,.3,1.08)" });
   I.style.setProperty("--nh", h0 + "px"); B.style.setProperty("--nh", h0 + "px"); I.style.setProperty("--der", ISLA.der + "px");
   I.style.width = w0 + "px"; I.style.height = h0 + "px"; I.style.left = islaX(w0, false) + "px";
   if (cfg.sim && !plano) { const sm = document.createElement("div"); sm.id = "islaSim"; sm.style.width = Math.round(cfg.nw) + "px"; sm.style.height = h0 + "px";
     sm.style.left = Math.round(islaAncho() / 2 - cfg.nw / 2) + "px"; B.insertBefore(sm, B.firstChild); }   // solo pruebas de CI: muesca falsa
   // tocar la pastilla cerrada = tocar la mascota (abre el globo del chat que mas te necesita); la insignia y el gato tienen su propio clic
-  cab.onpointerup = e => { if (e.target.closest("#pj, #otros")) return; if (panelAbierto) return cerrarPanel(); if (comp) comp.tocar(); tocarMascota(); };
+  cab.onpointerup = e => { if (e.target.closest("#pj, #otros")) return; if (panelAbierto) return cerrarPanel(); tocarGato(); };
   I.addEventListener("pointerenter", () => islaHover(true)); I.addEventListener("pointerleave", () => islaHover(false));
   if (window.ResizeObserver) new ResizeObserver(islaSync).observe(en);
   // Ajustes: lo de la capsula y "Aparecer solo cuando me necesitan" no aplican a la isla
@@ -1750,7 +2270,7 @@ function islaActivar(cfg) {
   // (29-oct) fila del titulo de cada pagina de Ajustes: [titulo | hueco del gato]. El h2 se deja tal cual (la traduccion le cambia el texto), el hueco va aparte
   document.querySelectorAll("#ajpc .pg h2").forEach(h => { const f = document.createElement("div"); f.className = "ajtit"; h.parentNode.insertBefore(f, h); f.appendChild(h);
     const g = document.createElement("div"); g.className = "ajgato"; g.setAttribute("aria-hidden", "true"); f.appendChild(g); });
-  islaSync(); islaPintar(chats().filter(teNecesita).length);
+  islaSync(); islaPintar(chats().filter(teNecesita).length); islaInfoArrancar();   // (04-nov) uso del plan / hora en la isla cerrada
 }
 // el mouse encima de la pastilla cerrada: crece un poco (y el gato mas). Salir se retrasa 160 ms para que no parpadee en el borde.
 function islaHover(si) {
@@ -1761,18 +2281,34 @@ function islaHover(si) {
 }
 // el gato: tamaño de la cabeza (hh) y donde queda su centro (cx, cy) segun el estado de la pastilla. Cerrada: la cabeza llena el alto de la pastilla y la barbilla
 // asoma 4 px por debajo; con el mouse encima: mas grande; abierta: grande sobre la baldosa de la izquierda.
-function islaGato(modo) {
-  const P = $("pie"); if (!P) return;
+function islaGatoVals(modo) {
   const plano = document.body.classList.contains("isla-plano"), h0 = ISLA.h0;
   let hh, cx, cy;
-  if (modo === "tile") { hh = 66; cx = 14 + 40; cy = h0 + 10 + 40; }
+  if (modo === "tile") { hh = 66; cx = plano ? 14 + 40 : Math.max(ISLA.wexp, ISLA.w0) - 14 - 40; cy = h0 + 10 + 40; }   // (04-nov) con muesca, baldosa a la derecha (donde ya estaba el gato)
   else {
-    hh = modo === "hover" ? (plano ? h0 - 2 : h0 + 10) : (plano ? h0 - 6 : h0 + 4);
-    cx = (plano ? 11 : ISLA.sol + ISLA.pad) + GATO.w * hh / GATO.h / 2; cy = plano ? h0 / 2 : hh / 2;   // con muesca la cara empieza `pad` despues del borde de la muesca (la pastilla entra `sol` en ella)
+    // (04-nov, usuario) con muesca el gato cabe en la barra con aire: cerrada, el alto de la barra menos 8 px; con el mouse encima crece con la isla, sin salirse de ella
+    hh = modo === "hover" ? (plano ? h0 - 2 : h0) : (plano ? h0 - 6 : h0 - 8);
+    cx = (plano ? 11 : ISLA.sol + ISLA.pad + (modo === "hover" ? ISLA.dx : 0)) + GATO.w * hh / GATO.h / 2; cy = plano || modo !== "hover" ? h0 / 2 : (h0 + 8) / 2;   // con muesca la cara empieza `pad` despues del borde de la muesca (la pastilla entra `sol` en ella)
   }
   const s = hh / GATO.h;
-  P.style.setProperty("--s", s.toFixed(4)); P.style.setProperty("--gl", (cx - GATO.cx * s).toFixed(1) + "px"); P.style.setProperty("--gt", (cy - GATO.cy * s).toFixed(1) + "px");
+  const baja = modo !== "tile" && !plano ? 9 : 0;   // (04-nov) el centro VISIBLE del gato esta 9 unidades por debajo de GATO.cy: sin esto la barbilla se salia de la barra
+  return { s, gl: cx - GATO.cx * s, gt: cy - (GATO.cy + baja) * s, plano };
 }
+function islaGato(modo) {
+  const P = $("pie"); if (!P || gatoEnAjustes || (ga && ga.mov)) return;   // (04-nov) en Ajustes el gato vive en el hueco del titulo (islaMorfAbrir); arrastrandolo lo coloca islaArrPintar
+  const v = islaGatoVals(modo);
+  P.style.setProperty("--s", v.s.toFixed(4)); P.style.setProperty("--gl", v.gl.toFixed(1) + "px"); P.style.setProperty("--gt", v.gt.toFixed(1) + "px");
+  // (04-nov, usuario) en la baldosa la cola no se sale, como en la esfera blanca de Windows: se recorta a la baldosa cuando el gato ya llego (dura lo que la transicion de #pie)
+  clearTimeout(tRecorte);
+  if (modo !== "tile") { P.style.clipPath = ""; return; }
+  tRecorte = setTimeout(() => {
+    const T = $("islaTile"), I = $("isla"); if (!T || !I || !I.classList.contains("tile")) return;
+    const lx = T.offsetLeft, ly = T.offsetTop, k = 1 / v.s, a = 128, alto = P.offsetHeight || 128;
+    const izq = (lx - v.gl) * k, arr = (ly - v.gt) * k, der = a - (lx + T.offsetWidth - v.gl) * k, aba = alto - (ly + T.offsetHeight - v.gt) * k;
+    P.style.clipPath = `inset(${arr.toFixed(1)}px ${der.toFixed(1)}px ${aba.toFixed(1)}px ${izq.toFixed(1)}px round ${(20 * k).toFixed(1)}px)`;
+  }, 360);
+}
+let tRecorte = 0;
 // la pastilla se abre cuando hay contenido (aviso, globo, lista o Ajustes en la opcion B) y se cierra cuando ya no hay: el tamaño sale del contenido y se anima con CSS
 function islaSync() {
   if (!islaOn) return;
@@ -1780,9 +2316,12 @@ function islaSync() {
   const hc = en.offsetHeight, abierta = hc > 0, tile = abierta && !panelAbierto, hov = !abierta && !panelAbierto && (islaHov || islaHovFijo);
   I.classList.toggle("abierta", abierta); I.classList.toggle("tile", tile); I.classList.toggle("hov", hov);
   document.body.classList.toggle("isla-tile-osc", /blanco/.test(pjTipo || ""));   // gato blanco: baldosa oscura
-  const w = abierta ? Math.max(ISLA.wexp, ISLA.w0) : ISLA.w0 + (hov ? 16 : 0);   // hover: el ala crece 16 a la derecha y 6 hacia abajo
-  const h = abierta ? ISLA.h0 + Math.max(hc, tile ? 92 : 0) + 4 : ISLA.h0 + (hov ? 6 : 0);
-  I.style.width = w + "px"; I.style.height = Math.min(h, Math.max(ISLA.h0, innerHeight - 4)) + "px"; I.style.left = islaX(w, abierta) + "px";
+  // hover: el ala crece 16 a la derecha; (04-nov) + el texto de islaInfo. Con muesca, ademas, la isla se extiende bajo la muesca (x = su borde izquierdo) y baja 8: crece entera
+  const plano = ISLA.plano, wc = ISLA.w0 + ISLA.extra + (hov ? 10 : 0), bajo = hov && !plano, xc = islaX(wc, false), xb = bajo ? islaX(wc, false, true) : xc;
+  const w = abierta ? Math.max(ISLA.wexp, ISLA.w0) : bajo ? xc + wc - xb : wc;
+  const h = abierta ? ISLA.h0 + Math.max(hc, tile ? 92 : 0) + 4 : ISLA.h0 + (hov ? (plano ? 6 : 8) : 0);
+  ISLA.dx = xc - xb;   // lo que el borde de la isla se corrio a la izquierda: el gato se queda donde estaba (islaGato)
+  I.style.width = w + "px"; I.style.height = Math.min(h, Math.max(ISLA.h0, innerHeight - 4)) + "px"; I.style.left = (bajo ? xb : islaX(w, abierta)) + "px";
   islaGato(tile ? "tile" : hov ? "hover" : "cerrada");
   zonaYa();
 }
@@ -1790,6 +2329,35 @@ function islaPintar(nEsp) {   // punto de estado (verde si algun chat trabaja, g
   const P = $("islaPto"); if (!P) return;
   const ch = chats(), trabaja = ch.some(c => estadoDe(c) === "trabajando"), todoDuerme = ch.length > 0 && ch.every(c => estadoDe(c) === "dormido");
   P.className = trabaja ? "trabaja" : todoDuerme ? "dormido" : ""; P.style.display = nEsp ? "none" : "";
+}
+// (04-nov) "Isla cerrada muestra" (islaInfo, ajustes): el uso del plan de 5 h, la hora o nada, a la izquierda del punto de estado. Solo en la isla (macOS).
+let islaUso = null;   // {pct, estimado} de la ventana de 5 h; la trae islaUsoLeer (solo lee archivos locales, nunca gasta plan)
+function islaInfoPintar() {
+  if (!islaOn || !ajP) return;
+  const I = $("islaInfo"), isla = $("isla"); if (!I || !isla) return;
+  const modo = ajP.leer().islaInfo || "uso";
+  let txt = "", clase = "", titulo = "";
+  if (modo === "hora") txt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });   // (04-nov) 24 h: mas corta en la pastilla
+  else if (modo === "uso" && islaUso && islaUso.pct != null) {
+    txt = (islaUso.estimado ? "≈" : "") + Math.round(islaUso.pct) + "%";
+    clase = islaUso.pct >= 95 ? "lleno" : islaUso.pct >= 80 ? "alto" : "";
+    titulo = tf("Plan · últimas 5 horas: {0}", txt);
+  }
+  I.textContent = txt; I.className = clase; I.title = titulo;
+  if (!isla.classList.contains("abierta")) {   // con la pastilla abierta el texto se oculta: no mide nada
+    ISLA.extra = I.offsetWidth ? I.offsetWidth + 6 : 0;   // (el texto mas el margen de 6)
+    isla.style.setProperty("--der", (ISLA.der + ISLA.extra) + "px");
+    islaSync();
+  }
+}
+async function islaUsoLeer() {
+  try { const j = await ajP.hub("/api/lectura-exacta", {}); islaUso = (j && j.uso && j.uso["5h"]) || null; } catch (e) { islaUso = null; }
+  islaInfoPintar();
+}
+function islaInfoArrancar() {
+  if (!ajP) return;
+  islaUsoLeer(); setInterval(islaUsoLeer, 60000);
+  setInterval(() => { if ((ajP.leer().islaInfo || "uso") === "hora") islaInfoPintar(); }, 15000);
 }
 // (29-oct) el gato grande del titulo de Ajustes: otra instancia del MISMO personaje y color (pjTipo), en reposo; la pastilla cerrada conserva el suyo chico.
 // Existe solo con Ajustes abiertos (opcion A); al cambiar de pagina se muda de hueco, al cambiar personaje/color (montar) se rehace.
@@ -1804,19 +2372,72 @@ function islaGatoTit(forzar) {
   hoy.onpointerup = () => { if (comp2 && comp2.tocar) comp2.tocar(); };
 }
 function abrirPanelIsla() {
+  islaMorfLimpiar();   // si venia cerrandose, termina de golpe
   try { cerrar(); } catch (e) {} $("lista").classList.remove("si"); ocultarAsomo();
   tocada(); dormirAnim(false);
   const b = islaAj === "b", P = $("ajpc");
   P.classList.toggle("en-isla", b); (b ? $("islaIn") : document.body).appendChild(P);   // B: dentro de la pastilla; A: flotante bajo ella
   document.body.classList.add("con-panel"); islaGatoTit();
-  if (!RM) P.animate(b ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: "translateY(-8px)" }, { opacity: 1, transform: "none" }], { duration: 200, easing: "ease-out" });
+  const pgOn = P.querySelector(".pg.on"); if (pgOn) pgOn.getAnimations().forEach(x => x.finish());   // (04-nov) la entrada de la pagina (ajEntra) corre el hueco 14 px: se mide con la pagina ya en su sitio
+  const hueco = !b && ho2 ? ho2.getBoundingClientRect() : null;
+  if (b && !RM) P.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: "ease-out" });
   companero.interactivo(true); window._sobre = true;
   islaSync();
+  if (hueco) islaMorfAbrir(hueco);
+}
+// (04-nov, usuario) la misma coreografia de Ajustes de Windows (capsula -> ventana, ver abrirPanel), desde la pastilla: se aplasta, la pastilla negra se estira hasta ser la ventana,
+// el gato cae al hueco del titulo creciendo y aterriza con rebote. El hueco tiene un #pj igual escalado .706 desde su esquina, corrido (-13.2, -18) (ver .ajgato > div): el mismo #pie
+// llega a la misma posicion exacta y ahi se cambia por la otra instancia (la que se desplaza con la pagina).
+let gatoEnAjustes = false, islaTl = null, islaTlFin = null;
+function islaMorfCapa() { let M = $("islaMorph"); if (!M) { M = document.createElement("div"); M.id = "islaMorph"; document.body.appendChild(M); } return M; }
+function islaMorfLimpiar() { if (islaTl) { const f = islaTlFin; islaTl.kill(); islaTl = null; islaTlFin = null; if (f) f(); } }
+function islaMorfAbrir(hueco) {
+  const G = $("pie"), S = $("pj"), P = $("ajpc"), I = $("isla"), H = ho2, B = document.body; if (!G || !H) return;
+  gatoEnAjustes = true; H.classList.add("esperando");
+  const llega = () => { islaTl = null; islaTlFin = null; G.style.visibility = "hidden"; B.classList.remove("isla-morf"); H.classList.remove("esperando");
+    gsap.set(S, { clearProps: "transform,transformOrigin" }); gsap.set(P, { clearProps: "opacity,visibility" }); gsap.set(islaMorfCapa(), { display: "none" }); };
+  if (RM) return llega();
+  B.classList.add("isla-morf");
+  const M = islaMorfCapa(), m = P.getBoundingClientRect(), col = getComputedStyle(P).backgroundColor, ix = parseFloat(I.style.left), iy = I.offsetTop;   // la posicion FINAL de la isla (style.left): puede venir moviendose si el mouse estaba encima
+  gsap.set(P, { autoAlpha: 0 });
+  gsap.set(M, { display: "block", left: ix, top: iy, width: parseFloat(I.style.width), height: parseFloat(I.style.height), borderRadius: 14, backgroundColor: "#000", autoAlpha: 1 });
+  gsap.set(S, { transformOrigin: "50% 100%" });
+  islaTlFin = llega;
+  islaTl = gsap.timeline({ onComplete: llega }).add("m")
+    .to(S, { scaleY: .8, scaleX: 1.12, duration: .14, ease: "power2.out" }, "m")
+    .to(M, { left: m.left, top: m.top, width: m.width, height: m.height, backgroundColor: col, duration: .62, ease: "power3.inOut" }, "m+=.08")
+    .to(G, { "--gl": (hueco.left - 13.2 - ix).toFixed(1) + "px", "--s": .706, duration: .62, ease: "power2.inOut" }, "m+=.12")
+    .to(S, { scaleY: 1.14, scaleX: .9, duration: .2 }, "m+=.12")
+    .to(G, { "--gt": (hueco.top - 18 - iy).toFixed(1) + "px", duration: .6, ease: "power2.in" }, "m+=.14")
+    .to(P, { autoAlpha: 1, duration: .18 }, "m+=.6").set(M, { display: "none" }, "m+=.78")
+    .to(S, { scaleY: .82, scaleX: 1.14, duration: .1 }, "m+=.74")
+    .to(S, { scaleY: 1, scaleX: 1, duration: .6, ease: "elastic.out(1, .4)" });
 }
 function cerrarPanelIsla(despues) {
-  panelAbierto = false; document.body.classList.remove("con-panel"); islaGatoTit();
-  window._sobre = false; companero.interactivo(false);
-  islaSync(); if (despues) despues();
+  islaMorfLimpiar();
+  const G = $("pie"), S = $("pj"), P = $("ajpc"), I = $("isla"), B = document.body, volver = gatoEnAjustes;
+  const fin = () => { islaTl = null; islaTlFin = null; gatoEnAjustes = false; B.classList.remove("con-panel", "isla-morf"); G.style.visibility = "";
+    gsap.set(S, { clearProps: "transform,transformOrigin" }); gsap.set(P, { clearProps: "opacity,visibility" }); gsap.set(islaMorfCapa(), { display: "none" });
+    window._sobre = false; companero.interactivo(false); islaSync(); if (despues) despues(); };
+  panelAbierto = false; islaGatoTit();
+  if (!volver || RM || islaAj === "b") return fin();
+  // al reves: la ventana vuelve a ser la pastilla y el gato sube a su lugar, con el golpe al llegar
+  islaSync();
+  const M = islaMorfCapa(), m = P.getBoundingClientRect(), col = getComputedStyle(P).backgroundColor, v = islaGatoVals("cerrada");
+  G.style.visibility = ""; B.classList.add("isla-morf");
+  gsap.set(M, { display: "block", left: m.left, top: m.top, width: m.width, height: m.height, borderRadius: 14, backgroundColor: col, autoAlpha: 1 });
+  gsap.set(S, { transformOrigin: "50% 100%" });
+  islaTlFin = fin;
+  islaTl = gsap.timeline({ onComplete: fin }).add("m")
+    .to(P, { autoAlpha: 0, duration: .12 }, "m")
+    .to(S, { scaleY: .8, scaleX: 1.12, duration: .12 }, "m")
+    .to(M, { left: parseFloat(I.style.left), top: I.offsetTop, width: parseFloat(I.style.width), height: parseFloat(I.style.height), backgroundColor: "#000", duration: .55, ease: "power3.inOut" }, "m+=.12")
+    .to(S, { scaleY: 1.12, scaleX: .9, duration: .2 }, "m+=.12")
+    .to(G, { "--gt": v.gt.toFixed(1) + "px", duration: .46, ease: "power2.out" }, "m+=.12")
+    .to(G, { "--gl": v.gl.toFixed(1) + "px", "--s": v.s, duration: .5, ease: "power2.inOut" }, "m+=.14")
+    .set(M, { display: "none" }, "m+=.67")
+    .to(S, { scaleY: .8, scaleX: 1.16, duration: .1 }, "m+=.6")
+    .to(S, { scaleY: 1, scaleX: 1, duration: .55, ease: "elastic.out(1, .4)" });
 }
 // Ajustes (solo macOS): "Modo isla (muesca)" = Auto (isla si tu Mac tiene muesca) | Sí (siempre; sin muesca, una pastilla bajo la barra de menus) | No
 function ajIslaFila(c) {
@@ -1826,14 +2447,25 @@ function ajIslaFila(c) {
     f = document.createElement("div"); f.className = "fi"; f.id = "aj-isla-fila";
     f.innerHTML = '<span data-t>Modo isla (muesca)</span><div class="sg" id="aj-isla"><span data-v="auto" data-t>Auto</span><span data-v="si" data-t>Sí</span><span data-v="no" data-t>No</span></div>';
     const ref = $("aj-capcolfila"); ref.parentNode.insertBefore(f, ref.nextSibling);
+    // (04-nov) "Isla cerrada muestra": uso del plan, hora o nada (justo debajo del modo isla)
+    const fi = document.createElement("div"); fi.className = "fi"; fi.id = "aj-islainfo-fila";
+    fi.innerHTML = '<span data-t>Isla cerrada</span><div class="sg" id="aj-islainfo"><span data-v="uso" data-t>Uso</span><span data-v="hora" data-t>Hora</span><span data-v="nada" data-t>Nada</span></div>';
+    f.parentNode.insertBefore(fi, f.nextSibling);
+    $("aj-islainfo").onclick = async e => { const v = e.target.dataset.v; if (!v) return; await ajP.poner("islaInfo", v);
+      document.querySelectorAll("#aj-islainfo span").forEach(x => x.classList.toggle("on", x.dataset.v === v)); islaInfoPintar(); };
+    if (window.traducirDOM) window.traducirDOM(fi);
     const nota = document.createElement("div"); nota.className = "pie2"; nota.id = "aj-isla-nota"; nota.setAttribute("data-t", "");
     nota.textContent = "Kodama vive en la muesca de tu MacBook, como una isla. Auto: solo si tu Mac tiene muesca. Sí: siempre (sin muesca, bajo la barra de menús).";
-    const p1 = document.querySelector('#ajpc .pg[data-p="inicio"] .pie2'); if (p1) p1.parentNode.insertBefore(nota, p1);
+    const notaArr = document.createElement("div"); notaArr.className = "pie2"; notaArr.setAttribute("data-t", "");   // (04-nov) arrastrar el gato fuera de la isla y devolverlo
+    notaArr.textContent = "Arrastra el gato fuera de la isla para soltarlo; llévalo de vuelta a la muesca para devolverlo.";
+    const p1 = document.querySelector('#ajpc .pg[data-p="inicio"] .pie2'); if (p1) { p1.parentNode.insertBefore(nota, p1); p1.parentNode.insertBefore(notaArr, p1); }
+    if (window.traducirDOM) window.traducirDOM(notaArr);
     if (window.traducirDOM) { window.traducirDOM(f); window.traducirDOM(nota); }
     $("aj-isla").onclick = e => { const v = e.target.dataset.v; if (!v) return; ajP.poner("isla", v);
       document.querySelectorAll("#aj-isla span").forEach(x => x.classList.toggle("on", x.dataset.v === v)); };
   }
   document.querySelectorAll("#aj-isla span").forEach(x => x.classList.toggle("on", x.dataset.v === c.isla));
+  document.querySelectorAll("#aj-islainfo span").forEach(x => x.classList.toggle("on", x.dataset.v === (c.islaInfo || "uso")));   // (04-nov)
 }
 // ordenes FIJAS de prueba (solo macOS, las manda la CI por el archivo de diagnostico; no se evalua nada): "hover" fija/suelta el estado con el mouse encima,
 // "ajustes-a" / "ajustes-b" abren Ajustes con esa variante

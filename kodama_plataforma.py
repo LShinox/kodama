@@ -453,6 +453,139 @@ def segundos_sin_uso():
     _pendiente()
 
 
+# ---------------------------------------------------------------- carga de la PC (04-nov): el gato reacciona a ella
+_CPU_PREV = {"t": None}   # (04-nov) ultima lectura de GetSystemTimes: (inactivo, total) en unidades de 100 ns
+
+
+def _ticks(ft):
+    """(04-nov) FILETIME -> entero de 64 bits."""
+    return (ft.dwHighDateTime << 32) | ft.dwLowDateTime
+
+
+def _cpu_ahora():
+    """(04-nov) % de CPU desde la lectura anterior de esta funcion. La primera vez devuelve None (no hay con que comparar)."""
+    import ctypes.wintypes as w
+    k = ctypes.windll.kernel32
+    inact, kern, usu = w.FILETIME(), w.FILETIME(), w.FILETIME()
+    if not k.GetSystemTimes(ctypes.byref(inact), ctypes.byref(kern), ctypes.byref(usu)):
+        return None
+    i, t = _ticks(inact), _ticks(kern) + _ticks(usu)   # el kernel ya incluye el tiempo inactivo
+    previo = _CPU_PREV["t"]
+    _CPU_PREV["t"] = (i, t)
+    if previo is None:
+        return None
+    di, dt = i - previo[0], t - previo[1]
+    if dt <= 0:
+        return None
+    return max(0, min(100, round(100 * (dt - di) / dt)))
+
+
+def estado_maquina():
+    """(04-nov) Carga de la PC: {"cpu": %|None, "mem": %|None, "bateria": %|None, "enchufado": bool|None}. Cada campo None si
+    no se puede leer (y siempre None fuera de Windows). Nunca lanza. La temperatura no se lee: pide permisos de administrador."""
+    out = {"cpu": None, "mem": None, "bateria": None, "enchufado": None}
+    if sys.platform != "win32":
+        return out
+    try:
+        out["cpu"] = _cpu_ahora()
+    except Exception:
+        pass
+    try:
+        class MEMX(ctypes.Structure):
+            _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong), ("ullTotalPhys", ctypes.c_ulonglong),
+                        ("ullAvailPhys", ctypes.c_ulonglong), ("ullTotalPageFile", ctypes.c_ulonglong),
+                        ("ullAvailPageFile", ctypes.c_ulonglong), ("ullTotalVirtual", ctypes.c_ulonglong),
+                        ("ullAvailVirtual", ctypes.c_ulonglong), ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+        m = MEMX(); m.dwLength = ctypes.sizeof(MEMX)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m)):
+            out["mem"] = max(0, min(100, int(m.dwMemoryLoad)))
+    except Exception:
+        pass
+    try:
+        class POWER(ctypes.Structure):
+            _fields_ = [("ACLineStatus", ctypes.c_ubyte), ("BatteryFlag", ctypes.c_ubyte), ("BatteryLifePercent", ctypes.c_ubyte),
+                        ("SystemStatusFlag", ctypes.c_ubyte), ("BatteryLifeTime", ctypes.c_ulong),
+                        ("BatteryFullLifeTime", ctypes.c_ulong)]
+        p = POWER()
+        if ctypes.windll.kernel32.GetSystemPowerStatus(ctypes.byref(p)):
+            if p.BatteryFlag != 128 and p.BatteryLifePercent != 255:   # 128 = sin bateria, 255 = no se sabe
+                out["bateria"] = max(0, min(100, int(p.BatteryLifePercent)))
+                if p.ACLineStatus == 1:
+                    out["enchufado"] = True
+                elif p.ACLineStatus == 0:
+                    out["enchufado"] = False
+    except Exception:
+        pass
+    return out
+
+
+def procesos_top(n=2):
+    """(04-nov) Nombres (sin .exe) de los procesos que mas CPU usan ahora, agrupados por nombre: se mide el tiempo de CPU
+    de cada proceso con dos lecturas de GetProcessTimes separadas 400 ms. Solo Windows; en otro sistema []. Nunca lanza."""
+    if sys.platform != "win32":
+        return []
+    try:
+        import ctypes.wintypes as w
+
+        class PE(ctypes.Structure):
+            _fields_ = [("dwSize", w.DWORD), ("cntUsage", w.DWORD), ("th32ProcessID", w.DWORD), ("th32DefaultHeapID", ctypes.c_size_t),
+                        ("th32ModuleID", w.DWORD), ("cntThreads", w.DWORD), ("th32ParentProcessID", w.DWORD),
+                        ("pcPriClassBase", ctypes.c_long), ("dwFlags", w.DWORD), ("szExeFile", ctypes.c_wchar * 260)]
+        k = ctypes.windll.kernel32
+        k.CreateToolhelp32Snapshot.argtypes = [w.DWORD, w.DWORD]
+        k.CreateToolhelp32Snapshot.restype = w.HANDLE
+        k.Process32FirstW.argtypes = [w.HANDLE, ctypes.POINTER(PE)]
+        k.Process32FirstW.restype = w.BOOL
+        k.Process32NextW.argtypes = [w.HANDLE, ctypes.POINTER(PE)]
+        k.Process32NextW.restype = w.BOOL
+        k.OpenProcess.argtypes = [w.DWORD, w.BOOL, w.DWORD]
+        k.OpenProcess.restype = w.HANDLE
+        k.GetProcessTimes.argtypes = [w.HANDLE, ctypes.POINTER(w.FILETIME), ctypes.POINTER(w.FILETIME),
+                                      ctypes.POINTER(w.FILETIME), ctypes.POINTER(w.FILETIME)]
+        k.GetProcessTimes.restype = w.BOOL
+        k.CloseHandle.argtypes = [w.HANDLE]
+        k.CloseHandle.restype = w.BOOL
+
+        def tiempo_cpu(h):   # kernel + usuario, en unidades de 100 ns; None si no se pudo leer
+            c, x, s, u = w.FILETIME(), w.FILETIME(), w.FILETIME(), w.FILETIME()
+            if not k.GetProcessTimes(h, ctypes.byref(c), ctypes.byref(x), ctypes.byref(s), ctypes.byref(u)):
+                return None
+            return _ticks(s) + _ticks(u)
+
+        snap = k.CreateToolhelp32Snapshot(0x2, 0)   # TH32CS_SNAPPROCESS
+        if not snap or snap == ctypes.c_void_p(-1).value:
+            return []
+        abiertos = []   # (nombre, handle, tiempo inicial): se cierran todos al final
+        por_nombre = {}
+        try:
+            e = PE(); e.dwSize = ctypes.sizeof(PE)
+            ok = k.Process32FirstW(snap, ctypes.byref(e))
+            while ok:
+                pid, nombre = e.th32ProcessID, e.szExeFile
+                if pid not in (0, 4):   # Idle y System: no son programas
+                    h = k.OpenProcess(0x1000, False, pid)   # PROCESS_QUERY_LIMITED_INFORMATION
+                    if h:
+                        t = tiempo_cpu(h)
+                        if t is not None:
+                            abiertos.append((nombre, h, t))
+                        else:
+                            k.CloseHandle(h)
+                ok = k.Process32NextW(snap, ctypes.byref(e))
+            time.sleep(0.4)
+            for nombre, h, t1 in abiertos:
+                t2 = tiempo_cpu(h)
+                if t2 is not None and t2 > t1:
+                    nm = nombre[:-4] if nombre.lower().endswith(".exe") else nombre
+                    por_nombre[nm] = por_nombre.get(nm, 0) + (t2 - t1)
+        finally:
+            for _, h, _ in abiertos:
+                k.CloseHandle(h)
+            k.CloseHandle(snap)
+        return sorted(por_nombre, key=por_nombre.get, reverse=True)[:n]
+    except Exception:
+        return []
+
+
 _AL_FRENTE = {"hasta": 0.0}   # macOS: tras un fallo no se vuelve a preguntar hasta esta hora (epoch)
 
 

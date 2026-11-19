@@ -48,13 +48,14 @@ MAC = sys.platform == "darwin"
 PYV = plataforma.python_del_venv(AQUI) if sys.platform in ("win32", "darwin") else ""   # Windows: .venv\Scripts\python.exe; macOS: .venv/bin/python
 CODEX_HOOKS = os.path.join(config.HOME, ".codex", "hooks.json")
 GEMINI_HOOKS = os.path.join(config.HOME, ".gemini", "config", "hooks.json")
+OPENCODE_PLUGIN = os.path.join(config.HOME, ".config", "opencode", "plugins", "kodama.js")   # (04-nov) plugin de OpenCode
 SETTINGS = os.path.join(config.HOME, ".claude", "settings.json")
 CONFIG_JSON = os.path.join(AQUI, "config.json")
 PY = sys.executable
 PYW = os.path.join(os.path.dirname(PY), "pythonw.exe")
 TAREA = "Kodama"
 TAREA_VIEJA = "Companero"   # (28-oct) nombre anterior de la tarea: se borra al instalar/quitar para no dejar dos
-NUESTROS = ("companero_hook.py", "companero_puente.py", "companero_uso.py", "companero_permiso.py")
+NUESTROS = ("companero_hook.py", "companero_puente.py", "companero_uso.py", "companero_permiso.py", "companero_hook_pre.py")
 
 
 def paso(txt):
@@ -85,6 +86,11 @@ def cmd_hook(script, *args):
     return f'"{PYV}" "{os.path.join(AQUI, script)}"{extra}'.replace("\\", "/")
 
 
+def cmd_hook_ligero(script):
+    """(04-nov) como cmd_hook, para los hooks livianos: el Python arranca con -I -S (ver companero_hook_pre.py)."""
+    return f'"{PYV}" -I -S "{os.path.join(AQUI, script)}"'.replace("\\", "/")
+
+
 def hooks_nuestros():
     h = lambda s, **kw: {"hooks": [dict({"type": "command", "command": cmd_hook(s), "timeout": 10}, **kw)]}
     return {
@@ -95,7 +101,9 @@ def hooks_nuestros():
         "SessionEnd": [h("companero_hook.py", **{"async": True})],
         "PermissionRequest": [h("companero_permiso.py", timeout=130)],
         # (21-oct) preguntas con opciones respondidas desde el celular (como en la PC de LShinox)
-        "PreToolUse": [dict(h("companero_permiso.py", timeout=130), matcher="AskUserQuestion")],
+        "PreToolUse": [dict(h("companero_permiso.py", timeout=130), matcher="AskUserQuestion"),
+                       {"matcher": "Bash|PowerShell|WebFetch|WebSearch|Agent|Task|mcp__.*",
+                        "hooks": [{"type": "command", "command": cmd_hook_ligero("companero_hook_pre.py"), "timeout": 10}]}],
         "PostToolUse": [h("companero_hook.py", **{"async": True})],
     }
 
@@ -135,10 +143,18 @@ def previa_guardada():
         return None
 
 
-def tocar_settings(poner):
-    """Une (o saca) nuestros hooks y la statusLine en settings.json sin tocar nada mas. Respaldo antes."""
+def tocar_settings(poner, settings=None):
+    """Une (o saca) nuestros hooks y la statusLine en settings.json sin tocar nada mas. Respaldo antes.
+    (04-nov) `settings` es el settings.json de una carpeta de Claude Code (ver config.dirs_claude); None = el de la por
+    defecto, leido AL LLAMAR (no al importar: asi las pruebas que cambian SETTINGS lo ven). La statusLine y su previa
+    (config.json) solo se manejan en la carpeta por defecto."""
+    if settings is None:
+        settings = SETTINGS
+    principal = settings == SETTINGS
+    if not poner and not os.path.exists(settings):   # (07-nov) quitar sin archivo: no crea el settings.json ni su carpeta
+        return
     try:
-        d = json.load(open(SETTINGS, encoding="utf-8"))
+        d = json.load(open(settings, encoding="utf-8"))
     except FileNotFoundError:
         d = {}
     hooks = d.setdefault("hooks", {})
@@ -149,21 +165,22 @@ def tocar_settings(poner):
     if poner:
         for ev, entradas in hooks_nuestros().items():
             hooks.setdefault(ev, []).extend(entradas)
-        sl = d.get("statusLine")
-        mia = {"type": "command", "command": cmd_hook("companero_uso.py")}
-        if not sl:
-            d["statusLine"] = mia
-        elif "companero_uso.py" in json.dumps(sl):   # ya es la nuestra (reinstalar): se deja igual, con lo que traiga de su previa
-            previa = previa_guardada()
-            d["statusLine"] = dict({k: v for k, v in (previa or {}).items() if k != "command"}, **mia)
-        elif isinstance(sl, dict) and sl.get("type") == "command" and isinstance(sl.get("command"), str) and sl["command"].strip():
-            # (28-oct) ya tiene la suya: se guarda en config.json y companero_uso.py la corre despues de anotar el uso
-            guardar_previa(sl)
-            d["statusLine"] = dict({k: v for k, v in sl.items() if k != "command"}, **mia)
-            paso("  tu statusLine anterior se conserva: Kodama anota el uso y despues corre tu comando (la barra se ve igual)")
-        else:
-            paso("  ojo: tu statusLine no es de tipo comando; no la piso (el medidor de uso queda apagado)")
-    elif "companero_uso.py" in json.dumps(d.get("statusLine") or {}):
+        if principal:
+            sl = d.get("statusLine")
+            mia = {"type": "command", "command": cmd_hook("companero_uso.py")}
+            if not sl:
+                d["statusLine"] = mia
+            elif "companero_uso.py" in json.dumps(sl):   # ya es la nuestra (reinstalar): se deja igual, con lo que traiga de su previa
+                previa = previa_guardada()
+                d["statusLine"] = dict({k: v for k, v in (previa or {}).items() if k != "command"}, **mia)
+            elif isinstance(sl, dict) and sl.get("type") == "command" and isinstance(sl.get("command"), str) and sl["command"].strip():
+                # (28-oct) ya tiene la suya: se guarda en config.json y companero_uso.py la corre despues de anotar el uso
+                guardar_previa(sl)
+                d["statusLine"] = dict({k: v for k, v in sl.items() if k != "command"}, **mia)
+                paso("  tu statusLine anterior se conserva: Kodama anota el uso y despues corre tu comando (la barra se ve igual)")
+            else:
+                paso("  ojo: tu statusLine no es de tipo comando; no la piso (el medidor de uso queda apagado)")
+    elif principal and "companero_uso.py" in json.dumps(d.get("statusLine") or {}):
         previa = previa_guardada()
         if previa:   # devuelve la statusLine que tenia la persona antes de Kodama
             d["statusLine"] = previa
@@ -176,13 +193,41 @@ def tocar_settings(poner):
     paso(f"  settings.json: eventos con hooks de Kodama -> {sorted(hooks_nuestros()) if poner else 'ninguno'}")
     if PRUEBA:
         return
-    if os.path.exists(SETTINGS):
-        shutil.copy2(SETTINGS, SETTINGS + time.strftime(".bak-companero-%Y%m%d-%H%M%S"))
-    os.makedirs(os.path.dirname(SETTINGS), exist_ok=True)
-    tmp = SETTINGS + ".tmp"
+    if os.path.exists(settings):
+        shutil.copy2(settings, settings + time.strftime(".bak-companero-%Y%m%d-%H%M%S"))
+    os.makedirs(os.path.dirname(settings), exist_ok=True)
+    tmp = settings + ".tmp"
     json.dump(d, open(tmp, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
     json.load(open(tmp, encoding="utf-8"))          # que quede JSON valido antes de reemplazar
-    os.replace(tmp, SETTINGS)
+    os.replace(tmp, settings)
+
+
+def settings_todos():
+    """(04-nov) settings.json de cada carpeta de Claude Code de esta PC (la por defecto primero)."""
+    return [SETTINGS] + [os.path.join(d, "settings.json") for d in config.dirs_claude()[1:]]   # SETTINGS leido al llamar: las pruebas que lo cambian nunca tocan el real
+
+
+def agregar_perfil(carpeta):
+    """(04-nov) --perfil=<carpeta>: suma esa carpeta de Claude Code a config.json "perfiles_claude" (ruta absoluta, sin
+    repetir). Escribe igual que guardar_previa. No hace nada en --prueba."""
+    ruta = os.path.abspath(os.path.expanduser(carpeta))
+    if PRUEBA:
+        paso(f"  perfil de Claude Code: {ruta} (en prueba: no se guarda)")
+        return
+    try:
+        c = json.load(open(CONFIG_JSON, encoding="utf-8-sig"))
+    except FileNotFoundError:
+        c = {}
+    except ValueError:
+        raise SystemExit("config.json no se pudo leer; no agrego el perfil. No se tocó nada.")
+    perfiles = list(c.get("perfiles_claude") or [])
+    if os.path.normcase(ruta) not in [os.path.normcase(os.path.abspath(os.path.expanduser(p))) for p in perfiles]:
+        perfiles.append(ruta)
+    c["perfiles_claude"] = perfiles
+    tmp = CONFIG_JSON + ".tmp"
+    json.dump(c, open(tmp, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+    os.replace(tmp, CONFIG_JSON)
+    paso(f"  perfil de Claude Code agregado: {ruta}")
 
 
 def claves():
@@ -267,11 +312,11 @@ def otros_agentes(poner):
             if not hooks[ev]:
                 hooks.pop(ev)
         if poner:
-            for ev, t in (("SessionStart", 10), ("UserPromptSubmit", 10), ("Stop", 15), ("PermissionRequest", 130)):
+            for ev, t in (("SessionStart", 10), ("UserPromptSubmit", 10), ("Stop", 1900), ("PermissionRequest", 130)):   # (04-nov) Stop 1900: espera tu respuesta (companero_puente), como con Claude
                 hooks.setdefault(ev, []).append({"hooks": [{"type": "command", "command": cmd_hook("companero_codex.py"), "timeout": t}]})
         paso(f"  Codex: hooks de Kodama {'puestos' if poner else 'quitados'} en ~\\.codex\\hooks.json"
              + (" (actívalos una vez dentro de Codex con /hooks)" if poner else ""))
-        if not PRUEBA:
+        if not PRUEBA and (poner or os.path.exists(CODEX_HOOKS)):   # (07-nov) quitar sin archivo: no lo crea
             _respaldo(CODEX_HOOKS)
             json.dump(d, open(CODEX_HOOKS, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
     if os.path.isdir(os.path.dirname(os.path.dirname(GEMINI_HOOKS))):
@@ -288,10 +333,114 @@ def otros_agentes(poner):
                 c = lambda ev, t: [{"type": "command", "command": cmd_hook("companero_antigravity.py", ev).replace('"', ""), "timeout": t}]
                 d["kodama"] = {"SessionStart": c("SessionStart", 10), "PreInvocation": c("PreInvocation", 10), "Stop": c("Stop", 15)}
         paso(f"  Antigravity: hook \"kodama\" {'puesto' if poner and 'kodama' in d else 'quitado'} en ~\\.gemini\\config\\hooks.json")
-        if not PRUEBA:
+        if not PRUEBA and (poner or os.path.exists(GEMINI_HOOKS)):   # (07-nov) quitar sin archivo: no lo crea
             _respaldo(GEMINI_HOOKS)
             os.makedirs(os.path.dirname(GEMINI_HOOKS), exist_ok=True)
             json.dump(d, open(GEMINI_HOOKS, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+    # (04-nov) OpenCode: el plugin va a ~/.config/opencode/plugins/kodama.js, solo si OpenCode esta instalado (existe su carpeta)
+    carpeta_opencode = os.path.dirname(os.path.dirname(OPENCODE_PLUGIN))
+    if os.path.isdir(carpeta_opencode):
+        if poner:
+            def barras(x):
+                return x.replace("\\", "/")
+            with open(os.path.join(AQUI, "opencode_plugin.js"), encoding="utf-8") as f:
+                codigo = (f.read().replace("__PY__", barras(PYV))
+                          .replace("__SCRIPT__", barras(os.path.join(AQUI, "companero_opencode.py")))
+                          .replace("__ESTADO__", barras(config.ESTADO)))
+            if not PRUEBA:
+                os.makedirs(os.path.dirname(OPENCODE_PLUGIN), exist_ok=True)
+                with open(OPENCODE_PLUGIN, "w", encoding="utf-8") as f:
+                    f.write(codigo)
+            paso("  OpenCode: plugin de Kodama puesto en ~\\.config\\opencode\\plugins\\kodama.js")
+        elif os.path.exists(OPENCODE_PLUGIN):
+            if not PRUEBA:
+                os.remove(OPENCODE_PLUGIN)
+            paso("  OpenCode: plugin de Kodama quitado")
+    # (04-nov) WSL: Claude Code dentro de cada distro, con su propio ~/.claude/settings.json (se toca por \\wsl.localhost)
+    if sys.platform == "win32":
+        py_wsl = ruta_wsl(PYV)
+        script_wsl = os.path.join(AQUI, "companero_wsl.py").replace("\\", "/")
+        for distro in distros_wsl():
+            home = home_wsl(distro)
+            if not home:
+                continue
+            carpeta = "\\\\wsl.localhost\\" + distro + home.replace("/", "\\") + "\\.claude"
+            if not os.path.isdir(carpeta):
+                continue
+            ajuste = os.path.join(carpeta, "settings.json")
+            if os.path.exists(ajuste):
+                try:
+                    d = json.load(open(ajuste, encoding="utf-8-sig"))
+                except (OSError, ValueError):
+                    paso(f"  WSL {distro}: ojo, su settings.json no se pudo leer; no lo toco")
+                    continue
+            else:
+                if not poner:
+                    continue
+                d = {}
+            d = unir_hooks_wsl(d, poner, py_wsl, script_wsl)
+            paso(f"  WSL {distro}: hooks de Kodama {'puestos' if poner else 'quitados'} en ~/.claude/settings.json de la distro")
+            if not PRUEBA:
+                _respaldo(ajuste)
+                os.makedirs(carpeta, exist_ok=True)
+                json.dump(d, open(ajuste, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+
+
+def ruta_wsl(ruta):
+    """(04-nov) C:\\a\\b.exe -> /mnt/c/a/b.exe: la ruta del Python de Windows vista desde WSL."""
+    ruta = ruta.replace("\\", "/")
+    if len(ruta) > 1 and ruta[1] == ":":
+        return f"/mnt/{ruta[0].lower()}{ruta[2:]}"
+    return ruta
+
+
+def distros_wsl():
+    """(04-nov) Nombres de las distros de WSL (wsl.exe -l -q, salida en UTF-16-LE). [] si no hay WSL o falla."""
+    try:
+        r = subprocess.run(["wsl.exe", "-l", "-q"], capture_output=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if r.returncode != 0:
+        return []
+    texto = r.stdout.decode("utf-16-le", errors="ignore").replace("\ufeff", "").replace("\x00", "")
+    return [x.strip() for x in texto.splitlines() if x.strip()]
+
+
+def home_wsl(distro):
+    """(04-nov) Carpeta personal dentro de la distro (wsl.exe -d <distro> -- sh -c 'printf %s "$HOME"'). "" si falla."""
+    try:
+        r = subprocess.run(["wsl.exe", "-d", distro, "--", "sh", "-c", 'printf %s "$HOME"'], capture_output=True, timeout=15)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    if r.returncode != 0:
+        return ""
+    return r.stdout.decode("utf-8", errors="ignore").strip()
+
+
+def unir_hooks_wsl(d, poner, py_wsl, script):
+    """(04-nov) Une (o saca) los hooks de companero_wsl.py en un settings.json de WSL. Devuelve el diccionario. Nunca borra hooks ajenos."""
+    hooks = d.setdefault("hooks", {})
+    for ev in list(hooks):
+        hooks[ev] = [e for e in hooks[ev] if "companero_wsl.py" not in json.dumps(e)]
+        if not hooks[ev]:
+            hooks.pop(ev)
+    if poner:
+        h = lambda modo, t, **kw: {"hooks": [dict({"type": "command", "command": f'"{py_wsl}" "{script}" {modo}', "timeout": t}, **kw)]}
+        nuevos = {
+            "SessionStart": [h("hook", 10, **{"async": True})],
+            "UserPromptSubmit": [h("hook", 10, **{"async": True})],
+            "Notification": [h("hook", 10, **{"async": True})],
+            "Stop": [h("hook", 10, **{"async": True}), h("puente", 1900)],
+            "SessionEnd": [h("hook", 10, **{"async": True})],
+            "PostToolUse": [h("hook", 10, **{"async": True})],
+            "PermissionRequest": [h("permiso", 130)],
+            "PreToolUse": [dict(h("permiso", 130), matcher="AskUserQuestion")],
+        }
+        for ev, entradas in nuevos.items():
+            hooks.setdefault(ev, []).extend(entradas)
+    if not hooks:
+        d.pop("hooks", None)
+    return d
 
 
 def verificar_paquete():
@@ -328,6 +477,7 @@ def preparar_binario_mac(ruta):
 
 
 def instalar():
+    ag = config.agentes_presentes()   # (07-nov) que IA de codigo hay en esta PC (solo lee carpetas): Claude, Codex, Antigravity, OpenCode
     print("Kodama — instalación" + (" (PRUEBA: no se toca nada)" if PRUEBA else ""))
     if sys.platform not in ("win32", "darwin"):
         raise SystemExit("Kodama funciona en Windows y macOS (beta).")
@@ -340,7 +490,7 @@ def instalar():
     if sys.version_info < (3, 10):
         raise SystemExit("Hace falta Python 3.10 o más nuevo.")
     paso(f"1. Python {sys.version.split()[0]} OK · app de Claude: {config.dir_app_claude()}"
-         + ("" if os.path.isdir(config.dir_app_claude()) else "  (NO ENCONTRADA: los grupos de la app no van a andar)"))
+         + ("" if os.path.isdir(config.dir_app_claude()) else "  (no está: sin grupos de la app de Claude; no hace falta si usas otra IA)"))
     venv = os.path.join(AQUI, ".venv")
     if not os.path.exists(PYV):
         if preguntar("2. ¿Crear .venv e instalar pywebpush (descarga ~5 MB de PyPI)?"):
@@ -357,8 +507,11 @@ def instalar():
         for d in (config.ESTADO, config.RESPALDOS, config.TS_DIR, os.path.join(config.ESTADO, "instalacion")):
             os.makedirs(d, exist_ok=True)
     claves()
-    paso("4. Hooks y medidor de uso en ~\\.claude\\settings.json")
-    tocar_settings(True)
+    if ag["claude"]:   # (07-nov) sin Claude Code no se toca ~\.claude ni se crea
+        paso("4. Hooks y medidor de uso en ~\\.claude\\settings.json")
+        for st in settings_todos(): tocar_settings(True, settings=st)   # (04-nov) cada carpeta de Claude Code (perfiles)
+    else:
+        paso("4. Claude Code: no está en esta PC, se salta. Si lo instalas después, vuelve a correr el instalador.")
     paso("5. Arranque automático" + (" (LaunchAgent)" if MAC else ""))
     tarea(True)
     # (21-oct) la mascota ya viene compilada (Tauri) en el paquete: no se descarga nada
@@ -369,8 +522,10 @@ def instalar():
     if "--solo-claude" in sys.argv:
         paso("7. Codex y Antigravity: no (--solo-claude)")
     else:
-        paso("7. Codex y Antigravity (si los tienes)")
+        paso("7. Otras IA: Codex, Antigravity, OpenCode y WSL (si los tienes)")
         otros_agentes(True)
+    if not (ag["claude"] or ag["codex"] or ag["antigravity"] or ag["opencode"]):   # (07-nov) ninguna IA de codigo: el instalador sigue igual
+        paso("Ojo: no encontré ninguna IA de código en esta PC (Claude Code, Codex, OpenCode o Antigravity). Kodama queda instalado; cuando instales una, vuelve a correr el instalador para conectarla.")
     if MAC:   # el LaunchAgent (RunAtLoad) ya lo lanza al cargarse; con --sin-launchctl no se lanza nada
         paso("8. " + ("Sin lanzar nada (--sin-launchctl)" if SIN_LAUNCHCTL else "La mascota aparece sola (el LaunchAgent la lanza al cargarse)"))
     elif not PRUEBA:
@@ -380,7 +535,7 @@ def instalar():
           " - Telegram: crea un bot con @BotFather, guarda el token en un archivo y pone su ruta en config.json\n"
           " - Celular: Tailscale en la PC y en el celular con la misma cuenta; `tailscale serve` del puerto 8787;\n"
           "   pone esa direccion en config.json (url_publica) y abri la app del celular desde ahi\n"
-          " - Chats fijos: agregalos en config.json (\"chats\") o elegí un grupo de la app de Claude desde la mascota\n"
+          " - Chats fijos: agregalos en config.json (\"chats\")" + (" o elige un grupo de la app de Claude desde la mascota" if ag["claude"] else "") + "\n"
           "Los hooks rigen en los chats que abras desde ahora.")
 
 
@@ -403,27 +558,31 @@ def revisar():
     return {"ok": all(x["ok"] for x in out), "items": out, "ajenos": ajenos}
 
 
-def restaurar_original():
+def restaurar_original(settings=None):
     """(22-oct, mejora 5) settings.json exactamente como estaba ANTES de instalar: el respaldo .bak-companero mas viejo.
-    Lo de ahora queda en .bak-antes-de-restaurar por si acaso."""
+    Lo de ahora queda en .bak-antes-de-restaurar por si acaso. (04-nov) `settings`: el de cada carpeta de Claude Code."""
     import glob as _g
-    baks = sorted(_g.glob(SETTINGS + ".bak-companero-*"))
+    if settings is None:
+        settings = SETTINGS
+    baks = sorted(_g.glob(settings + ".bak-companero-*"))
     if not baks:
         paso("  no hay respaldo de antes de instalar: se quitan solo los hooks de Kodama")
         return False
     paso(f"  settings.json vuelve a {os.path.basename(baks[0])}")
     if not PRUEBA:
-        shutil.copy2(SETTINGS, SETTINGS + time.strftime(".bak-antes-de-restaurar-%Y%m%d-%H%M%S"))
-        shutil.copy2(baks[0], SETTINGS)
+        shutil.copy2(settings, settings + time.strftime(".bak-antes-de-restaurar-%Y%m%d-%H%M%S"))
+        shutil.copy2(baks[0], settings)
     return True
 
 
 def quitar():
     print("Kodama — desinstalación" + (" (PRUEBA)" if PRUEBA else ""))
-    if "--restaurar" in sys.argv and restaurar_original():
-        guardar_previa(None)   # settings.json ya volvio a como estaba: la previa guardada no hace falta
-    else:
-        tocar_settings(False)
+    for st in settings_todos():   # (04-nov) todas las carpetas de Claude Code de esta PC (perfiles)
+        if "--restaurar" in sys.argv and restaurar_original(st):
+            if st == SETTINGS:
+                guardar_previa(None)   # settings.json ya volvio a como estaba: la previa guardada no hace falta
+        else:
+            tocar_settings(False, settings=st)
     tarea(False)
     otros_agentes(False)
     paso("  la mascota de escritorio y el hub se cierran solos al reiniciar " + ("el Mac" if MAC else "la PC") + " (o cerralos desde la bandeja)")
@@ -438,6 +597,10 @@ if __name__ == "__main__":
     if "--revisar" in sys.argv:            # (22-oct) Ajustes > Revisar: JSON, sin tocar nada
         print(json.dumps(revisar(), ensure_ascii=False))
     elif "--arreglar-hooks" in sys.argv:   # (22-oct) Ajustes > Arreglar: vuelve a poner SOLO nuestros hooks (con respaldo)
-        tocar_settings(True); otros_agentes(True)
+        for st in settings_todos(): tocar_settings(True, settings=st)
+        otros_agentes(True)
+    elif any(a.startswith("--perfil=") for a in sys.argv):   # (04-nov) una carpeta de Claude Code extra (CLAUDE_CONFIG_DIR de otro perfil)
+        agregar_perfil(next(a for a in sys.argv if a.startswith("--perfil="))[len("--perfil="):])
+        for st in settings_todos(): tocar_settings(True, settings=st)
     else:
         quitar() if QUITAR else instalar()

@@ -20,7 +20,7 @@ import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 import config
 import kodama_plataforma as plataforma
-from kodama_comun import celular_abierto, va_al_celular  # noqa: E402,F401
+from kodama_comun import celular_abierto, cuadro_final, va_al_celular  # noqa: E402,F401
 BASE = config.ESTADO
 PUENTE = os.path.join(BASE, "puente")
 PERSONALES = config.PERSONALES
@@ -44,6 +44,10 @@ def main():
     except Exception:
         return
     sid = d.get("session_id")
+    # (06-nov) Si el turno cerro con el cuadro con pregunta de la app de escritorio, la app ignora el additionalContext de este hook: 5 de 5 respuestas perdidas en 7 dias
+    # (tras un texto normal, 67 de 67 entraron). Sin esperar, no hay .esperando y el hub entrega por el buzon, que si llega.
+    if sid and cuadro_final(sid):
+        return
     proy = os.path.basename(os.path.dirname(d.get("transcript_path") or ""))
     prueba = os.environ.get("COMPANERO_PUENTE_PRUEBA") == "1"   # solo para probar sin alejarse de la PC
     lejos = sin_uso() >= SIN_USO_MIN or celular_abierto() or prueba   # (14-oct) o la app del celular abierta ahora
@@ -90,9 +94,15 @@ def main():
                 texto = open(resp, encoding="utf-8").read().strip()
                 os.remove(resp)
                 if texto:
+                    try:
+                        os.remove(os.path.join(BASE, "wrapup", sid + ".json"))   # (04-nov) ya respondiste ese cuadro: el Stop siguiente no lo repite
+                    except OSError:
+                        pass
                     # (14-oct) additionalContext en vez de decision:block: Claude sigue igual y la app lo muestra como
                     # "Stop hook feedback" sin la palabra "error" (doc hooks, "Stop decision control"). ASCII: la consola rompe emojis
-                    sys.stdout.write(json.dumps({"hookSpecificOutput": {"hookEventName": "Stop", "additionalContext": f"Respuesta de {config.NOMBRE}: " + texto}})); sys.stdout.flush()
+                    # (04-nov) Codex: su doc pide {"decision":"block","reason":...}, y el reason le llega como un mensaje nuevo tuyo
+                    salida = {"decision": "block", "reason": texto} if d.get("agente") == "codex" else {"hookSpecificOutput": {"hookEventName": "Stop", "additionalContext": f"Respuesta de {config.NOMBRE}: " + texto}}
+                    sys.stdout.write(json.dumps(salida)); sys.stdout.flush()
                 return
             if os.path.exists(lib):     # ✕ "liberar" desde la mascota o el celular
                 return

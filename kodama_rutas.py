@@ -31,24 +31,39 @@ from kodama_chats import (
     cambiar_seleccion, candidatos, cwd_de, grupos_propios, marcar_celular, ocultar_chat, poner_color, poner_grupo,
     seleccion, sesion_por_cmd, sesiones, silenciar, sincronizar_grupos
 )
-from kodama_permisos import entregar, guardar_reglas, leer_reglas, responder_permiso, responder_pregunta
+from kodama_comun import opencode_encolar
+from kodama_permisos import entregar, guardar_reglas, leer_reglas, por_puente, responder_permiso, responder_pregunta
 from kodama_conexion import alarma, aparato_ok, bloqueado, permitido, poner_bloqueo
 from kodama_cola import poner_pendiente
 from kodama_medidor import (
     activar_lectura_exacta, estado_lectura, ordenar_kodama, pedir_medicion, regs_medidor, uso_plan
 )
 from kodama_archivos import (
-    HOME_N, VER_TIPOS, VIDEO_MAX, VIDEO_TIPOS, _SALTAR, borrar_limpieza, carpeta_medios, conservar,
-    escanear_limpieza, guardar_foto, listar_archivos, raices_archivos, texto_con_foto, texto_con_video,
-    ver_permitido
+    HOME_N, VER_TIPOS, VIDEO_MAX, VIDEO_TIPOS, DOC_MAX, DOC_TIPOS, _SALTAR, borrar_limpieza, carpeta_medios, conservar,
+    escanear_limpieza, guardar_foto, listar_archivos, raices_archivos, sonido_propio, sonidos_disponibles,
+    texto_con_foto, texto_con_video, ver_permitido
 )
 from kodama_historial import contexto_chat, firma_estado, historial, lo_nuevo, mensajes_anteriores, pasos_chat
 from kodama_notificaciones import REINTENTAR
-from kodama_vigilantes import actualizar_ahora, actualizar_sola, chequear_salud
+from kodama_vigilantes import actualizar_ahora, actualizar_sola, avisar_integracion, chequear_salud
+import kodama_extras   # (18-nov) correo, integraciones, pausas e ia se importan solo si estan encendidos (ver kodama_extras)
+import kodama_prefs
 
 
 # (27-oct, lanzamiento) en el lanzamiento solo se elige el gato. El código de Brote sigue: poner True lo vuelve a mostrar.
 MOSTRAR_BROTE = False
+
+# (04-nov) carga de la PC para el gato (api/maquina): cache de 5 s con cerrojo, para que varios clientes no falseen el delta de CPU
+_MAQUINA = {"t": 0.0, "d": None}
+_MAQUINA_CERROJO = threading.Lock()
+
+
+def _maquina_cacheada():
+    with _MAQUINA_CERROJO:
+        if _MAQUINA["d"] is None or time.time() - _MAQUINA["t"] >= 5:
+            _MAQUINA["d"] = plataforma.estado_maquina()
+            _MAQUINA["t"] = time.time()
+        return _MAQUINA["d"]
 
 
 def _pj_visible(p):
@@ -65,6 +80,7 @@ _KEY = os.path.join(BASE, "local.key")
 if not os.path.exists(_KEY):
     open(_KEY, "w").write(secrets.token_hex(24))
 CLAVE_LOCAL = open(_KEY).read().strip()
+CARPETA_SONIDOS = os.path.join(BASE, "sonidos")   # (04-nov) sonidos propios de la mascota: aviso / error / enviado (kodama_archivos.sonido_propio)
 TICKETS = {}   # ticket de un solo uso -> vence (abrir el panel de animaciones sin poner la clave en la URL)
 TIPOS = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/manifest+json",
          ".png": "image/png", ".css": "text/css"}
@@ -261,6 +277,8 @@ class Web(http.server.BaseHTTPRequestHandler):
             return self._json(403, {"ok": False, "error": "no autorizado"})
         if ruta == "api/bloqueo":
             return self._json(200, {"bloqueado": bloqueado(), **{k: v for k, v in _leer_json(BLOQUEO, {}).items() if k in ("desde", "hora")}})
+        if ruta == "api/extras":   # (18-nov) modulos opcionales: encendido y si el archivo esta instalado
+            return self._json(200, {"ok": True, "extras": {n: {"activo": kodama_extras.activo(n), "disponible": kodama_extras.disponible(n)} for n in kodama_extras.MODULOS}})
         if ruta == "api/estado":
             return self._json(200, self._recortar(historial()))
         if ruta == "api/eventos":   # (14-oct) SSE: la app recibe cada cambio al instante en vez de preguntar cada 4 s
@@ -296,6 +314,22 @@ class Web(http.server.BaseHTTPRequestHandler):
                 return self._json(200, dict(json.load(open(ACTUALIZACION, encoding="utf-8")), actual=config.VERSION))
             except (OSError, ValueError):
                 return self._json(200, {"actual": config.VERSION})
+        if ruta == "api/sonidos":   # (04-nov) sonidos propios que hay: {tipo: mtime}
+            return self._json(200, {"disponibles": sonidos_disponibles(CARPETA_SONIDOS), "carpeta": CARPETA_SONIDOS})
+        if ruta.startswith("api/sonido/"):   # (04-nov) bytes de un sonido propio (404 si no hay uno valido)
+            s = sonido_propio(CARPETA_SONIDOS, ruta[len("api/sonido/"):])
+            if not s:
+                return self._json(404, {"ok": False})
+            with open(s[0], "rb") as f:
+                b = f.read()
+            self.send_response(200); self.send_header("Content-Type", s[1]); self.send_header("Content-Length", str(len(b)))
+            self.send_header("Cache-Control", "no-store"); self.end_headers(); self.wfile.write(b)
+            return
+        if ruta == "api/maquina":   # (04-nov) carga de la PC para el gato; ?detalle=1 agrega los procesos que mas CPU usan
+            m = dict(_maquina_cacheada())
+            if (urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("detalle") or [""])[0] == "1":
+                m["top"] = plataforma.procesos_top()
+            return self._json(200, m)
         if ruta == "api/salud":   # para revisar de un vistazo si el hub esta sano (14-oct)
             tam = os.path.getsize(COLA) if os.path.exists(COLA) else 0
             return self._json(200, {"pid": os.getpid(), "arranque": ARRANQUE, "ahora": time.time(),
@@ -391,7 +425,32 @@ class Web(http.server.BaseHTTPRequestHandler):
         except Exception:
             return {}
 
+    def _es_local(self):
+        loc = self.headers.get("X-Companero-Local", "")
+        return bool(loc and CLAVE_LOCAL and hmac.compare_digest(loc, CLAVE_LOCAL))
+
+    def _webhook(self):
+        """(05-nov) Puerta de entrada para una pasarela o n8n en ESTA PC: solo desde 127.0.0.1 y con el secreto en la ruta. Sin el login normal porque no es un navegador."""
+        largo = self._largo()
+        crudo = self.rfile.read(min(largo, 65536))
+        ki = kodama_extras.modulo("integraciones")
+        if ki is None:
+            return self._json(200, {"ok": False, "error": "extra_apagado"})
+        sec = ki.leer_conf().get("webhook_secreto") or ""
+        dada = self.path[len("/api/webhook/"):].split("?")[0]
+        if self.client_address[0] not in ("127.0.0.1", "::1") or not sec or not hmac.compare_digest(dada.encode(), sec.encode()) or largo > 65536:
+            return self._json(403, {"ok": False})
+        try:
+            e = ki.recibir_webhook("webhook", json.loads(crudo.decode("utf-8") or "{}"))
+        except ValueError:
+            return self._json(400, {"ok": False})
+        if e:
+            avisar_integracion(e)
+        return self._json(200, {"ok": True})
+
     def do_POST(self):
+        if self.path.startswith("/api/webhook/"):
+            return self._webhook()
         if not self._autorizado():
             return
         # (14-oct) contra pedidos cruzados: una pagina de otro sitio abierta en el celular (o un HTML de la pestaña
@@ -409,6 +468,14 @@ class Web(http.server.BaseHTTPRequestHandler):
         if len(POSTS) >= 60:
             return self._json(429, {"ok": False, "error": "demasiados pedidos seguidos; espera un minuto"})
         POSTS.append(ahora)
+        if self.path == "/api/sonidos/abrir":   # (04-nov) abre estado\sonidos en el explorador: SOLO con la clave local de la app de escritorio
+            self._cuerpo()
+            loc = self.headers.get("X-Companero-Local", "")
+            if not (loc and CLAVE_LOCAL and hmac.compare_digest(loc, CLAVE_LOCAL)):
+                return self._json(403, {"ok": False, "error": "no autorizado"})
+            os.makedirs(CARPETA_SONIDOS, exist_ok=True)
+            plataforma.abrir(CARPETA_SONIDOS)
+            return self._json(200, {"ok": True, "carpeta": CARPETA_SONIDOS})
         if self.path == "/api/bloqueo":   # (26-oct) bloqueo de emergencia: se pone desde el celular o la PC; se quita SOLO en la PC
             si, en_pc = bool(self._cuerpo().get("activo")), self._en_pc()
             if not si and not en_pc:
@@ -594,6 +661,96 @@ class Web(http.server.BaseHTTPRequestHandler):
                 return self._json(400, {"ok": False, "error": "pedido inválido"})
             ocultar_chat(cli, oculto)
             return self._json(200, {"ok": True})
+        if self.path == "/api/preferencias":   # (05-nov) {} = leer; {"silencio": {...}, "alertas_uso": bool} = guardar
+            d = self._cuerpo()
+            return self._json(200, {"ok": True, **(kodama_prefs.guardar(d) if d else kodama_prefs.leer())})
+        # (05-nov) sección C. Tokens, claves y correo se configuran SOLO con la clave local de la PC; nunca se devuelven.
+        if self.path == "/api/integraciones":   # {} = lista y eventos; {"id", "activo"?, "campos"?} | {"probar": id} | {"quitar": id} | {"webhook": true}
+            d = self._cuerpo()
+            if d and not self._es_local():
+                return self._json(403, {"ok": False, "error": "solo desde la PC"})
+            ki = kodama_extras.modulo("integraciones")
+            if ki is None:
+                return self._json(200, {"ok": False, "error": "extra_apagado"})
+            if d.get("probar"):
+                return self._json(200, ki.probar(str(d["probar"])))
+            if d.get("quitar"):
+                ki.quitar_proveedor(str(d["quitar"]))
+            elif d.get("webhook"):
+                conf = ki.leer_conf()
+                if not conf.get("webhook_secreto"):
+                    conf["webhook_secreto"] = secrets.token_urlsafe(24)
+                    ki._guardar_conf(ki.CONF, conf)
+                return self._json(200, {"ok": True, "ruta": f"/api/webhook/{conf['webhook_secreto']}", "puerto": kodama_conexion.PUERTO_WEB})
+            elif d.get("id"):
+                ki.guardar_proveedor(str(d["id"]), activo=d.get("activo"), campos=d.get("campos"))
+            return self._json(200, {"ok": True, "proveedores": ki.vista_publica(), "errores": dict(ki.ERRORES), "eventos": ki.ultimos(30)})
+        if self.path == "/api/correo":   # {} = cuentas; {"guardar": {...}} | {"quitar": id}. Solo lectura de remitente y asunto.
+            d = self._cuerpo()
+            if d and not self._es_local():
+                return self._json(403, {"ok": False, "error": "solo desde la PC"})
+            kc = kodama_extras.modulo("correo")
+            if kc is None:
+                return self._json(200, {"ok": False, "error": "extra_apagado"})
+            if d.get("guardar"):
+                kc.guardar_cuenta(d["guardar"])
+            elif d.get("quitar"):
+                kc.quitar_cuenta(str(d["quitar"]))
+            return self._json(200, {"ok": True, "cuentas": kc.vista_publica(), "resumen": dict(kc.RESUMEN), "presets": sorted(kc.PRESETS)})
+        if self.path == "/api/pausa":   # (06-nov) {"tipo": agua|levantarse, "accion": listo|despues}. Solo el gato de la PC
+            if not self._en_pc():
+                return self._json(403, {"ok": False, "error": "solo desde la PC"})
+            try:
+                d = json.loads(self.rfile.read(min(self._largo(), 2000)).decode() or "{}")
+                d = d if isinstance(d, dict) else {}
+            except ValueError:
+                return self._json(400, {"ok": False, "error": "pedido inválido"})
+            kp = kodama_extras.modulo("pausas")
+            if kp is None:
+                return self._json(200, {"ok": False, "error": "extra_apagado"})
+            return self._json(200, {"ok": kp.responder(str(d.get("tipo")), str(d.get("accion")))})
+        if self.path == "/api/ia":   # {} = proveedores | {"preguntar": [mensajes]} | PC: {"guardar": {pid, clave, modelo}} | {"elegir": pid} | {"modelos": pid}
+            try:
+                d = json.loads(self.rfile.read(min(self._largo(), 80000)).decode() or "{}")
+                d = d if isinstance(d, dict) else {}
+            except ValueError:
+                return self._json(400, {"ok": False, "error": "pedido inválido"})
+            kia = kodama_extras.modulo("ia")
+            if kia is None:
+                return self._json(200, {"ok": False, "error": "extra_apagado"})
+            if "preguntar" in d:
+                return self._json(200, kia.preguntar(d["preguntar"] if isinstance(d["preguntar"], list) else []))
+            if d and not self._es_local():
+                return self._json(403, {"ok": False, "error": "solo desde la PC"})
+            if d.get("guardar"):
+                g = d["guardar"]
+                kia.guardar(str(g.get("pid")), clave=g.get("clave"), modelo=g.get("modelo"))
+            elif d.get("elegir"):
+                kia.elegir(str(d["elegir"]))
+            elif d.get("modelos"):
+                try:
+                    return self._json(200, {"ok": True, "modelos": kia.modelos(str(d["modelos"]))})
+                except kia.ErrorIA as e:
+                    return self._json(200, {"ok": False, "error": str(e)})
+            return self._json(200, {"ok": True, **kia.vista_publica()})
+        if self.path == "/api/extras":   # (18-nov) {"nombre": correo|integraciones|pausas|ia, "activo": true|false}. Solo desde la PC
+            d = self._cuerpo()
+            loc = self.headers.get("X-Companero-Local", "")
+            if not (loc and CLAVE_LOCAL and hmac.compare_digest(loc, CLAVE_LOCAL)):
+                return self._json(403, {"ok": False, "error": "no autorizado"})
+            nombre, encender = str(d.get("nombre", "")), d.get("activo")
+            if nombre not in kodama_extras.MODULOS or not isinstance(encender, bool):
+                return self._json(400, {"ok": False, "error": "pedido inválido"})
+            try:
+                kodama_extras.poner(nombre, encender)
+            except OSError:
+                return self._json(200, {"ok": False, "error": "no pude guardar extras.json"})
+            if encender and kodama_extras.al_encender is not None:   # el hub arranca el vigilante del modulo, sin reiniciar
+                try:
+                    kodama_extras.al_encender()
+                except Exception as e:
+                    log(f"extras: no arranque {nombre} ({type(e).__name__})")
+            return self._json(200, {"ok": True, "extras": {n: {"activo": kodama_extras.activo(n), "disponible": kodama_extras.disponible(n)} for n in kodama_extras.MODULOS}})
         if self.path == "/api/silenciar":   # {"chat": cmd, "horas": 1 | 8 | 0 (quitar)}
             try:
                 d = json.loads(self.rfile.read(min(self._largo(), 2000)).decode())
@@ -686,12 +843,14 @@ class Web(http.server.BaseHTTPRequestHandler):
                 return self._json(400, {"ok": False, "error": "pedido inválido"})
             return self._json(200, {"ok": True, **borrar_limpieza([str(i) for i in ids][:2000])})
         if self.path == "/api/subir":   # (16-oct) videos del celular: el archivo crudo (no base64), directo a disco por partes
-            ext = VIDEO_TIPOS.get((self.headers.get("Content-Type") or "").split(";")[0].strip().lower())
+            tipo = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            ext = VIDEO_TIPOS.get(tipo) or DOC_TIPOS.get(tipo)
+            tope = DOC_MAX if tipo in DOC_TIPOS else VIDEO_MAX
             largo = self._largo()
             if not ext:
-                return self._json(415, {"ok": False, "error": "solo videos (mp4, mov, webm, 3gp)"})
-            if not largo or largo > VIDEO_MAX:
-                return self._json(413, {"ok": False, "error": "video demasiado grande (máx. 5 GB)"})
+                return self._json(415, {"ok": False, "error": "solo videos (mp4, mov, webm, 3gp) o PDF"})
+            if not largo or largo > tope:
+                return self._json(413, {"ok": False, "error": "PDF demasiado grande (máx. 100 MB)" if tope == DOC_MAX else "video demasiado grande (máx. 5 GB)"})
             import shutil
             if shutil.disk_usage(BASE).free < largo + 8 * 1024 ** 3:   # nunca dejar el disco con menos de 8 GB libres
                 return self._json(507, {"ok": False, "error": "no hay espacio en la PC para ese video"})
@@ -712,32 +871,38 @@ class Web(http.server.BaseHTTPRequestHandler):
                 except OSError:
                     pass
                 return self._json(400, {"ok": False, "error": f"no llegó entero ({type(e).__name__})"})
-            log(f"video del celular guardado: {nombre} ({largo // (1024 * 1024)} MB)")
+            log(("PDF del celular guardado: " if ext == ".pdf" else "video del celular guardado: ") + f"{nombre} ({largo // (1024 * 1024)} MB)")
             return self._json(200, {"ok": True, "archivo": nombre})
         if self.path != "/api/responder":
             return self._json(404, {"ok": False})
         try:
             largo = self._largo()
-            if largo > 8 * 1024 * 1024:   # tope: una foto del celular ya comprimida entra holgada
-                return self._json(413, {"ok": False, "error": "demasiado grande (máx. 8 MB)"})
+            if largo > 40 * 1024 * 1024:   # tope: (03-nov) hasta 10 fotos del celular ya comprimidas entran holgadas
+                return self._json(413, {"ok": False, "error": "demasiado grande (máx. 40 MB)"})
             d = json.loads(self.rfile.read(largo).decode())
             cmd, texto = d.get("chat"), (d.get("texto") or "").strip()[:4000]
         except Exception:
             return self._json(400, {"ok": False, "error": "pedido inválido"})
         s = sesion_por_cmd(cmd) if cmd else None
-        foto = d.get("foto") or ""
-        if foto.startswith("data:image/"):
-            try:
-                import base64
-                ruta = guardar_foto(base64.b64decode(foto.split(",", 1)[1]), carpeta=carpeta_medios(cmd))
-                texto = texto_con_foto(ruta, texto)
-            except Exception as e:
-                return self._json(400, {"ok": False, "error": f"foto inválida ({type(e).__name__})"})
-        video = str(d.get("video") or "")   # (16-oct) nombre que devolvio /api/subir (solo el nombre, nunca una ruta)
-        if video:
-            ruta = os.path.join(FOTOS, os.path.basename(video))
-            if os.path.basename(video) != video or not os.path.isfile(ruta) or os.path.splitext(video)[1] not in VIDEO_TIPOS.values():
+        # (03-nov, LShinox) varios medios en un mensaje: listas "fotos" y "videos"; "foto" y "video" (uno solo) siguen valiendo
+        fotos = d.get("fotos") or ([d["foto"]] if d.get("foto") else [])
+        videos = d.get("videos") or ([d["video"]] if d.get("video") else [])
+        if not isinstance(fotos, list) or not isinstance(videos, list) or len(fotos) + len(videos) > 10:
+            return self._json(400, {"ok": False, "error": "máximo 10 fotos o videos por mensaje"})
+        videos = [str(v) for v in videos]   # (16-oct) nombres que devolvio /api/subir (solo el nombre, nunca una ruta)
+        for video in videos:   # se revisa todo antes de guardar o mover nada: si uno esta mal, no queda el envio a medias
+            if os.path.basename(video) != video or not os.path.isfile(os.path.join(FOTOS, video)) or os.path.splitext(video)[1] not in (set(VIDEO_TIPOS.values()) | set(DOC_TIPOS.values())):
                 return self._json(400, {"ok": False, "error": "video inválido"})
+        try:
+            import base64
+            imagenes = [base64.b64decode(f.split(",", 1)[1]) for f in fotos if str(f).startswith("data:image/")]
+            rutas = [guardar_foto(b, carpeta=carpeta_medios(cmd)) for b in imagenes]
+            for ruta in reversed(rutas):   # al reves: cada una se antepone y asi quedan en el orden en que se eligieron
+                texto = texto_con_foto(ruta, texto)
+        except Exception as e:
+            return self._json(400, {"ok": False, "error": f"foto inválida ({type(e).__name__})"})
+        for video in reversed(videos):
+            ruta = os.path.join(FOTOS, video)
             destino = carpeta_medios(cmd)   # se subio a estado\fotos (sin saber el chat): ahora va a la carpeta del chat
             if destino != FOTOS:
                 try:
@@ -747,8 +912,24 @@ class Web(http.server.BaseHTTPRequestHandler):
                 except OSError as e:
                     log(f"video: no lo pude mover a {destino} ({type(e).__name__}); queda en estado\\fotos")
             texto = texto_con_video(os.path.normpath(ruta), texto)
-        if s and s.get("agente") == "codex":   # (20-oct) Codex etapa 1: avisos y permisos, todavia sin responder
-            return self._json(400, {"ok": False, "error": "a los chats de Codex todavía no se les puede escribir desde aquí; los permisos sí se aprueban"})
+        # (04-nov) Codex y WSL solo reciben mientras esperan en el hook Stop (companero_puente): no tienen buzon que Kodama pueda abrir. OpenCode: lo entrega su plugin (cola en estado\opencode)
+        if s and s.get("agente") in ("codex", "wsl", "opencode"):
+            if not texto:
+                return self._json(400, {"ok": False, "error": "chat o texto vacío"})
+            en_cola = False
+            r = None
+            if s["agente"] == "opencode":
+                r = opencode_encolar(s["session_id"], texto, s.get("cwd"))
+                en_cola = r == "en_cola"
+            elif not por_puente(s, texto):
+                return self._json(400, {"ok": False, "error": "este chat ya no te está esperando; escríbele en la PC"})
+            with open(RESP, "a", encoding="utf-8") as f:
+                f.write(json.dumps({"ts": time.time(), "evento": "yo", "chat": cmd, "texto": texto,
+                                    "via": "celular" if getattr(self, "_via_celular", False) else "pc"}, ensure_ascii=False) + "\n")
+            log(f"respuesta web -> {cmd} ({s['agente']})" + (f" [{r}]" if r else ""))
+            if r == "despertando":
+                return self._json(200, {"ok": True, "pendiente": True, "despertando": True})
+            return self._json(200, {"ok": True, "pendiente": True} if en_cola else {"ok": True})
         if s and s.get("agente") == "antigravity":   # (20-oct) Antigravity etapa 1: solo avisos
             return self._json(400, {"ok": False, "error": "a los chats de Antigravity todavía no se les puede escribir desde aquí"})
         if not s or not texto:

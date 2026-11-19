@@ -4,9 +4,9 @@
 
 # Kodama
 
-**A free desktop cat for Windows that tells you when Claude Code, Codex or Antigravity is waiting for you,** and lets you approve permissions and reply from your phone.
+**A free desktop cat for Windows that tells you when Claude Code, Codex, OpenCode or Antigravity is waiting for you,** and lets you approve permissions and reply from your phone.
 
-Works with the Claude desktop app. The phone side is a web app (PWA): nothing to install from an app store, and no Kodama account.
+Works with the AI you already use: Claude, ChatGPT (Codex), DeepSeek or free models (OpenCode). See [Which AI do you use?](#which-ai-do-you-use). The phone side is a web app (PWA): nothing to install from an app store, and no Kodama account.
 
 **Free.** The source code is published here under the **PolyForm Noncommercial 1.0.0** license (source-available: free for
 noncommercial use, not open source). You can also **download releases, report problems and suggest ideas**. See it in action on the **[project page](https://lshinox.github.io/kodama/)**.
@@ -15,6 +15,16 @@ noncommercial use, not open source). You can also **download releases, report pr
 |:---:|:---:|:---:|
 | <img src="docs/img/mascota.gif" width="240" alt="The cat in its capsule: it works, asks a question, shows the list of chats waiting for you and takes a dropped file"> | <img src="docs/img/celular.gif" width="190" alt="The phone app: chats, a permission with Allow and Deny, and the lock"> | <img src="docs/img/ajustes.gif" width="240" alt="The Settings window slides out of the mascot, showing What's new"> |
 | The cat changes with your chat. The capsule holds the notification, the bubble and the quick replies. | Chat list, quick replies and permissions with Allow / Deny. | The Settings window slides out of the mascot and tells you what's new. |
+
+## What's new (November 2026)
+- **OpenCode support:** alerts, permissions and replies from your phone, with your ChatGPT plan, DeepSeek or free models.
+- **Reply to Codex from your phone** while it is waiting for you.
+- **Claude Code inside WSL** is detected and works like on Windows.
+- **The phone tells you why a message is waiting** (for example, "your PC is in use; I'll deliver it when you leave it for 2 min").
+- **Telegram outages no longer delay your alerts.**
+- **Plan-limit alerts** at 80, 95 and 100% of your Claude plan.
+- **PDFs and several photos** in the same message from your phone.
+- **More stable window:** "Exit" in the tray menu works even if the page hangs, the mascot recovers if its WebView crashes, and the bubble is no longer cut off when the cat starts on another monitor.
 
 ## What it does
 - **A hand-animated cat** that lives next to the clock and changes with your chat: it waits, works, writes to you, receives your reply, sleeps or gets stuck. You pick the color (black, orange, white, blue-gray or tuxedo) and the eye style. Brote is still available as an alternative.
@@ -31,18 +41,36 @@ noncommercial use, not open source). You can also **download releases, report pr
 ## Install (Windows)
 **Requirements**
 - Windows 10 or 11.
-- The **Claude desktop app**.
+- At least one AI coding agent: **Claude Code, Codex, OpenCode or Antigravity** (see the table below). Install it and open it once **before** Kodama: the installer connects the ones it finds. If you add one later, run the installer again.
 - Python 3.10 or newer. If it is missing, the installer offers to install it for you (Python 3.12 with winget, ~30 MB).
 - Optional, for the phone: Telegram (a bot of your own) or Tailscale.
 - The phone app is a **web app (PWA)**: you open it in your phone's browser and add it to the home screen. There is nothing to install from the App Store or Google Play.
 - To uninstall, see [Uninstall](#uninstall).
 
+### Which AI do you use?
+Kodama connects to coding agents on your PC, not to chat websites: it can't see chats on claude.ai, chatgpt.com or the DeepSeek app.
+
+| If you use… | Connect it through | What you get |
+|---|---|---|
+| Claude Pro or Max | **Claude Code** (Code tab of the Claude desktop app, or the CLI) | Everything |
+| ChatGPT (Codex is included in ChatGPT plans) | **Codex** (desktop app or CLI) | Notifications, permissions from your phone, and replies while the chat waits for you |
+| ChatGPT Plus or Pro, in another tool | **OpenCode**, signed in with your ChatGPT plan | Same as Codex |
+| DeepSeek | **OpenCode** with a DeepSeek API key (`DEEPSEEK_API_KEY`, pay per use) | Same as Codex |
+| No paid plan | **OpenCode** with its free models | Same as Codex |
+| Gemini | **Antigravity** | Notifications |
+
+- Claude's Free plan doesn't include Claude Code. If you have Claude Free and pay for ChatGPT or DeepSeek, use the Codex or OpenCode row.
+- The usage meter and "Sync groups" only exist with Claude Code; without it, Kodama hides them.
+- **Codex:** after installing Kodama, open Codex and check the hooks once with `/hooks` (or Settings › Hooks in the app).
+- **OpenCode and privacy:** OpenCode also reads `~\.claude\CLAUDE.md` and sends it to the model. If you don't want that, set `OPENCODE_DISABLE_CLAUDE_CODE=1` before using it.
+- DeepSeek's own agent (DeepSeek Harness) is not supported yet; use OpenCode for DeepSeek.
+
 Two ways to install, pick one:
 
-**A. Tell your Claude.** In a chat on the Code tab, type:
+**A. Tell your Claude** (only if you use Claude Code). In a chat on the Code tab, type:
 > Install Kodama from github.com/LShinox/kodama
 
-**B. One line in PowerShell:**
+**B. One line in PowerShell** (works for everyone, with any AI):
 ```powershell
 irm https://raw.githubusercontent.com/LShinox/kodama/main/instalar.ps1 | iex
 ```
@@ -57,7 +85,7 @@ may still show its own warnings.
 
 ### Uninstall
 From the `Kodama` folder, run `python instalar.py --quitar`. It removes Kodama's hooks and usage status line from
-`~\.claude\settings.json`, the Codex and Antigravity hooks, and the Windows task. Your data stays in `Kodama\estado`;
+`~\.claude\settings.json` (if you have Claude Code), the Codex and Antigravity hooks, the OpenCode plugin and the Windows task. Your data stays in `Kodama\estado`;
 add `--borrar-datos` to delete it too, and `--restaurar` to put `settings.json` back exactly as it was before
 installing. Then delete the `Kodama` folder.
 
@@ -70,7 +98,7 @@ don't show up, ask the same thing in text. **Never ask the user for a key or a t
    Antigravity hooks; Python via winget if it is missing). Options: *I accept and install* / *No, thanks*.
 2. **"Phone" card:** how they want notifications on their phone. Options: *Telegram only (nothing else to install)* /
    *Phone app (with Tailscale, the full one)* / *Both* / *PC only for now*.
-3. **"Other agents" card** (only if `~\.codex` or `~\.gemini` exist): *Connect Codex and Antigravity* / *Claude only*.
+3. **"Other agents" card** (only if `~\.codex`, `~\.gemini` or `~\.config\opencode` exist): *Connect Codex, OpenCode and Antigravity* / *Claude only*.
 4. With those answers, download `instalar.ps1` from this repo and run it with
    `powershell -NoProfile -ExecutionPolicy Bypass -File instalar.ps1 -Acepto -Si` (+ `-SoloClaude` if they chose *Claude only*).
 5. If the script stops, show them the message as is. Don't skip it or "fix" it: if it says the signature is not
@@ -81,8 +109,8 @@ don't show up, ask the same thing in text. **Never ask the user for a key or a t
 
 ## Privacy: what Kodama touches and what it sends
 **What it touches on your PC**
-- **Claude hooks:** it adds its own hooks (and a usage status line, only if you don't already have one) to `~\.claude\settings.json`, merged without overwriting yours. A timestamped backup copy is made first, next to it.
-- **Other agents:** if you have Codex or Antigravity, it adds its hooks to `~\.codex\hooks.json` and `~\.gemini\config\hooks.json`, also with a backup.
+- **Claude hooks** (only if Claude Code is on your PC): it adds its own hooks (and a usage status line, only if you don't already have one) to `~\.claude\settings.json`, merged without overwriting yours. A timestamped backup copy is made first, next to it.
+- **Other agents:** if you have Codex or Antigravity, it adds its hooks to `~\.codex\hooks.json` and `~\.gemini\config\hooks.json`, also with a backup. If you have OpenCode, it adds a plugin at `~\.config\opencode\plugins\kodama.js`.
 - **A Windows task** named "Kodama" that starts Kodama when you sign in and, every 10 minutes, checks that it is running.
 - Its files live in the `Kodama` folder of your user profile, including a private Python environment (`.venv`).
 
