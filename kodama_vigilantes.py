@@ -29,6 +29,23 @@ import kodama_prefs
 _SALUD = {}
 
 
+def _salud_cargar():
+    """(19-nov) Avisos de salud ya dados (clave -> epoch): sobreviven a los reinicios del hub. {} si no se lee."""
+    try:
+        d = json.load(open(os.path.join(BASE, "salud_avisos.json"), encoding="utf-8"))
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+
+def _salud_guardar():
+    try:
+        with open(os.path.join(BASE, "salud_avisos.json"), "w", encoding="utf-8") as f:
+            json.dump(_SALUD, f)
+    except Exception:
+        pass
+
+
 def chequear_salud():
     problemas = []
     c = grupos_app.catalogo(max_edad=0)
@@ -58,20 +75,23 @@ def chequear_salud():
     except OSError:
         viejo = None
     hubo_uso = any(time.time() - os.path.getmtime(os.path.join(SES, n)) < 3600 for n in os.listdir(SES)) if os.path.isdir(SES) else False
-    if hubo_uso and (viejo is None or viejo > 3 * 3600):
-        problemas.append(("uso", "El uso del plan dejó de actualizarse en los archivos de la app de Claude: "
-                                 "el porcentaje del celular pasa a ser estimado."))
+    # (19-nov) la app ya solo anota la semana, cada 1-2 dias: 3 h daba falsas alarmas
+    if hubo_uso and (viejo is None or viejo > 8 * 86400):
+        problemas.append(("uso", "El uso del plan no se actualiza en la app de Claude desde hace más de una semana: "
+                                 "el porcentaje pasa a ser estimado."))
     return problemas
 
 
 def vigilar_salud():
     time.sleep(120)
+    _SALUD.update(_salud_cargar())
     while True:
         try:
             for clave, texto in chequear_salud():
                 if time.time() - _SALUD.get(clave, 0) < 86400:
                     continue
                 _SALUD[clave] = time.time()
+                _salud_guardar()
                 log(f"salud: {clave}: {texto}")
                 conf = cargar_conf()
                 if conf.get("dueno"):

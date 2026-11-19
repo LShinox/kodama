@@ -2209,6 +2209,7 @@ async function ajLectura(cuerpo) {
   const u = j.uso || {};
   $("aj-uso").hidden = !(u["5h"] || u.semana);
   $("aj-uso5l").textContent = window.t("Plan · últimas 5 horas"); ajBarra("5", u["5h"]);
+  $("aj-uso5").closest(".bu").hidden = !u["5h"];   // (19-nov) sin ventana de 5 h: la barra no se muestra
   $("aj-usowl").textContent = window.t("Plan · semana"); ajBarra("w", u.semana);
   $("aj-uso-nota").textContent = !(u["5h"] || u.semana) ? window.t("Sin dato del uso del plan todavía.") : u.exacto ? window.t("Dato exacto") : window.t("≈ estimado, sin gastar plan");
   $("aj-lectura-nota").textContent = !j.activa ? window.t("Apagado: el uso sale del archivo de la app de Claude y de un estimado (no gasta plan). Actívalo si quieres el dato exacto a pedido; gasta un poco de plan y la app de Claude cambia de chat unos segundos.")

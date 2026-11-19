@@ -17,6 +17,7 @@ para uso no comercial, no es código abierto). También puedes **descargar las v
 | El gato cambia con tu chat. En la cápsula están el aviso, el globo y las respuestas rápidas. | Lista de chats, respuestas rápidas y permisos con Permitir / Denegar. | La ventana de Ajustes sale de la mascota y te cuenta qué hay de nuevo. |
 
 ## Novedades (noviembre 2026)
+- **1.0.2 — Solo uso semanal:** Claude quitó la ventana de 5 horas, así que Kodama muestra solo el uso semanal del plan. El aviso «el uso del plan dejó de actualizarse» sale como mucho una vez al día.
 - **1.0.1 — Ajustes > Extras:** prende o apaga cada módulo opcional (correo, integraciones, chat con IA, recordatorio de agua). Vienen apagados; lo apagado no se muestra ni corre.
 - **Compatible con OpenCode:** avisos, permisos y respuestas desde el celular, con tu plan de ChatGPT, DeepSeek o modelos gratis.
 - **Responde a Codex desde el celular** mientras te espera.

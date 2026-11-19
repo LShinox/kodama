@@ -125,9 +125,10 @@ try:
     ok("al ganador le falta la 5 h: se completa con la otra fuente fresca", e["fuente"] == "statusline" and e["semana"]["pct"] == 62
        and e["5h"] == {"pct": 40}, str(e))
 
-    orig = {n: getattr(km, n) for n in ("pedir_medicion", "segundos_sin_uso", "lectura_exacta_activa", "log", "USO_JSON", "HIST_APP")}
+    orig = {n: getattr(km, n) for n in ("pedir_medicion", "segundos_sin_uso", "lectura_exacta_activa", "log", "USO_JSON", "HIST_APP", "VENTANA_5H")}
     o_act, o_est = estimador.actualizar, estimador.estimar
     try:
+        km.VENTANA_5H = True   # (19-nov) estas pruebas cubren la ventana de 5 h (hoy apagada: ver probar_sin_5h.py)
         km.pedir_medicion = lambda *a, **k: pedidos.append(1)
         km.segundos_sin_uso = lambda: 9999
         km.lectura_exacta_activa = lambda: True

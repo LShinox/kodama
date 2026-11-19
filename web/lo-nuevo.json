@@ -1,4 +1,22 @@
 {
+  "1.0.2": {
+    "es": [
+      "Claude ya no tiene la ventana de 5 horas: Kodama muestra solo el uso semanal del plan.",
+      "El aviso «el uso del plan dejó de actualizarse» sale como mucho una vez al día, también tras reiniciar, y solo si pasa más de una semana sin datos.",
+      "Ajustes > Extras: prende o apaga cada módulo opcional (correo, integraciones, chat con IA, recordatorio de agua). Vienen apagados.",
+      "OpenCode: avisos, permisos y respuestas desde el celular.",
+      "Responde a Codex desde el celular mientras te espera.",
+      "El celular te dice por qué un mensaje está esperando."
+    ],
+    "en": [
+      "Claude no longer has the 5-hour window: Kodama shows only the weekly plan usage.",
+      "The «plan usage stopped updating» notice shows at most once a day, also after a restart, and only after more than a week without data.",
+      "Settings > Extras: turn each optional module on or off (mail, integrations, chat with AI, water reminder). They come turned off.",
+      "OpenCode: alerts, permissions and replies from your phone.",
+      "Reply to Codex from your phone while it waits for you.",
+      "The phone tells you why a message is waiting."
+    ]
+  },
   "1.0.1": {
     "es": [
       "Ajustes > Extras: prende o apaga cada módulo opcional (correo, integraciones, chat con IA, recordatorio de agua). Vienen apagados; lo apagado no se muestra ni corre.",
@@ -6,16 +24,7 @@
       "Suelta archivos sobre la mascota: sus patitas los agarran y los adjuntas al chat que elijas.",
       "Dentro del globo está la lista «Chats que te esperan», con archivar por fila.",
       "Ves si tu chat está pensando o ejecutando un comando, una búsqueda o un subagente.",
-      "Si respondes directo en la PC, el aviso se cierra solo.",
-      "En el celular, el botón atrás vuelve un paso, y los archivos que tu chat te manda se ven ahí mismo.",
-      "OpenCode: Kodama ahora también te avisa y te deja aprobar permisos y responder desde el celular cuando usas OpenCode (con tu plan de ChatGPT, DeepSeek o modelos gratis).",
-      "Ahora también puedes responder a Codex desde el celular mientras te espera.",
-      "Claude Code dentro de WSL: Kodama lo detecta y te avisa igual que en Windows.",
-      "Si un mensaje del celular no llega todavía, el aviso te dice por qué (por ejemplo, «tu PC está en uso; lo entrego cuando la dejes 2 min»).",
-      "Si Telegram falla o se pone lento, los avisos ya no se atrasan.",
-      "Avisos al 80, 95 y 100 % del límite de tu plan de Claude.",
-      "Desde el celular puedes mandar PDF y varias fotos en el mismo mensaje.",
-      "Más estable: «Salir» del menú de la bandeja funciona aunque la mascota se haya colgado, la mascota se recupera sola si el WebView se cae, y el globo ya no se corta si el gato arranca en otro monitor."
+      "Si respondes directo en la PC, el aviso se cierra solo."
     ],
     "en": [
       "Settings > Extras: turn each optional module on or off (mail, integrations, chat with AI, water reminder). They come turned off; what's off isn't shown and doesn't run.",
@@ -23,16 +32,7 @@
       "Drop files on the mascot: its paws grab them and you attach them to the chat you choose.",
       "The «Chats waiting for you» list now lives inside the bubble, with archive on each row.",
       "You see whether your chat is thinking or running a command, a web search or a subagent.",
-      "If you answer straight on the PC, the alert closes by itself.",
-      "On the phone, the back button goes back one step, and the files your chat sends you show up right there.",
-      "OpenCode: Kodama now also alerts you, and lets you approve permissions and reply from your phone, when you use OpenCode (with your ChatGPT plan, DeepSeek or free models).",
-      "You can now reply to Codex from your phone while it is waiting for you.",
-      "Claude Code inside WSL: Kodama detects it and alerts you just like on Windows.",
-      "If a message from your phone hasn't been delivered yet, the notice tells you why (for example, «your PC is in use; I'll deliver it when you leave it for 2 min»).",
-      "If Telegram fails or slows down, your alerts are no longer delayed.",
-      "Alerts at 80, 95 and 100% of your Claude plan limit.",
-      "From your phone you can send PDFs and several photos in the same message.",
-      "More stable: «Exit» in the tray menu works even if the mascot has hung, the mascot recovers by itself if its WebView crashes, and the bubble is no longer cut off when the cat starts on another monitor."
+      "If you answer straight on the PC, the alert closes by itself."
     ]
   },
   "1.0.0": {

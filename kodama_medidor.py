@@ -32,6 +32,7 @@ _EST = {"v": None, "pedido5h": 0}
 
 USO_JSON = os.path.join(BASE, "uso.json")   # lo escribe companero_uso.py (statusLine de Claude Code)
 FRESCO_USO_S = 1200                          # el dato de la statusLine / de la app sirve si es de hace menos de 20 min
+VENTANA_5H = False   # (19-nov) Claude quito la ventana de 5 h: solo queda la semanal. True la vuelve a mostrar
 # (28-oct) historial de la propia app de Claude (la app de escritorio no ejecuta la statusLine). Muestras {"org","t" (ms),
 # "u": {"fh": % de 5 h, "sd": % de la semana}} cada ~15 min (mediana 900 s, p90 ~960 s) mientras la app esta abierta: 20 min
 # cubre un intervalo normal con margen. No trae hora de reinicio.
@@ -155,13 +156,21 @@ def combinar_uso(exacto, estimado):
     return r
 
 
+def _sin_5h(d):
+    """(19-nov) Sin ventana de 5 h: quita "5h" del dato. None si ya no queda la semana."""
+    if not d or VENTANA_5H:
+        return d
+    r = {k: v for k, v in d.items() if k != "5h"}
+    return r if isinstance(r.get("semana"), dict) else None
+
+
 def _ciclo_estimar():
     """Una vuelta del hilo estimar_uso() (aparte para poder probarla). Con un dato fresco de la statusLine o del historial
     de la app (el mas nuevo manda) el dato es exacto y NO se pide lectura al Medidor; sin ninguno todo sigue como antes."""
     import estimador
     estimador.actualizar()
-    exacto = elegir_exacto(uso_statusline(), uso_app())
-    v = combinar_uso(exacto, estimador.estimar(grupos_app.APP))
+    exacto = _sin_5h(elegir_exacto(uso_statusline(), uso_app()))
+    v = combinar_uso(exacto, _sin_5h(estimador.estimar(grupos_app.APP)))
     _EST["v"] = v
     p5 = ((v or {}).get("5h") or {})
     if not exacto and p5.get("estimado") and p5.get("pct", 0) >= 80 and segundos_sin_uso() >= 120 and lectura_exacta_activa() \
