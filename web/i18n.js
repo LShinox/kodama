@@ -42,6 +42,8 @@
       "Integraciones": "Integrations",   // (05-nov) Integraciones, Correo, Chat con IA (PC y celular)
       "Correo": "Mail",
       "Chat con IA": "Chat with AI",
+      "Extras": "Extras",
+      "Módulos opcionales. Vienen apagados; lo que está apagado no se muestra ni corre.": "Optional modules. They come turned off; what's off isn't shown and doesn't run.",
       "Pasarela local": "Local gateway",
       "Ver ruta": "Show route",
       "WhatsApp no tiene una vía oficial para cuentas personales. Una pasarela no oficial puede hacer que WhatsApp bloquee tu número: úsala bajo tu propio riesgo. Kodama no la instala.": "WhatsApp has no official route for personal accounts. An unofficial gateway can get your number blocked by WhatsApp: use it at your own risk. Kodama does not install it.",

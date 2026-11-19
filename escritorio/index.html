@@ -447,11 +447,12 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
       <div class="sec"><div class="fi ir" data-accion="conectar"><span data-t>Conectar celular</span><span class="v"></span></div></div>
       <div class="cab" data-t>Más</div>
       <div class="sec">
+        <div class="fi ir" data-ir="extras"><span data-t>Extras</span><span class="v" id="aj-exv"></span></div>
         <div class="fi ir" data-ir="uso"><span data-t>Uso del plan</span><span class="v"></span></div>
         <div class="fi ir" data-ir="silencio"><span data-t>Horas de silencio</span><span class="v" id="aj-silv"></span></div>
-        <div class="fi ir" data-ir="integraciones"><span data-t>Integraciones</span><span class="v"></span></div>
-        <div class="fi ir" data-ir="correo"><span data-t>Correo</span><span class="v"></span></div>
-        <div class="fi ir" data-ir="ia"><span data-t>Chat con IA</span><span class="v"></span></div>
+        <div class="fi ir" data-ir="integraciones" id="aj-fila-integraciones"><span data-t>Integraciones</span><span class="v"></span></div>
+        <div class="fi ir" data-ir="correo" id="aj-fila-correo"><span data-t>Correo</span><span class="v"></span></div>
+        <div class="fi ir" data-ir="ia" id="aj-fila-ia"><span data-t>Chat con IA</span><span class="v"></span></div>
         <div class="fi ir" data-ir="reglas"><span data-t>Reglas de permisos</span><span class="v" id="aj-nreglas"></span></div>
         <div class="fi ir" data-ir="conexion"><span data-t>Conexión con tus IA</span><span class="v"></span></div>
         <div class="fi ir" data-ir="actualiz"><span data-t>Actualizaciones</span><span class="v"><span class="bdg" id="aj-bdg" hidden>1</span></span></div>
@@ -487,6 +488,17 @@ document.addEventListener("contextmenu", e => { const t = e.target; if (!(t && t
         <div class="fi"><span data-t>Dejar pasar permisos y preguntas</span><span class="sw" id="aj-sil-u"></span></div>
       </div>
       <div class="pie2" data-t>En ese horario no hay sonidos, avisos en pantalla, notificaciones en el celular ni mensajes de Telegram. Los chats siguen trabajando y lo pendiente sigue en la app.</div>
+    </section>
+    <!-- (19-nov) Extras: modulos opcionales (api/extras). Vienen apagados; lo apagado no se muestra ni corre -->
+    <section class="pg" data-p="extras"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Extras</h2>
+      <div class="sec">
+        <div class="fi"><span data-t>Correo</span><span class="sw" id="aj-ex-correo"></span></div>
+        <div class="fi"><span data-t>Integraciones</span><span class="sw" id="aj-ex-integraciones"></span></div>
+        <div class="fi"><span data-t>Chat con IA</span><span class="sw" id="aj-ex-ia"></span></div>
+        <div class="fi"><span data-t>Recordar tomar agua y levantarme</span><span class="sw" id="aj-ex-pausas"></span></div>
+      </div>
+      <div class="pie2" data-t>Módulos opcionales. Vienen apagados; lo que está apagado no se muestra ni corre.</div>
+      <div class="pie2" id="aj-ex-nota"></div>
     </section>
     <!-- (05-nov) Integraciones: canales y su actividad; todo sale del hub (ruta /api/integraciones) -->
     <section class="pg" data-p="integraciones"><button type="button" class="at">‹ <span data-t>Ajustes</span></button><h2 data-t>Integraciones</h2>
@@ -1760,7 +1772,7 @@ const AJ = { W: 380, H: 560 };
 const ajP = companero.panel;
 if (ajP && ajP.hubBytes) cargarSonidos();   // (04-nov) sonidos propios al arrancar (si hay archivos en estado\sonidos)
 function ajIr(p) { document.querySelectorAll("#ajpc .pg").forEach(s => s.classList.toggle("on", s.dataset.p === p));
-  if (p === "uso") { ajLectura(); ajPrefsLeer(); } if (p === "silencio") ajPrefsLeer(); if (p === "reglas") ajReglas(); if (p === "conexion") ajHooks(); if (p === "actualiz") ajActualiz(); if (p === "personaje") ajPersonaje(); if (p === "integraciones") ajInteg(); if (p === "correo") ajCorreo(); if (p === "ia") ajIa(); if (islaOn) islaGatoTit(); }
+  if (p === "uso") { ajLectura(); ajPrefsLeer(); } if (p === "silencio") ajPrefsLeer(); if (p === "extras") ajExtrasLeer(); if (p === "reglas") ajReglas(); if (p === "conexion") ajHooks(); if (p === "actualiz") ajActualiz(); if (p === "personaje") ajPersonaje(); if (p === "integraciones") ajInteg(); if (p === "correo") ajCorreo(); if (p === "ia") ajIa(); if (islaOn) islaGatoTit(); }
 async function abrirPanel(pag) {
   if (!ajP) return;
   ajIr(pag || "inicio"); ajPintar(); ajLoNuevo();
@@ -1931,6 +1943,7 @@ function ajPintar() {
   document.querySelectorAll("#aj-capcol span").forEach(s => s.classList.toggle("on", s.dataset.v === c.capsulaColor));
   $("aj-bdg").hidden = !c.nueva;
   ajPrefsLeer();
+  ajExtrasLeer();
   ajIslaFila(c);   // (28-oct) solo macOS: el selector "Modo isla (muesca)"
   ajP.hub("/api/reglas", {}).then(j => { const n = (j.siempre || []).length + (j.tarea || []).reduce((a, x) => a + x.claves.length, 0); $("aj-nreglas").textContent = n || ""; });
 }
@@ -2167,6 +2180,29 @@ if (ajP) {
   $("aj-aluso").onclick = () => ajPrefsLeer({ alertas_uso: !$("aj-aluso").classList.contains("si") });
   $("aj-pausas").onclick = () => ajPrefsLeer({ pausas: { activo: !$("aj-pausas").classList.contains("si") } });
 }
+// (19-nov) Extras: interruptor por modulo opcional (api/extras). Apagado = su fila no se ve en Ajustes y su vigilante no corre
+const AJ_EXTRAS = ["correo", "integraciones", "ia", "pausas"];
+let ajExtras = null;
+function ajExtrasPintar() {
+  if (!ajExtras) return;   // hub viejo o sin respuesta: se deja todo como estaba
+  let n = 0;
+  for (const k of AJ_EXTRAS) {
+    const m = ajExtras[k] || {}, on = !!m.activo, sw = $("aj-ex-" + k);
+    if (on) n++;
+    if (sw) { sw.classList.toggle("si", on); const fi = sw.closest(".fi"); if (fi) fi.style.opacity = m.disponible === false ? ".45" : ""; }
+    const fila = k === "pausas" ? ($("aj-pausas") && $("aj-pausas").closest(".sec")) : $("aj-fila-" + k);
+    if (fila) fila.style.display = on ? "" : "none";
+  }
+  $("aj-exv").textContent = n ? String(n) : "";
+}
+async function ajExtrasLeer(cuerpo) {
+  let j = null; try { j = await ajP.hub("/api/extras", cuerpo); } catch (e) { j = null; }
+  if (j && j.extras) { ajExtras = j.extras; ajNota("aj-ex-nota", ""); } else if (cuerpo) ajNota("aj-ex-nota", window.t("No disponible"));
+  ajExtrasPintar();
+}
+if (ajP) for (const k of AJ_EXTRAS) { const sw = $("aj-ex-" + k); if (sw) sw.onclick = () => {
+  const m = (ajExtras || {})[k]; if (m && m.disponible === false) return ajNota("aj-ex-nota", window.t("No disponible"));
+  ajExtrasLeer({ nombre: k, activo: !sw.classList.contains("si") }); }; }
 async function ajLectura(cuerpo) {
   const j = await ajP.hub("/api/lectura-exacta", cuerpo || {}); $("aj-lectura").classList.toggle("si", !!j.activa);
   // (28-oct) 5 h y semana con la hora LOCAL de reinicio: exacto si Claude Code se lo pasó a Kodama (statusLine), si no ≈ estimado

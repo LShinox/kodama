@@ -17,6 +17,7 @@ noncommercial use, not open source). You can also **download releases, report pr
 | The cat changes with your chat. The capsule holds the notification, the bubble and the quick replies. | Chat list, quick replies and permissions with Allow / Deny. | The Settings window slides out of the mascot and tells you what's new. |
 
 ## What's new (November 2026)
+- **1.0.1 — Settings > Extras:** turn each optional module on or off (mail, integrations, chat with AI, water reminder). They come turned off; what's off isn't shown and doesn't run.
 - **OpenCode support:** alerts, permissions and replies from your phone, with your ChatGPT plan, DeepSeek or free models.
 - **Reply to Codex from your phone** while it is waiting for you.
 - **Claude Code inside WSL** is detected and works like on Windows.
